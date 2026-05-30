@@ -1,0 +1,888 @@
+"use strict";
+
+const translations = {
+  sk: {
+    tagline: "Jednoduchy IPTV prehravac",
+    openPlaylist: "Playlist",
+    openEpg: "EPG",
+    load: "Nacitat",
+    loadEpg: "Nacitat EPG",
+    sample: "Demo",
+    search: "Hladat kanal",
+    guide: "Program",
+    noChannels: "Nacitajte M3U/M3U8 alebo XSPF playlist, pripadne spustite demo.",
+    noEpg: "EPG este nie je nacitane.",
+    noProgram: "Program nie je dostupny",
+    now: "Teraz",
+    next: "Nasleduje",
+    html5Notice: "HTML5 video prehravac je aktivny. Niektore HLS streamy (.m3u8) potrebuju nativnu podporu prehliadaca.",
+    optionalMissing: "Tento player nie je pribaleny. Nacitajte jeho kniznicu alebo pouzite HTML5.",
+    externalPlayer: "Externy player nemoze spustit obycajna web stranka priamo. Prikaz bol pripraveny na kopirovanie.",
+    externalLaunch: "Otvaram externy player",
+    externalFailed: "Externy player sa nepodarilo spustit.",
+    copied: "Prikaz je pripraveny v schranke.",
+    loadError: "Nepodarilo sa nacitat zdroj.",
+    playlistLoaded: "Playlist nacitany",
+    epgLoaded: "EPG nacitane",
+    logoTitle: "Vybrat logo",
+  },
+  en: {
+    tagline: "Simple IPTV player",
+    openPlaylist: "Playlist",
+    openEpg: "EPG",
+    load: "Load",
+    loadEpg: "Load EPG",
+    sample: "Demo",
+    search: "Search channel",
+    guide: "Guide",
+    noChannels: "Load an M3U/M3U8 or XSPF playlist, or start the demo.",
+    noEpg: "EPG is not loaded yet.",
+    noProgram: "Program is not available",
+    now: "Now",
+    next: "Next",
+    html5Notice: "HTML5 video player is active. Some HLS streams (.m3u8) need native browser support.",
+    optionalMissing: "This player is not bundled. Load its library or use HTML5.",
+    externalPlayer: "A plain web page cannot start an external player directly. A command was prepared for copying.",
+    externalLaunch: "Opening external player",
+    externalFailed: "Could not start the external player.",
+    copied: "Command is ready in the clipboard.",
+    loadError: "Could not load the source.",
+    playlistLoaded: "Playlist loaded",
+    epgLoaded: "EPG loaded",
+    logoTitle: "Choose logo",
+  },
+};
+
+const state = {
+  language: localStorage.getItem("tclv.language") || "sk",
+  channels: [],
+  epg: new Map(),
+  selectedChannelId: null,
+  selectedLogoChannelId: null,
+  player: localStorage.getItem("tclv.player") || "html5",
+  overlayTimer: 0,
+  videoJsPlayer: null,
+  artPlayer: null,
+};
+
+const dom = {
+  playlistFile: document.querySelector("#playlistFile"),
+  epgFile: document.querySelector("#epgFile"),
+  playlistUrl: document.querySelector("#playlistUrl"),
+  epgUrl: document.querySelector("#epgUrl"),
+  loadPlaylistUrl: document.querySelector("#loadPlaylistUrl"),
+  loadEpgUrl: document.querySelector("#loadEpgUrl"),
+  searchInput: document.querySelector("#searchInput"),
+  sampleButton: document.querySelector("#sampleButton"),
+  playerSelect: document.querySelector("#playerSelect"),
+  languageSelect: document.querySelector("#languageSelect"),
+  channelGrid: document.querySelector("#channelGrid"),
+  channelTemplate: document.querySelector("#channelTemplate"),
+  video: document.querySelector("#videoPlayer"),
+  artPlayerHost: document.querySelector("#artPlayerHost"),
+  playerMessage: document.querySelector("#playerMessage"),
+  switchOverlay: document.querySelector("#switchOverlay"),
+  nowPanel: document.querySelector("#nowPanel"),
+  epgGuide: document.querySelector("#epgGuide"),
+  guideRange: document.querySelector("#guideRange"),
+  logoFile: document.querySelector("#logoFile"),
+};
+
+function t(key) {
+  return translations[state.language][key] || translations.en[key] || key;
+}
+
+function placeholderLogo(name) {
+  const initials = (name || "TV")
+    .split(/\s+/)
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 3)
+    .toUpperCase();
+  const hue = Math.abs(hashCode(name || "TV")) % 360;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160"><rect width="160" height="160" fill="hsl(${hue} 72% 46%)"/><text x="80" y="92" text-anchor="middle" font-family="Arial, sans-serif" font-size="42" font-weight="700" fill="white">${escapeXml(initials)}</text></svg>`;
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+}
+
+function hashCode(value) {
+  let hash = 0;
+  for (let i = 0; i < value.length; i += 1) {
+    hash = (hash << 5) - hash + value.charCodeAt(i);
+    hash |= 0;
+  }
+  return hash;
+}
+
+function escapeXml(value) {
+  return String(value).replace(/[<>&"']/g, (char) => ({
+    "<": "&lt;",
+    ">": "&gt;",
+    "&": "&amp;",
+    "\"": "&quot;",
+    "'": "&apos;",
+  })[char]);
+}
+
+function normalizeId(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function getChannelLogo(channel) {
+  return localStorage.getItem(`tclv.logo.${channel.id}`) || channel.logo || placeholderLogo(channel.name);
+}
+
+function parseM3U(text) {
+  const lines = text.replace(/^\uFEFF/, "").split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  const channels = [];
+  let meta = null;
+
+  for (const line of lines) {
+    if (line.startsWith("#EXTINF")) {
+      const commaIndex = line.indexOf(",");
+      const info = commaIndex >= 0 ? line.slice(0, commaIndex) : line;
+      const title = commaIndex >= 0 ? line.slice(commaIndex + 1).trim() : "";
+      meta = {
+        name: attr(info, "tvg-name") || title || "Channel",
+        tvgId: attr(info, "tvg-id") || attr(info, "channel-id") || "",
+        logo: attr(info, "tvg-logo") || "",
+        group: attr(info, "group-title") || "",
+      };
+      continue;
+    }
+
+    if (!line.startsWith("#")) {
+      const name = meta?.name || line.split("/").pop() || "Channel";
+      const tvgId = meta?.tvgId || "";
+      channels.push({
+        id: uniqueId(tvgId || name || line, channels),
+        tvgId,
+        name,
+        logo: meta?.logo || "",
+        group: meta?.group || "",
+        url: line,
+      });
+      meta = null;
+    }
+  }
+
+  return channels;
+}
+
+function parseXspf(text) {
+  const doc = parseXml(text);
+  const tracks = [...doc.querySelectorAll("track")];
+  const channels = [];
+  tracks.forEach((track, index) => {
+    const name = textOf(track, "title") || textOf(track, "annotation") || `Channel ${index + 1}`;
+    const url = textOf(track, "location");
+    const tvgId = track.getAttribute("id") || "";
+    if (!url) return;
+    channels.push({
+      id: uniqueId(tvgId || name || String(index), channels),
+      tvgId,
+      name,
+      logo: textOf(track, "image"),
+      group: textOf(track, "creator"),
+      url,
+    });
+  });
+  return channels;
+}
+
+function attr(text, name) {
+  const pattern = new RegExp(`${name}\\s*=\\s*("([^"]*)"|'([^']*)'|([^\\s]+))`, "i");
+  const match = text.match(pattern);
+  return match ? (match[2] || match[3] || match[4] || "").trim() : "";
+}
+
+function uniqueId(seed, existing) {
+  const base = normalizeId(seed) || "channel";
+  const ids = new Set(existing.map((item) => item.id));
+  let value = base;
+  let counter = 2;
+  while (ids.has(value)) {
+    value = `${base}-${counter}`;
+    counter += 1;
+  }
+  return value;
+}
+
+function parseXml(text) {
+  const doc = new DOMParser().parseFromString(text, "application/xml");
+  const error = doc.querySelector("parsererror");
+  if (error) throw new Error(error.textContent || "XML parse error");
+  return doc;
+}
+
+function textOf(root, selector) {
+  return root.querySelector(selector)?.textContent?.trim() || "";
+}
+
+function parseXmlTv(text) {
+  const doc = parseXml(text);
+  const epg = new Map();
+  const displayNames = new Map();
+
+  for (const item of doc.querySelectorAll("channel")) {
+    const id = item.getAttribute("id") || "";
+    const name = textOf(item, "display-name");
+    if (id && name) displayNames.set(id, name);
+  }
+
+  for (const item of doc.querySelectorAll("programme")) {
+    const channelId = item.getAttribute("channel") || "";
+    const program = {
+      channelId,
+      channelName: displayNames.get(channelId) || "",
+      start: parseXmlTvDate(item.getAttribute("start")),
+      stop: parseXmlTvDate(item.getAttribute("stop")),
+      title: textOf(item, "title") || t("noProgram"),
+      desc: textOf(item, "desc"),
+    };
+    if (!program.start || !program.stop || program.stop <= program.start) continue;
+    if (!epg.has(channelId)) epg.set(channelId, []);
+    epg.get(channelId).push(program);
+  }
+
+  for (const entries of epg.values()) {
+    entries.sort((a, b) => a.start - b.start);
+  }
+
+  return epg;
+}
+
+function parseXmlTvDate(value) {
+  const match = String(value || "").match(/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})(?:\s*([+-])(\d{2})(\d{2}))?/);
+  if (!match) return null;
+  const [, year, month, day, hour, minute, second, sign, offsetHour, offsetMinute] = match;
+  let timestamp = Date.UTC(+year, +month - 1, +day, +hour, +minute, +second);
+  if (sign) {
+    const offset = ((+offsetHour * 60) + +offsetMinute) * 60 * 1000;
+    timestamp += sign === "+" ? -offset : offset;
+  }
+  return new Date(timestamp);
+}
+
+function findPrograms(channel) {
+  const keys = [
+    channel.tvgId,
+    channel.id,
+    channel.name,
+  ].filter(Boolean);
+
+  for (const key of keys) {
+    if (state.epg.has(key)) return state.epg.get(key);
+  }
+
+  const wanted = normalizeId(channel.name);
+  for (const [epgId, programs] of state.epg.entries()) {
+    const first = programs[0];
+    if (normalizeId(epgId) === wanted || normalizeId(first?.channelName) === wanted) return programs;
+  }
+
+  return [];
+}
+
+function currentProgram(channel, now = new Date()) {
+  const programs = findPrograms(channel);
+  return programs.find((program) => program.start <= now && program.stop > now) || null;
+}
+
+function nextProgram(channel, now = new Date()) {
+  const programs = findPrograms(channel);
+  return programs.find((program) => program.start > now) || null;
+}
+
+function progress(program, now = new Date()) {
+  if (!program) return 0;
+  const total = program.stop - program.start;
+  if (total <= 0) return 0;
+  return Math.max(0, Math.min(100, ((now - program.start) / total) * 100));
+}
+
+function renderAll() {
+  translateUi();
+  renderChannels();
+  renderNow();
+  renderGuide();
+}
+
+function translateUi() {
+  document.documentElement.lang = state.language;
+  dom.languageSelect.value = state.language;
+  dom.playerSelect.value = state.player;
+
+  document.querySelectorAll("[data-i18n]").forEach((node) => {
+    node.textContent = t(node.dataset.i18n);
+  });
+  document.querySelectorAll("[data-i18n-placeholder]").forEach((node) => {
+    node.placeholder = t(node.dataset.i18nPlaceholder);
+  });
+}
+
+function renderChannels() {
+  const query = dom.searchInput.value.trim().toLowerCase();
+  const channels = state.channels.filter((channel) => channel.name.toLowerCase().includes(query));
+  dom.channelGrid.textContent = "";
+
+  if (!channels.length) {
+    const empty = document.createElement("div");
+    empty.className = "empty-state";
+    empty.textContent = t("noChannels");
+    dom.channelGrid.append(empty);
+    return;
+  }
+
+  const now = new Date();
+  channels.forEach((channel) => {
+    const node = dom.channelTemplate.content.firstElementChild.cloneNode(true);
+    const program = currentProgram(channel, now);
+    node.dataset.id = channel.id;
+    node.tabIndex = 0;
+    node.setAttribute("role", "button");
+    node.setAttribute("aria-label", channel.name);
+    node.classList.toggle("active", channel.id === state.selectedChannelId);
+    node.querySelector(".channel-logo").src = getChannelLogo(channel);
+    node.querySelector(".channel-logo").alt = channel.name;
+    node.querySelector("h3").textContent = channel.name;
+    node.querySelector("p").textContent = program?.title || channel.group || t("noProgram");
+    node.querySelector(".progress-track span").style.width = `${progress(program, now)}%`;
+    node.querySelector(".logo-action").title = t("logoTitle");
+    node.querySelector(".logo-action").addEventListener("click", (event) => {
+      event.stopPropagation();
+      state.selectedLogoChannelId = channel.id;
+      dom.logoFile.click();
+    });
+    node.addEventListener("click", () => selectChannel(channel.id));
+    node.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        selectChannel(channel.id);
+      }
+    });
+    dom.channelGrid.append(node);
+  });
+}
+
+function renderNow() {
+  const channel = selectedChannel();
+  if (!channel) {
+    dom.nowPanel.innerHTML = `<div class="empty-state">${t("noChannels")}</div>`;
+    return;
+  }
+
+  const now = currentProgram(channel);
+  const next = nextProgram(channel);
+  dom.nowPanel.innerHTML = `
+    <div class="now-layout">
+      <div>
+        <h2>${escapeHtml(channel.name)}</h2>
+        <p><strong>${t("now")}:</strong> ${escapeHtml(now?.title || t("noProgram"))}</p>
+        <p><strong>${t("next")}:</strong> ${escapeHtml(next?.title || t("noProgram"))}</p>
+      </div>
+      <div class="status-pill">${escapeHtml(state.player.toUpperCase())}</div>
+    </div>
+  `;
+}
+
+function renderGuide() {
+  const start = floorToHalfHour(new Date(Date.now() - 2 * 60 * 60 * 1000));
+  const end = new Date(start.getTime() + 8 * 60 * 60 * 1000);
+  const duration = end - start;
+  const channels = state.channels.slice(0, 80);
+  dom.guideRange.textContent = `${formatTime(start)} - ${formatTime(end)}`;
+
+  if (!channels.length) {
+    dom.epgGuide.innerHTML = `<div class="empty-state">${t("noChannels")}</div>`;
+    return;
+  }
+
+  const width = 1280;
+  const timeline = document.createElement("div");
+  timeline.className = "timeline";
+  timeline.style.width = `${width + 170}px`;
+
+  const header = document.createElement("div");
+  header.className = "timeline-header";
+  header.innerHTML = `<div class="timeline-corner"></div><div class="time-slots"></div>`;
+  header.querySelector(".time-slots").style.width = `${width}px`;
+  for (let cursor = new Date(start); cursor <= end; cursor = new Date(cursor.getTime() + 60 * 60 * 1000)) {
+    const slot = document.createElement("div");
+    slot.className = "time-slot";
+    slot.style.left = `${((cursor - start) / duration) * width}px`;
+    slot.style.width = `${width / 8}px`;
+    slot.textContent = formatTime(cursor);
+    header.querySelector(".time-slots").append(slot);
+  }
+  timeline.append(header);
+
+  channels.forEach((channel) => {
+    const row = document.createElement("div");
+    row.className = "timeline-row";
+    row.innerHTML = `
+      <div class="timeline-label">
+        <img src="${getChannelLogo(channel)}" alt="">
+        <span>${escapeHtml(channel.name)}</span>
+      </div>
+      <div class="program-track"></div>
+    `;
+    const track = row.querySelector(".program-track");
+    track.style.width = `${width}px`;
+    const programs = findPrograms(channel).filter((program) => program.stop > start && program.start < end);
+    if (!programs.length) {
+      const empty = document.createElement("div");
+      empty.className = "program";
+      empty.style.left = "8px";
+      empty.style.width = "160px";
+      empty.innerHTML = `<strong>${t("noEpg")}</strong>`;
+      track.append(empty);
+    } else {
+      programs.forEach((program) => {
+        const left = Math.max(0, ((program.start - start) / duration) * width);
+        const right = Math.min(width, ((program.stop - start) / duration) * width);
+        const node = document.createElement("div");
+        node.className = `program${program.start <= new Date() && program.stop > new Date() ? " current" : ""}`;
+        node.style.left = `${left}px`;
+        node.style.width = `${Math.max(44, right - left - 4)}px`;
+        node.title = `${program.title} ${formatTime(program.start)}-${formatTime(program.stop)}`;
+        node.innerHTML = `<strong>${escapeHtml(program.title)}</strong><span>${formatTime(program.start)} - ${formatTime(program.stop)}</span>`;
+        track.append(node);
+      });
+    }
+    timeline.append(row);
+  });
+
+  dom.epgGuide.replaceChildren(timeline);
+}
+
+function escapeHtml(value) {
+  const span = document.createElement("span");
+  span.textContent = String(value || "");
+  return span.innerHTML;
+}
+
+function selectedChannel() {
+  return state.channels.find((channel) => channel.id === state.selectedChannelId) || state.channels[0] || null;
+}
+
+function selectChannel(id) {
+  const channel = state.channels.find((item) => item.id === id);
+  if (!channel) return;
+  state.selectedChannelId = id;
+  playChannel(channel);
+  showSwitchOverlay(channel);
+  renderChannels();
+  renderNow();
+}
+
+function playChannel(channel) {
+  hideMessage();
+  localStorage.setItem("tclv.lastChannel", channel.id);
+
+  if (state.player === "html5") {
+    playHtml5(channel);
+    return;
+  }
+
+  if (state.player === "videojs") {
+    playVideoJs(channel);
+    return;
+  }
+
+  if (state.player === "artplayer") {
+    playArtPlayer(channel);
+    return;
+  }
+
+  stopInternalPlayers();
+  prepareExternalCommand(channel);
+}
+
+function playHtml5(channel) {
+  stopInternalPlayers();
+  showHtmlVideo();
+  dom.video.src = channel.url;
+  dom.video.load();
+  dom.video.play().catch(() => showMessage(t("html5Notice")));
+}
+
+async function playVideoJs(channel) {
+  try {
+    stopArtPlayer();
+    showHtmlVideo();
+    await ensureVideoJs();
+    state.videoJsPlayer = state.videoJsPlayer || window.videojs(dom.video, {
+      autoplay: true,
+      controls: true,
+      liveui: true,
+      fluid: false,
+    });
+    state.videoJsPlayer.src({
+      src: channel.url,
+      type: guessMimeType(channel.url),
+    });
+    state.videoJsPlayer.play()?.catch?.(() => showMessage(t("html5Notice")));
+  } catch (error) {
+    showMessage(`${t("optionalMissing")} ${error.message || ""}`.trim());
+  }
+}
+
+async function playArtPlayer(channel) {
+  try {
+    stopVideoJs();
+    await ensureArtPlayer();
+    dom.video.pause();
+    dom.video.removeAttribute("src");
+    dom.video.load();
+    dom.video.style.display = "none";
+    dom.artPlayerHost.style.display = "block";
+
+    if (state.artPlayer) {
+      state.artPlayer.switchUrl(channel.url);
+      state.artPlayer.play?.();
+      return;
+    }
+
+    state.artPlayer = new window.Artplayer({
+      container: dom.artPlayerHost,
+      url: channel.url,
+      autoplay: true,
+      isLive: true,
+      muted: false,
+      setting: true,
+      fullscreen: true,
+      fullscreenWeb: true,
+    });
+  } catch (error) {
+    showMessage(`${t("optionalMissing")} ${error.message || ""}`.trim());
+  }
+}
+
+function showHtmlVideo() {
+  dom.video.style.display = "block";
+  dom.artPlayerHost.style.display = "none";
+}
+
+function stopInternalPlayers() {
+  stopVideoJs();
+  stopArtPlayer();
+  dom.video.pause();
+}
+
+function stopVideoJs() {
+  if (state.videoJsPlayer) {
+    state.videoJsPlayer.pause();
+  }
+}
+
+function stopArtPlayer() {
+  if (state.artPlayer) {
+    state.artPlayer.pause?.();
+  }
+  dom.artPlayerHost.style.display = "none";
+}
+
+function guessMimeType(url) {
+  const clean = String(url || "").split("?")[0].toLowerCase();
+  if (clean.endsWith(".m3u8")) return "application/x-mpegURL";
+  if (clean.endsWith(".mp4")) return "video/mp4";
+  if (clean.endsWith(".webm")) return "video/webm";
+  return "application/x-mpegURL";
+}
+
+async function ensureVideoJs() {
+  if (window.videojs) return;
+  await ensureStyle("videojs-css", [
+    "./vendor/video.js/video-js.min.css",
+    "https://vjs.zencdn.net/8.21.1/video-js.min.css",
+  ]);
+  await ensureScript("videojs-js", [
+    "./vendor/video.js/video.min.js",
+    "https://vjs.zencdn.net/8.21.1/video.min.js",
+  ]);
+}
+
+async function ensureArtPlayer() {
+  if (window.Artplayer) return;
+  await ensureScript("artplayer-js", [
+    "./vendor/artplayer/artplayer.js",
+    "https://cdn.jsdelivr.net/npm/artplayer@5/dist/artplayer.js",
+  ]);
+}
+
+async function ensureScript(id, sources) {
+  if (document.querySelector(`script[data-loader-id="${id}"]`)) return;
+  await loadFirst(sources, (source, resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = source;
+    script.dataset.loaderId = id;
+    script.onload = resolve;
+    script.onerror = reject;
+    document.head.append(script);
+  });
+}
+
+async function ensureStyle(id, sources) {
+  if (document.querySelector(`link[data-loader-id="${id}"]`)) return;
+  await loadFirst(sources, (source, resolve, reject) => {
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = source;
+    link.dataset.loaderId = id;
+    link.onload = resolve;
+    link.onerror = reject;
+    document.head.append(link);
+  });
+}
+
+async function loadFirst(sources, attach) {
+  let lastError = null;
+  for (const source of sources) {
+    try {
+      await new Promise((resolve, reject) => attach(source, resolve, reject));
+      return;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError || new Error("Asset could not be loaded.");
+}
+
+async function prepareExternalCommand(channel) {
+  const executable = state.player === "vlc" ? "vlc" : "mpv";
+  const command = `${executable} "${channel.url}"`;
+  const nativeBridge = getNativeBridge();
+
+  if (nativeBridge) {
+    try {
+      await nativeBridge.openExternalPlayer({
+        player: state.player,
+        url: channel.url,
+        title: channel.name,
+      });
+      showMessage(`${t("externalLaunch")}: ${state.player.toUpperCase()}`);
+      return;
+    } catch (error) {
+      showMessage(`${t("externalFailed")} ${error.message || ""}`.trim());
+      return;
+    }
+  }
+
+  try {
+    await navigator.clipboard.writeText(command);
+    showMessage(`${t("externalPlayer")} ${t("copied")} ${command}`);
+  } catch {
+    showMessage(`${t("externalPlayer")} ${command}`);
+  }
+}
+
+function getNativeBridge() {
+  if (window.TCLVNative?.openExternalPlayer) {
+    return window.TCLVNative;
+  }
+
+  const capacitorPlugin = window.Capacitor?.Plugins?.TCLVPlayer;
+  if (capacitorPlugin?.openExternalPlayer) {
+    return {
+      openExternalPlayer: (payload) => capacitorPlugin.openExternalPlayer(payload),
+    };
+  }
+
+  return null;
+}
+
+function showSwitchOverlay(channel) {
+  const now = currentProgram(channel);
+  const next = nextProgram(channel);
+  dom.switchOverlay.innerHTML = `
+    <img src="${getChannelLogo(channel)}" alt="">
+    <div>
+      <h2>${escapeHtml(channel.name)}</h2>
+      <p><strong>${t("now")}:</strong> ${escapeHtml(now?.title || t("noProgram"))}</p>
+      <p><strong>${t("next")}:</strong> ${escapeHtml(next?.title || t("noProgram"))}</p>
+    </div>
+  `;
+  dom.switchOverlay.classList.add("show");
+  clearTimeout(state.overlayTimer);
+  state.overlayTimer = setTimeout(() => dom.switchOverlay.classList.remove("show"), 5200);
+}
+
+function showMessage(message) {
+  dom.playerMessage.textContent = message;
+  dom.playerMessage.style.display = "block";
+}
+
+function hideMessage() {
+  dom.playerMessage.style.display = "none";
+  dom.playerMessage.textContent = "";
+}
+
+async function loadTextFromUrl(url) {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+  return response.text();
+}
+
+async function loadPlaylistText(text, sourceName = "") {
+  const isXspf = sourceName.toLowerCase().endsWith(".xspf") || text.includes("<playlist");
+  const channels = isXspf ? parseXspf(text) : parseM3U(text);
+  state.channels = channels;
+  state.selectedChannelId = localStorage.getItem("tclv.lastChannel") || channels[0]?.id || null;
+  renderAll();
+  if (state.selectedChannelId) showSwitchOverlay(selectedChannel());
+  showMessage(`${t("playlistLoaded")}: ${channels.length}`);
+}
+
+async function loadEpgText(text) {
+  state.epg = parseXmlTv(text);
+  renderAll();
+  showMessage(`${t("epgLoaded")}: ${state.epg.size}`);
+}
+
+function readFile(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsText(file);
+  });
+}
+
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+}
+
+function formatTime(date) {
+  return new Intl.DateTimeFormat(state.language === "sk" ? "sk-SK" : "en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
+
+function floorToHalfHour(date) {
+  const next = new Date(date);
+  next.setMinutes(date.getMinutes() < 30 ? 0 : 30, 0, 0);
+  return next;
+}
+
+function bindEvents() {
+  dom.playlistFile.addEventListener("change", async () => {
+    const file = dom.playlistFile.files?.[0];
+    if (!file) return;
+    try {
+      await loadPlaylistText(await readFile(file), file.name);
+    } catch (error) {
+      showMessage(`${t("loadError")} ${error.message}`);
+    }
+  });
+
+  dom.epgFile.addEventListener("change", async () => {
+    const file = dom.epgFile.files?.[0];
+    if (!file) return;
+    try {
+      await loadEpgText(await readFile(file));
+    } catch (error) {
+      showMessage(`${t("loadError")} ${error.message}`);
+    }
+  });
+
+  dom.loadPlaylistUrl.addEventListener("click", async () => {
+    try {
+      const url = dom.playlistUrl.value.trim();
+      if (!url) return;
+      await loadPlaylistText(await loadTextFromUrl(url), url);
+    } catch (error) {
+      showMessage(`${t("loadError")} ${error.message}`);
+    }
+  });
+
+  dom.loadEpgUrl.addEventListener("click", async () => {
+    try {
+      const url = dom.epgUrl.value.trim();
+      if (!url) return;
+      await loadEpgText(await loadTextFromUrl(url));
+    } catch (error) {
+      showMessage(`${t("loadError")} ${error.message}`);
+    }
+  });
+
+  dom.searchInput.addEventListener("input", renderChannels);
+  dom.sampleButton.addEventListener("click", loadDemo);
+
+  dom.playerSelect.addEventListener("change", () => {
+    state.player = dom.playerSelect.value;
+    localStorage.setItem("tclv.player", state.player);
+    const channel = selectedChannel();
+    if (channel) playChannel(channel);
+    renderNow();
+  });
+
+  dom.languageSelect.addEventListener("change", () => {
+    state.language = dom.languageSelect.value;
+    localStorage.setItem("tclv.language", state.language);
+    renderAll();
+  });
+
+  dom.logoFile.addEventListener("change", async () => {
+    const file = dom.logoFile.files?.[0];
+    if (!file || !state.selectedLogoChannelId) return;
+    const dataUrl = await readFileAsDataUrl(file);
+    localStorage.setItem(`tclv.logo.${state.selectedLogoChannelId}`, dataUrl);
+    dom.logoFile.value = "";
+    renderAll();
+  });
+}
+
+function loadDemo() {
+  const demo = `#EXTM3U
+#EXTINF:-1 tvg-id="jednotka.sk" tvg-logo="" group-title="Slovakia",Jednotka
+https://example.com/jednotka.m3u8
+#EXTINF:-1 tvg-id="dvojka.sk" tvg-logo="" group-title="Slovakia",Dvojka
+https://example.com/dvojka.m3u8
+#EXTINF:-1 tvg-id="rtvs24.sk" tvg-logo="" group-title="News",RTVS 24
+https://example.com/rtvs24.m3u8
+#EXTINF:-1 tvg-id="markiza.sk" tvg-logo="" group-title="Slovakia",Markiza
+https://example.com/markiza.m3u8
+#EXTINF:-1 tvg-id="doma.sk" tvg-logo="" group-title="Slovakia",Doma
+https://example.com/doma.m3u8
+#EXTINF:-1 tvg-id="joj.sk" tvg-logo="" group-title="Slovakia",JOJ
+https://example.com/joj.m3u8`;
+
+  const now = new Date();
+  const start = new Date(now.getTime() - 35 * 60 * 1000);
+  const stop = new Date(now.getTime() + 25 * 60 * 1000);
+  const nextStop = new Date(now.getTime() + 85 * 60 * 1000);
+  const ids = ["jednotka.sk", "dvojka.sk", "rtvs24.sk", "markiza.sk", "doma.sk", "joj.sk"];
+  const titles = ["Purpurove rieky", "Kafka", "Spravy N", "Dieta Bridget Jonesovej", "#annaismissing", "Policia Chicago"];
+  const nextTitles = ["Vecerne spravy", "Dokument", "Interview", "Film", "Serial", "Krimi"];
+  const epg = `<?xml version="1.0" encoding="UTF-8"?><tv>${ids.map((id) => `<channel id="${id}"><display-name>${id}</display-name></channel>`).join("")}${ids.map((id, index) => `<programme channel="${id}" start="${xmlTvDate(start)}" stop="${xmlTvDate(stop)}"><title>${titles[index]}</title></programme><programme channel="${id}" start="${xmlTvDate(stop)}" stop="${xmlTvDate(nextStop)}"><title>${nextTitles[index]}</title></programme>`).join("")}</tv>`;
+  loadPlaylistText(demo, "demo.m3u8").then(() => loadEpgText(epg));
+}
+
+function xmlTvDate(date) {
+  const pad = (value) => String(value).padStart(2, "0");
+  const offsetMinutes = -date.getTimezoneOffset();
+  const sign = offsetMinutes >= 0 ? "+" : "-";
+  const absolute = Math.abs(offsetMinutes);
+  const offset = `${sign}${pad(Math.floor(absolute / 60))}${pad(absolute % 60)}`;
+  return `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())} ${offset}`;
+}
+
+function init() {
+  bindEvents();
+  state.player = dom.playerSelect.value = state.player;
+  state.language = translations[state.language] ? state.language : "sk";
+  loadDemo();
+  setInterval(renderAll, 60 * 1000);
+}
+
+init();

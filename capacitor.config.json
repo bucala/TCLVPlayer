@@ -1,0 +1,13 @@
+{
+  "appId": "sk.tclv.player",
+  "appName": "TCLVPlayer",
+  "webDir": "dist/web",
+  "server": {
+    "androidScheme": "https"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 0
+    }
+  }
+}
