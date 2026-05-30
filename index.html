@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="sk">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TCLVPlayer</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand">
+          <div class="brand-mark">TV</div>
+          <div>
+            <h1>TCLVPlayer</h1>
+            <p data-i18n="tagline">Jednoduchy IPTV prehravac</p>
+          </div>
+        </div>
+
+        <div class="top-actions">
+          <label class="file-button">
+            <input id="playlistFile" type="file" accept=".m3u,.m3u8,.xspf,audio/x-mpegurl,application/xspf+xml" />
+            <span data-i18n="openPlaylist">Playlist</span>
+          </label>
+          <label class="file-button">
+            <input id="epgFile" type="file" accept=".xml,.xmltv,application/xml,text/xml" />
+            <span data-i18n="openEpg">EPG</span>
+          </label>
+          <select id="playerSelect" aria-label="Player">
+            <option value="html5">HTML5</option>
+            <option value="videojs">Video.js</option>
+            <option value="artplayer">ArtPlayer</option>
+            <option value="mpv">MPV</option>
+            <option value="vlc">VLC</option>
+          </select>
+          <select id="languageSelect" aria-label="Language">
+            <option value="sk">Slovencina</option>
+            <option value="en">English</option>
+          </select>
+        </div>
+      </header>
+
+      <main class="workspace">
+        <aside class="sidebar">
+          <section class="panel compact-panel">
+            <div class="field-row">
+              <input id="playlistUrl" type="url" placeholder="https://.../playlist.m3u8" />
+              <button id="loadPlaylistUrl" type="button" data-i18n="load">Nacitat</button>
+            </div>
+            <div class="field-row">
+              <input id="epgUrl" type="url" value="https://www.open-epg.com/files/slovakia1.xml" />
+              <button id="loadEpgUrl" type="button" data-i18n="loadEpg">Nacitat EPG</button>
+            </div>
+            <div class="field-row">
+              <input id="searchInput" type="search" data-i18n-placeholder="search" placeholder="Hladat kanal" />
+              <button id="sampleButton" type="button" data-i18n="sample">Demo</button>
+            </div>
+          </section>
+
+          <section class="channel-grid" id="channelGrid" aria-live="polite"></section>
+        </aside>
+
+        <section class="content">
+          <section class="player-stage">
+            <video id="videoPlayer" controls playsinline></video>
+            <div id="artPlayerHost" class="art-player-host"></div>
+            <div id="playerMessage" class="player-message"></div>
+            <div id="switchOverlay" class="switch-overlay" aria-live="polite"></div>
+          </section>
+
+          <section class="now-panel" id="nowPanel"></section>
+
+          <section class="guide-panel">
+            <div class="section-title">
+              <h2 data-i18n="guide">Program</h2>
+              <div id="guideRange" class="muted"></div>
+            </div>
+            <div id="epgGuide" class="epg-guide"></div>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <input id="logoFile" type="file" accept="image/*" hidden />
+    <template id="channelTemplate">
+      <article class="channel-card">
+        <button class="logo-action" type="button" title="Logo">+</button>
+        <img class="channel-logo" alt="" />
+        <div class="channel-text">
+          <h3></h3>
+          <p></p>
+        </div>
+        <div class="progress-track"><span></span></div>
+      </article>
+    </template>
+
+    <script src="./app.js"></script>
+  </body>
+</html>

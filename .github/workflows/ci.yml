@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  validate:
+    name: Validate web and native shell scripts
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Check JavaScript syntax
+        shell: pwsh
+        run: |
+          node --check app.js
+          node --check native/electron/main.js
+          node --check native/electron/preload.js
+          node --check scripts/copy-web.mjs
+          node --check scripts/apply-android-template.mjs
+
+      - name: Prepare shared web bundle
+        run: npm run prepare:web
+
+      - name: Upload web bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: tclvplayer-web
+          path: dist/web
+

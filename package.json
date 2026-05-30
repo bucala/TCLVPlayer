@@ -1,0 +1,51 @@
+{
+  "name": "tclvplayer",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Simple IPTV player for Windows, Android, GoogleTV and web.",
+  "main": "native/electron/main.js",
+  "scripts": {
+    "prepare:web": "node scripts/copy-web.mjs",
+    "web": "npx http-server . -p 3000 -c-1",
+    "windows": "npm run prepare:web && electron .",
+    "windows:dist": "npm run prepare:web && electron-builder --win nsis portable",
+    "android:init": "cap add android",
+    "android:apply-template": "node scripts/apply-android-template.mjs",
+    "android:setup": "npm run prepare:web && cap add android && npm run android:apply-template && cap sync android",
+    "android:sync": "npm run prepare:web && npm run android:apply-template && cap sync android",
+    "android:open": "cap open android"
+  },
+  "build": {
+    "appId": "sk.tclv.player",
+    "productName": "TCLVPlayer",
+    "files": [
+      "index.html",
+      "styles.css",
+      "app.js",
+      "dist/web/**/*",
+      "assets/**/*",
+      "native/electron/**/*",
+      "node_modules/video.js/dist/**/*",
+      "node_modules/artplayer/dist/**/*"
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    }
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.0.0",
+    "@capacitor/core": "^7.0.0",
+    "artplayer": "^5.2.5",
+    "hls.js": "^1.5.20",
+    "video.js": "^8.21.1"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.0.0",
+    "electron": "^35.0.0",
+    "electron-builder": "^26.0.0",
+    "http-server": "^14.1.1"
+  }
+}
