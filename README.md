@@ -1,39 +1,92 @@
-# TCLVPlayer
+<p align="center">
+  <strong>TCLVPlayer</strong><br>
+  Multiplatformovy IPTV prehravac pre Windows, Android, GoogleTV a web
+</p>
 
-TCLVPlayer je jednoducha IPTV aplikacia vytvorena od nuly ako mensia alternativa inspirovana pracovnym postupom IPTV prehravacov. Zdrojovy kod z IPTVnator nie je kopirovany.
+<p align="center">
+  <a href="#rychly-start">Rychly start</a> &bull;
+  <a href="#funkcie">Funkcie</a> &bull;
+  <a href="#platformy">Platformy</a> &bull;
+  <a href="#playery">Playery</a> &bull;
+  <a href="#architektura">Architektura</a> &bull;
+  <a href="CHANGELOG.md">Changelog</a> &bull;
+  <a href="LICENSE">Licencia</a>
+</p>
 
-Primarne platformy su Windows 11 ako nativna desktop aplikacia a Android/GoogleTV ako nativna mobilna/TV aplikacia. Web verzia ostava doplnkova moznost na rychle testovanie UI.
+---
+
+## Preco TCLVPlayer?
+
+- **Jedno jadro, tri platformy** — rovnaky web kod bezi v Electron okne, Android WebView aj v prehliadaci
+- **Ziadny framework** — cisty vanilla JS, ziadny build step, ziadny bundler
+- **5 player rezimov** — HTML5, Video.js, ArtPlayer, MPV, VLC
+- **EPG s casovou osou** — XMLTV parsing, fuzzy matching kanalov, live progress
+- **Privatne a offline** — ziadny backend, ziadne ucty, vsetky data zostavaju lokalne
+
+---
+
+## Rychly start
+
+```bash
+npm install
+```
+
+| Platforma | Prikaz | Vystup |
+|-----------|--------|--------|
+| **Web** | `npm run web` | `http://127.0.0.1:3000` |
+| **Windows** | `npm run windows` | Electron okno |
+| **Windows installer** | `npm run windows:dist` | `.exe` NSIS + portable |
+| **Android** | `npm run android:setup` | Capacitor projekt |
+
+---
 
 ## Funkcie
 
-- zobrazenie kanalov v mriezke s logami
-- nahratie playlistu zo suboru alebo URL
-- podpora `*.m3u`, `*.m3u8` a `*.xspf`
-- nahratie alebo prepis loga kanala z lokalneho uloziska
-- XMLTV EPG zo suboru alebo URL, napriklad `https://www.open-epg.com/files/slovakia1.xml`
-- EPG casova os s aktualnym programom a priebehom
-- docasny EPG overlay pri prepnuti kanala
-- HTML5 video ako primarny player
-- Video.js a ArtPlayer ako interne web player rezimy
-- MPV a VLC ako externe nativne player rezimy cez Windows proces alebo Android intent
-- jazyky: Slovencina ako default, English
+### Playlisty a kanaly
+- Import zo suboru alebo URL — `*.m3u`, `*.m3u8`, `*.xspf`
+- Sprava viacerych playlistov v draweri (pridat, odstranit, prepnut)
+- Skupinovy filter podla `group-title`
+- Vyhladavanie kanalov podla nazvu
+- Vlastne logo kanala z lokalneho uloziska
 
-## Windows 11
+### EPG — Elektronicky programovy sprievodca
+- XMLTV format zo suboru alebo URL
+- Zlucovanie viacerych EPG zdrojov
+- Casova os s 8-hodinovym oknom a live indikatorom
+- Vyhladavanie v programe podla nazvu
+- Overlay s aktualnym/nasledujucim programom pri prepnuti kanala
 
-Windows shell je pripraveny cez Electron.
+### Player system
+- HTML5 video s automatickym HLS fallbackom cez hls.js
+- Video.js s HLS podporou
+- ArtPlayer s HLS podporou cez customType
+- MPV/VLC — nativne spustenie cez Electron bridge alebo Android intent
+- Web fallback pre externe playery — prikaz sa skopiruje do schranky
+
+### Nastavenia
+- Prepinanie playerov za behu
+- Jazyky: Slovencina (default), English
+- Konfigurovatelny CORS proxy pre web verziu
+- Vsetko ulozene lokalne v localStorage
+
+### Pristupnost a navigacia
+- Klavesova navigacia sipkami medzi kanalmi
+- Focus-visible ring pre keyboard uzivatelov
+- ARIA labely a live regiony
+
+---
+
+## Platformy
+
+### Windows 11
+
+Desktop aplikacia cez Electron so sandbox izolovanou bezpecnostou.
 
 ```powershell
-npm install
 npm run windows
 ```
 
-Build instalatora alebo portable verzie:
-
-```powershell
-npm run windows:dist
-```
-
-Ak MPV alebo VLC nie su v `PATH`, nastav cesty pred spustenim:
+Pre vlastne cesty k MPV/VLC:
 
 ```powershell
 $env:TCLV_MPV_PATH="C:\Program Files\mpv\mpv.exe"
@@ -41,43 +94,110 @@ $env:TCLV_VLC_PATH="C:\Program Files\VideoLAN\VLC\vlc.exe"
 npm run windows
 ```
 
-## Android a GoogleTV
+### Android a GoogleTV
 
-Android/GoogleTV shell je pripraveny cez Capacitor. Po instalacii zavislosti vytvor Android projekt:
+Nativna aplikacia cez Capacitor s Kotlin bridge pluginom.
 
-```powershell
-npm install
-npm run android:init
+```bash
+npm run android:setup    # prvotna inicializacia
+npm run android:sync     # synchronizacia po zmenach
+npm run android:open     # otvorit v Android Studio
 ```
 
-Potom postupuj podla `native/android/README.md`: skopiruj Kotlin bridge subory, zaregistruj plugin a dopln GoogleTV manifest polozky. Synchronizacia web jadra do Android projektu:
+Plugin `TCLVPlayerPlugin.kt` spusta MPV/VLC cez `Intent.ACTION_VIEW`. GoogleTV manifest obsahuje `LEANBACK_LAUNCHER` kategoriu a nevyzaduje touchscreen.
 
-```powershell
-npm run android:sync
-npm run android:open
-```
+### Web
 
-## Doplnkove web spustenie
+Doplnkova verzia na rychle testovanie. Pri nacitavani URL playlistov/EPG vo web verzii je nutne nastavit CORS proxy v Nastavenia > Siet.
 
-Pre rychly browser test:
-
-```powershell
-npm install
+```bash
 npm run web
 ```
 
-Potom otvor:
+---
 
-```text
-http://127.0.0.1:3000
+## Playery
+
+| Player | Typ | HLS | Poznamka |
+|--------|-----|-----|----------|
+| **HTML5** | Interny | hls.js auto-fallback | Bez zavislosti, funguje vsade |
+| **Video.js** | Interny | hls.js integrovany | Lazy-load z vendor/ alebo CDN |
+| **ArtPlayer** | Interny | hls.js cez customType | Lazy-load z vendor/ alebo CDN |
+| **MPV** | Externy nativny | nativne | Electron: spawn, Android: intent, Web: clipboard |
+| **VLC** | Externy nativny | nativne | Rovnaky princip ako MPV |
+
+---
+
+## Architektura
+
+```
+TCLVPlayer/
+├── index.html                  # Jediny HTML vstupny bod
+├── app.js                      # Cela aplikacna logika
+├── styles.css                  # Vsetky styly
+├── package.json                # Electron + Capacitor zavislosti
+├── capacitor.config.json       # Capacitor konfiguracia
+├── native/
+│   ├── electron/
+│   │   ├── main.js             # Electron hlavny proces (sandbox)
+│   │   └── preload.js          # IPC bridge → window.TCLVNative
+│   └── android/
+│       ├── TCLVPlayerPlugin.kt # Capacitor plugin (intent bridge)
+│       ├── MainActivity.kt     # Registracia pluginu
+│       └── AndroidManifest.additions.xml
+├── scripts/
+│   ├── copy-web.mjs            # Build: kopirovanie web bundlu + vendor libs
+│   └── apply-android-template.mjs  # Build: patching Android manifestu
+└── .github/workflows/
+    ├── ci.yml                  # Syntax validacia + web bundle artifact
+    ├── windows.yml             # NSIS + portable .exe
+    └── android.yml             # Debug APK
 ```
 
-## Poznamky k playerom
+**Princip:** Jedna web vrstva (`index.html` + `app.js` + `styles.css`) zdielana napriec platformami. Nativne funkcie su dostupne cez:
+- `window.TCLVNative` — Electron (preload.js)
+- `window.Capacitor.Plugins.TCLVPlayer` — Android (Kotlin plugin)
+- `null` — web fallback
 
-HTML5 player je aktivny bez zavislosti. Video.js a ArtPlayer su v ponuke a po `npm install` sa pri nativnom baleni kopiruju ako lokalne vendor subory. Ak sa aplikacia spusti iba ako web bez balenia, pouzije lokalny vendor subor alebo CDN fallback.
+---
 
-MPV a VLC su v ponuke vzdy. Vo Windows nativnej aplikacii sa spustaju cez Electron bridge. Na Android/GoogleTV sa spustaju cez intent bridge. V obycajnom web prehliadaci sa z bezpecnostnych dovodov neda spustit externy proces, preto web fallback pripravi prikaz na kopirovanie.
+## Bezpecnost
 
-## Licencie
+Electron konfiguracia dodrzuje vsetky odporucane bezpecnostne postupy:
 
-Projekt zatial neobsahuje prevzate tretostranne kniznice ani IPTVnator kod. Ak ma byt projekt skutocne open-source, odporuca sa pridat explicitny licencny subor, napriklad MIT alebo Apache-2.0. Bez licencie je kod verejne viditelny, ale pravne nie je jasne opakovane pouzitie.
+- `contextIsolation: true` — renderer nema pristup k Node.js API
+- `nodeIntegration: false` — ziadne require() v renderer procese
+- `sandbox: true` — renderer bezi v sandboxe OS
+- URL validacia — pred spustenim externeho playera sa overuje schema (`http/https/rtsp/rtmp/file`)
+- HTML escaping — vsetky uzivatelske data su escapovane pred vlozenim do DOM
+- Logo URL sanitizacia — povolene iba `https?://` a `data:image/` protokoly
+
+---
+
+## CI/CD
+
+| Workflow | Spustac | Runner | Vystup |
+|----------|---------|--------|--------|
+| `ci.yml` | Push na `main`, PR | `windows-latest` | Web bundle artifact |
+| `windows.yml` | Manualne, tag `v*` | `windows-latest` | `.exe` NSIS + portable |
+| `android.yml` | Manualne, tag `v*` | `ubuntu-latest` | Debug `.apk` |
+
+---
+
+## Zavislosti
+
+| Balicek | Licencia | Ucel |
+|---------|----------|------|
+| `electron` | MIT | Windows desktop shell |
+| `electron-builder` | MIT | Windows build/packaging |
+| `@capacitor/core` + `android` + `cli` | MIT | Android/GoogleTV bridge |
+| `video.js` | Apache-2.0 | Alternativny web player |
+| `artplayer` | MIT | Alternativny web player |
+| `hls.js` | Apache-2.0 | HLS streaming pre vsetky interne playery |
+| `http-server` | MIT | Dev web server |
+
+---
+
+## Licencia
+
+MIT — pozri [LICENSE](LICENSE).
