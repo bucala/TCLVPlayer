@@ -197,7 +197,3 @@ Electron konfiguracia dodrzuje vsetky odporucane bezpecnostne postupy:
 | `http-server` | MIT | Dev web server |
 
 ---
-
-## Licencia
-
-MIT — pozri [LICENSE](LICENSE).
