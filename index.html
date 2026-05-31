@@ -39,6 +39,13 @@
             <label class="field-label"><span data-i18n="labelLanguage">Jazyk</span><select id="languageSelect" aria-label="Language"><option value="sk">Slovenčina</option><option value="en">English</option></select></label>
           </div>
         </details>
+        <details class="settings-section">
+          <summary data-i18n="settingsNetwork">Sieť</summary>
+          <div class="settings-body">
+            <label class="field-label"><span data-i18n="labelCorsProxy">CORS proxy (len web)</span><input id="corsProxy" type="url" placeholder="https://corsproxy.io/?" /></label>
+            <p class="settings-hint" data-i18n="corsHint">Prefix pre URL requesty vo webovej verzii. Electron a Android ho nepotrebujú.</p>
+          </div>
+        </details>
         <details class="settings-section" open>
           <summary data-i18n="settingsPlaylists">Playlisty</summary>
           <div class="settings-body">
@@ -59,8 +66,8 @@
         <details class="settings-section"><summary data-i18n="settingsDemo">Demo</summary><div class="settings-body"><button id="sampleButton" class="btn-primary" type="button" data-i18n="sample">Spustiť Demo</button></div></details>
       </aside>
       <main class="workspace">
-        <aside class="sidebar"><section class="panel compact-panel"><div class="field-row"><input id="searchInput" type="search" data-i18n-placeholder="search" placeholder="Hľadať kanál" /></div></section><section class="channel-grid" id="channelGrid" aria-live="polite"></section></aside>
-        <section class="content"><section class="player-stage"><video id="videoPlayer" controls playsinline></video><div id="artPlayerHost" class="art-player-host"></div><div id="playerMessage" class="player-message"></div><div id="switchOverlay" class="switch-overlay" aria-live="polite"></div></section><section class="now-panel" id="nowPanel"></section><section class="guide-panel"><div class="section-title"><h2 data-i18n="guide">Program</h2><div id="guideRange" class="muted"></div></div><div id="epgGuide" class="epg-guide"></div></section></section>
+        <aside class="sidebar"><section class="panel compact-panel"><div class="field-row"><input id="searchInput" type="search" data-i18n-placeholder="search" placeholder="Hľadať kanál" /></div><select id="groupFilter" aria-label="Group filter"><option value="" data-i18n="allGroups">Všetky skupiny</option></select></section><section class="channel-grid" id="channelGrid" aria-live="polite"></section></aside>
+        <section class="content"><section class="player-stage"><video id="videoPlayer" controls playsinline></video><div id="artPlayerHost" class="art-player-host"></div><div id="playerMessage" class="player-message"></div><div id="switchOverlay" class="switch-overlay" aria-live="polite"></div></section><section class="now-panel" id="nowPanel"></section><section class="guide-panel"><div class="section-title"><h2 data-i18n="guide">Program</h2><input id="epgSearch" type="search" class="epg-search" data-i18n-placeholder="searchEpg" placeholder="Hľadať v programe" /><div id="guideRange" class="muted"></div></div><div id="epgGuide" class="epg-guide"></div></section></section>
       </main>
     </div>
     <input id="logoFile" type="file" accept="image/*" hidden />
