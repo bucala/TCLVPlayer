@@ -10,7 +10,6 @@
   <a href="#playery">Playery</a> &bull;
   <a href="#architektura">Architektura</a> &bull;
   <a href="CHANGELOG.md">Changelog</a> &bull;
-  <a href="LICENSE">Licencia</a>
 </p>
 
 ---
