@@ -20,6 +20,7 @@ const optionalCopies = [
   ["node_modules/video.js/dist/video.min.js", "vendor/video.js/video.min.js"],
   ["node_modules/video.js/dist/video-js.min.css", "vendor/video.js/video-js.min.css"],
   ["node_modules/artplayer/dist/artplayer.js", "vendor/artplayer/artplayer.js"],
+  ["node_modules/hls.js/dist/hls.min.js", "vendor/hls.js/hls.min.js"],
 ];
 
 for (const [source, target] of optionalCopies) {
