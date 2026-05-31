@@ -8,8 +8,30 @@ on:
   workflow_dispatch:
 
 jobs:
+  lint-and-test:
+    name: Lint & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Lint
+        run: npx eslint .
+
+      - name: Unit tests
+        run: npx vitest run
+
   validate:
-    name: Validate web and native shell scripts
+    name: Validate & Build
     runs-on: windows-latest
 
     steps:
@@ -41,4 +63,3 @@ jobs:
         with:
           name: tclvplayer-web
           path: dist/web
-
