@@ -13,87 +13,58 @@
           <div class="brand-mark">TV</div>
           <div>
             <h1>TCLVPlayer</h1>
-            <p data-i18n="tagline">Jednoduchy IPTV prehravac</p>
+            <p data-i18n="tagline">Jednoduchý IPTV prehrávač</p>
           </div>
         </div>
-
-        <div class="top-actions">
-          <label class="file-button">
-            <input id="playlistFile" type="file" accept=".m3u,.m3u8,.xspf,audio/x-mpegurl,application/xspf+xml" />
-            <span data-i18n="openPlaylist">Playlist</span>
-          </label>
-          <label class="file-button">
-            <input id="epgFile" type="file" accept=".xml,.xmltv,application/xml,text/xml" />
-            <span data-i18n="openEpg">EPG</span>
-          </label>
-          <select id="playerSelect" aria-label="Player">
-            <option value="html5">HTML5</option>
-            <option value="videojs">Video.js</option>
-            <option value="artplayer">ArtPlayer</option>
-            <option value="mpv">MPV</option>
-            <option value="vlc">VLC</option>
-          </select>
-          <select id="languageSelect" aria-label="Language">
-            <option value="sk">Slovencina</option>
-            <option value="en">English</option>
-          </select>
-        </div>
+        <nav class="top-actions">
+          <button id="menuToggle" class="icon-button" aria-label="Nastavenia" aria-expanded="false" aria-controls="settingsPanel">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <line x1="3" y1="6" x2="21" y2="6"/>
+              <line x1="3" y1="12" x2="21" y2="12"/>
+              <line x1="3" y1="18" x2="21" y2="18"/>
+            </svg>
+          </button>
+        </nav>
       </header>
-
+      <div id="settingsOverlay" class="settings-overlay" hidden></div>
+      <aside id="settingsPanel" class="settings-panel" hidden aria-label="Nastavenia">
+        <div class="settings-header">
+          <h2>Nastavenia</h2>
+          <button id="settingsClose" class="icon-button" aria-label="Zavrieť">✕</button>
+        </div>
+        <details class="settings-section" open>
+          <summary data-i18n="settingsPlayer">Prehrávač & Jazyk</summary>
+          <div class="settings-body">
+            <label class="field-label"><span data-i18n="labelPlayer">Prehrávač</span><select id="playerSelect" aria-label="Player"><option value="html5">HTML5</option><option value="videojs">Video.js</option><option value="artplayer">ArtPlayer</option><option value="mpv">MPV</option><option value="vlc">VLC</option></select></label>
+            <label class="field-label"><span data-i18n="labelLanguage">Jazyk</span><select id="languageSelect" aria-label="Language"><option value="sk">Slovenčina</option><option value="en">English</option></select></label>
+          </div>
+        </details>
+        <details class="settings-section" open>
+          <summary data-i18n="settingsPlaylists">Playlisty</summary>
+          <div class="settings-body">
+            <div class="field-row"><input id="playlistUrl" type="url" placeholder="https://.../playlist.m3u8" /><button id="addPlaylistUrl" type="button" data-i18n="addPlaylist">Pridať URL</button></div>
+            <label class="file-button"><input id="playlistFile" type="file" accept=".m3u,.m3u8,.xspf,audio/x-mpegurl,application/xspf+xml" /><span data-i18n="openPlaylist">Otvoriť súbor</span></label>
+            <div id="playlistList" class="source-list"></div>
+          </div>
+        </details>
+        <details class="settings-section" open>
+          <summary data-i18n="settingsEpg">EPG zdroje</summary>
+          <div class="settings-body">
+            <p class="settings-hint" data-i18n="epgHint">Všetky zdroje sa načítajú a zlúčia.</p>
+            <div class="field-row"><input id="epgUrl" type="url" placeholder="https://.../epg.xml" /><button id="addEpgUrl" type="button" data-i18n="addEpg">Pridať EPG</button></div>
+            <label class="file-button"><input id="epgFile" type="file" accept=".xml,.xmltv,application/xml,text/xml" /><span data-i18n="openEpg">Otvoriť súbor EPG</span></label>
+            <div id="epgList" class="source-list"></div>
+          </div>
+        </details>
+        <details class="settings-section"><summary data-i18n="settingsDemo">Demo</summary><div class="settings-body"><button id="sampleButton" class="btn-primary" type="button" data-i18n="sample">Spustiť Demo</button></div></details>
+      </aside>
       <main class="workspace">
-        <aside class="sidebar">
-          <section class="panel compact-panel">
-            <div class="field-row">
-              <input id="playlistUrl" type="url" placeholder="https://.../playlist.m3u8" />
-              <button id="loadPlaylistUrl" type="button" data-i18n="load">Nacitat</button>
-            </div>
-            <div class="field-row">
-              <input id="epgUrl" type="url" value="https://www.open-epg.com/files/slovakia1.xml" />
-              <button id="loadEpgUrl" type="button" data-i18n="loadEpg">Nacitat EPG</button>
-            </div>
-            <div class="field-row">
-              <input id="searchInput" type="search" data-i18n-placeholder="search" placeholder="Hladat kanal" />
-              <button id="sampleButton" type="button" data-i18n="sample">Demo</button>
-            </div>
-          </section>
-
-          <section class="channel-grid" id="channelGrid" aria-live="polite"></section>
-        </aside>
-
-        <section class="content">
-          <section class="player-stage">
-            <video id="videoPlayer" controls playsinline></video>
-            <div id="artPlayerHost" class="art-player-host"></div>
-            <div id="playerMessage" class="player-message"></div>
-            <div id="switchOverlay" class="switch-overlay" aria-live="polite"></div>
-          </section>
-
-          <section class="now-panel" id="nowPanel"></section>
-
-          <section class="guide-panel">
-            <div class="section-title">
-              <h2 data-i18n="guide">Program</h2>
-              <div id="guideRange" class="muted"></div>
-            </div>
-            <div id="epgGuide" class="epg-guide"></div>
-          </section>
-        </section>
+        <aside class="sidebar"><section class="panel compact-panel"><div class="field-row"><input id="searchInput" type="search" data-i18n-placeholder="search" placeholder="Hľadať kanál" /></div></section><section class="channel-grid" id="channelGrid" aria-live="polite"></section></aside>
+        <section class="content"><section class="player-stage"><video id="videoPlayer" controls playsinline></video><div id="artPlayerHost" class="art-player-host"></div><div id="playerMessage" class="player-message"></div><div id="switchOverlay" class="switch-overlay" aria-live="polite"></div></section><section class="now-panel" id="nowPanel"></section><section class="guide-panel"><div class="section-title"><h2 data-i18n="guide">Program</h2><div id="guideRange" class="muted"></div></div><div id="epgGuide" class="epg-guide"></div></section></section>
       </main>
     </div>
-
     <input id="logoFile" type="file" accept="image/*" hidden />
-    <template id="channelTemplate">
-      <article class="channel-card">
-        <button class="logo-action" type="button" title="Logo">+</button>
-        <img class="channel-logo" alt="" />
-        <div class="channel-text">
-          <h3></h3>
-          <p></p>
-        </div>
-        <div class="progress-track"><span></span></div>
-      </article>
-    </template>
-
+    <template id="channelTemplate"><article class="channel-card"><button class="logo-action" type="button" title="Logo">+</button><img class="channel-logo" alt="" /><div class="channel-text"><h3></h3><p></p></div><div class="progress-track"><span></span></div></article></template>
     <script src="./app.js"></script>
   </body>
 </html>
