@@ -1,4 +1,20 @@
-"use strict";
+﻿"use strict";
+// Sanitize logo URL - XSS prevention
+function sanitizeLogoUrl(url) {
+  if (!url) return null;
+  if (/^(https?:\/\/|data:image\/)/i.test(url)) return url;
+  return null;
+}
+
+// Safe localStorage wrapper
+function safeGet(key, fallback) {
+  if (fallback === undefined) fallback = null;
+  try { return localStorage.getItem(key) !== null ? localStorage.getItem(key) : fallback; } catch (e) { return fallback; }
+}
+function safeSet(key, value) {
+  try { localStorage.setItem(key, value); } catch (e) { }
+}
+
 
 const translations = {
   sk: {
@@ -54,12 +70,12 @@ const translations = {
 };
 
 const state = {
-  language: localStorage.getItem("tclv.language") || "sk",
+  language: safeGet("tclv.language", "sk"),
   channels: [],
   epg: new Map(),
   selectedChannelId: null,
   selectedLogoChannelId: null,
-  player: localStorage.getItem("tclv.player") || "html5",
+  player: safeGet("tclv.player", "html5"),
   overlayTimer: 0,
   videoJsPlayer: null,
   artPlayer: null,
@@ -132,7 +148,7 @@ function normalizeId(value) {
 }
 
 function getChannelLogo(channel) {
-  return localStorage.getItem(`tclv.logo.${channel.id}`) || channel.logo || placeholderLogo(channel.name);
+  return safeGet(`tclv.logo.${channel.id}`) || sanitizeLogoUrl(channel.logo) || placeholderLogo(channel.name);
 }
 
 function parseM3U(text) {
@@ -481,7 +497,7 @@ function selectChannel(id) {
 
 function playChannel(channel) {
   hideMessage();
-  localStorage.setItem("tclv.lastChannel", channel.id);
+  safeSet("tclv.lastChannel", channel.id);
 
   if (state.player === "html5") {
     playHtml5(channel);
@@ -731,7 +747,7 @@ async function loadPlaylistText(text, sourceName = "") {
   const isXspf = sourceName.toLowerCase().endsWith(".xspf") || text.includes("<playlist");
   const channels = isXspf ? parseXspf(text) : parseM3U(text);
   state.channels = channels;
-  state.selectedChannelId = localStorage.getItem("tclv.lastChannel") || channels[0]?.id || null;
+  state.selectedChannelId = safeGet("tclv.lastChannel") || channels[0]?.id || null;
   renderAll();
   if (state.selectedChannelId) showSwitchOverlay(selectedChannel());
   showMessage(`${t("playlistLoaded")}: ${channels.length}`);
@@ -820,7 +836,7 @@ function bindEvents() {
 
   dom.playerSelect.addEventListener("change", () => {
     state.player = dom.playerSelect.value;
-    localStorage.setItem("tclv.player", state.player);
+    safeSet("tclv.player", state.player);
     const channel = selectedChannel();
     if (channel) playChannel(channel);
     renderNow();
@@ -828,7 +844,7 @@ function bindEvents() {
 
   dom.languageSelect.addEventListener("change", () => {
     state.language = dom.languageSelect.value;
-    localStorage.setItem("tclv.language", state.language);
+    safeSet("tclv.language", state.language);
     renderAll();
   });
 
@@ -836,7 +852,7 @@ function bindEvents() {
     const file = dom.logoFile.files?.[0];
     if (!file || !state.selectedLogoChannelId) return;
     const dataUrl = await readFileAsDataUrl(file);
-    localStorage.setItem(`tclv.logo.${state.selectedLogoChannelId}`, dataUrl);
+    safeSet(`tclv.logo.${state.selectedLogoChannelId}`, dataUrl);
     dom.logoFile.value = "";
     renderAll();
   });
@@ -845,17 +861,17 @@ function bindEvents() {
 function loadDemo() {
   const demo = `#EXTM3U
 #EXTINF:-1 tvg-id="jednotka.sk" tvg-logo="" group-title="Slovakia",Jednotka
-https://example.com/jednotka.m3u8
+https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8
 #EXTINF:-1 tvg-id="dvojka.sk" tvg-logo="" group-title="Slovakia",Dvojka
-https://example.com/dvojka.m3u8
+https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8
 #EXTINF:-1 tvg-id="rtvs24.sk" tvg-logo="" group-title="News",RTVS 24
-https://example.com/rtvs24.m3u8
+https://bitdash-a.akamaihd.net/content/sintel/hls/playlist.m3u8
 #EXTINF:-1 tvg-id="markiza.sk" tvg-logo="" group-title="Slovakia",Markiza
-https://example.com/markiza.m3u8
+https://bitdash-a.akamaihd.net/content/MI201109210084_1/m3u8s/f08e80da-bf1d-4e3d-8899-f0f6155f6efa.m3u8
 #EXTINF:-1 tvg-id="doma.sk" tvg-logo="" group-title="Slovakia",Doma
-https://example.com/doma.m3u8
+https://multiplatform-f.akamaihd.net/i/multi/will/bunny/big_buck_bunny_,640x360_400,.f4v.csmil/master.m3u8
 #EXTINF:-1 tvg-id="joj.sk" tvg-logo="" group-title="Slovakia",JOJ
-https://example.com/joj.m3u8`;
+https://stream.mux.com/DS00Spx1CV902MCtPj5WknGlR102V5HFkDe/low.m3u8`;
 
   const now = new Date();
   const start = new Date(now.getTime() - 35 * 60 * 1000);
@@ -882,7 +898,12 @@ function init() {
   state.player = dom.playerSelect.value = state.player;
   state.language = translations[state.language] ? state.language : "sk";
   loadDemo();
-  setInterval(renderAll, 60 * 1000);
+  setInterval(() => { renderNow(); renderGuide(); document.querySelectorAll(".channel-card").forEach((card) => { const ch = state.channels.find((c) => c.id === card.dataset.channelId); if (!ch) return; const prog = currentProgram(ch); const bar = card.querySelector(".progress-track span"); if (bar) bar.style.width = progress(prog) + "%"; const txt = card.querySelector(".channel-text p"); if (txt) txt.textContent = prog?.title || ""; }); }, 60 * 1000);
 }
 
 init();
+
+
+
+
+
