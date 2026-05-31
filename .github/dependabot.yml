@@ -1,0 +1,25 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      capacitor:
+        patterns:
+          - "@capacitor/*"
+      electron:
+        patterns:
+          - "electron"
+          - "electron-builder"
+      players:
+        patterns:
+          - "video.js"
+          - "artplayer"
+          - "hls.js"
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly

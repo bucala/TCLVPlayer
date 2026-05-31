@@ -13,7 +13,9 @@
     "android:apply-template": "node scripts/apply-android-template.mjs",
     "android:setup": "npm run prepare:web && cap add android && npm run android:apply-template && cap sync android",
     "android:sync": "npm run prepare:web && npm run android:apply-template && cap sync android",
-    "android:open": "cap open android"
+    "android:open": "cap open android",
+    "lint": "eslint .",
+    "test": "vitest run"
   },
   "build": {
     "appId": "sk.tclv.player",
@@ -44,8 +46,11 @@
   },
   "devDependencies": {
     "@capacitor/cli": "^7.0.0",
+    "@eslint/js": "^10.0.1",
     "electron": "^35.0.0",
     "electron-builder": "^26.0.0",
-    "http-server": "^14.1.1"
+    "eslint": "^10.4.1",
+    "http-server": "^14.1.1",
+    "vitest": "^4.1.7"
   }
 }

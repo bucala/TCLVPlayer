@@ -6,6 +6,26 @@ Format je zalozeny na [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) a
 
 ---
 
+## [0.4.0] — 2026-05-31
+
+### Faza 4 — CI/CD a kvalita kodu
+
+#### Added
+- **ESLint konfiguracia** — `eslint.config.js` s flat config formatom. Separatne nastavenia pre `app.js` (script/browser globals), `native/electron/` (CommonJS/Node globals), `scripts/` (ESM) a `tests/` (ESM). Prazdne catch bloky povolene (`allowEmptyCatch`).
+- **Unit testy** — 31 testov v `tests/parsers.test.js` cez Vitest. Pokryte funkcie: `normalizeId`, `uniqueId`, `attr`, `parseM3U` (7 testov vrátane BOM, CRLF, bare URLs, komentarov), `parseXmlTvDate` (UTC offsety), `sanitizeLogoUrl` (XSS prevencia), `hashCode`.
+- **Testovatelny modul** — `lib/parsers.js` exportuje ciste funkcie bez DOM zavislosti, zrkadliace logiku z `app.js`.
+- **Dependabot** — `.github/dependabot.yml` pre npm (tyzdenne, zoskupene podla capacitor/electron/players) a GitHub Actions (mesacne).
+- **npm scripty** — `npm run lint` a `npm test` pridane do `package.json`.
+
+#### Changed
+- **CI workflow** — rozdeleny na dva joby: `lint-and-test` (Ubuntu) a `validate` (Windows). Lint a testy bezia na Ubuntu, syntax check a web bundle build na Windows.
+
+#### Dependencies
+- `eslint` a `@eslint/js` pridane ako devDependencies
+- `vitest` pridany ako devDependency
+
+---
+
 ## [0.3.0] — 2026-05-31
 
 ### Faza 3 — Platform UX
