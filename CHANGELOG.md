@@ -6,6 +6,26 @@ Format je zalozeny na [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) a
 
 ---
 
+## [0.3.0] — 2026-05-31
+
+### Faza 3 — Platform UX
+
+#### Added
+- **TV / Leanback layout** (>1400px) — vacsie karty kanalov (56px/64px logo), vacsie fonty, zvaceny EPG timeline, sirsie channel labels. Pre `pointer:coarse` zariadenia (dotykove TV) este vacsi padding a ovladacie prvky.
+- **Tablet breakpoint** (701–1024px) — uzsi sidebar (240px), kompaktnejsie EPG labely pre stredne velke obrazovky.
+- **Mobile portrait** (<700px) — vertikalny layout, sidebar hore (max 45vh), skryty brand tagline, kompaktnejsi topbar, EPG search na plnu sirku.
+- **Mobile landscape** (<700px, landscape) — 2-stlpcovy layout zachovany (sidebar vlavo 200px), player s fixnou vyskou, skryty now-panel text a EPG guide pre maximalizovanie video priestoru.
+- **Maly telefon** (<420px) — este kompaktnejsie karty (40px logo), mensi group filter, sidebar max 35vh.
+- **D-pad navigacia** — ArrowLeft/ArrowRight prepina fokus medzi sidebar a content oblastou. PageUp/PageDown (aj ChannelUp/ChannelDown) prepina kanaly s auto-scroll a wrap-around.
+- **Home/End klavesy** — skok na prvy/posledny kanal v zozname.
+- **Escape klavesa** — zatvori nastavenia alebo switch overlay.
+- **Auto-scroll** — pri prepnuti kanala sa aktivna karta automaticky scrollne do viditelnosti (smooth behavior).
+
+#### Changed
+- **Existujuci 700px breakpoint** — kompletne prepisany s detailnejsimi upravami pre topbar, brand, section-title, now-panel, timeline labels.
+
+---
+
 ## [0.2.0] — 2026-05-31
 
 ### Faza 2 — Klucove funkcie
