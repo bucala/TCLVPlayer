@@ -4,6 +4,9 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>TCLVPlayer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
@@ -63,7 +66,6 @@
             <div id="epgList" class="source-list"></div>
           </div>
         </details>
-        <details class="settings-section"><summary data-i18n="settingsDemo">Demo</summary><div class="settings-body"><button id="sampleButton" class="btn-primary" type="button" data-i18n="sample">Spustiť Demo</button></div></details>
       </aside>
       <main class="workspace">
         <aside class="sidebar"><section class="panel compact-panel"><div class="field-row"><input id="searchInput" type="search" data-i18n-placeholder="search" placeholder="Hľadať kanál" /></div><select id="groupFilter" aria-label="Group filter"><option value="" data-i18n="allGroups">Všetky skupiny</option></select></section><section class="channel-grid" id="channelGrid" aria-live="polite"></section></aside>
