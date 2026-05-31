@@ -38,14 +38,14 @@
     }
   },
   "dependencies": {
-    "@capacitor/android": "^7.0.0",
-    "@capacitor/core": "^7.0.0",
+    "@capacitor/android": "^8.3.4",
+    "@capacitor/core": "^8.3.4",
     "artplayer": "^5.2.5",
     "hls.js": "^1.5.20",
     "video.js": "^8.21.1"
   },
   "devDependencies": {
-    "@capacitor/cli": "^7.0.0",
+    "@capacitor/cli": "^8.3.4",
     "@eslint/js": "^10.0.1",
     "electron": "^35.0.0",
     "electron-builder": "^26.0.0",
