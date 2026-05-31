@@ -6,6 +6,36 @@ Format je zalozeny na [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) a
 
 ---
 
+## [0.5.0] — 2026-05-31
+
+### Faza 5 — Vizualny redizajn a opravy UX
+
+#### Added
+- **Dark Graphite tema** — kompletne prepisany `styles.css` s novym vizualom inspirovanym IPTVnator. Tmavo-sivy vizual s priesvitnymi prvkami (`backdrop-filter: blur`), `color-mix()` povrchy, viacvrstvove graphite odtiene (#0d0f14 → #13161e → #1a1e2a → #222838).
+- **DM Sans font** — Google Fonts import s fallbackom na Inter/system-ui. Lepsie kerning a citatelnost.
+- **Frosted glass efekty** — topbar, settings panel header a switch overlay pouzivaju `backdrop-filter: blur(18px)` s polopriehladnym pozadim.
+- **Animovane EPG** — programy v timeline maju hover efekty (`scaleY`, `border-color` transition), `current` programy maju accent glow. Now-line ma `box-shadow` ziarenie.
+- **Animovany switch overlay** — `@keyframes switchSlideUp` animacia pri zobrazeni notifikacie.
+- **HLS error handling** — `Hls.Events.ERROR` listener pre fatalne chyby. Non-HLS obsah pouziva `canplay` + `error` eventy namiesto okamziteho `play()`.
+
+#### Changed
+- **Switch overlay** — presunuta z `position:absolute;inset:0` (cela plocha) na kompaktnu notifikaciu v spodnej casti playera s `border-radius`, `backdrop-filter` a slide-up animaciou.
+- **Farebna paleta** — `--accent` zmeneny na `#5b8def` (azure blue), novy `--accent-glow` pre selection efekty, `--text-bright` pre nadpisy, `--glass-bg` pre frosted glass povrchy.
+- **Channel karty** — vacsie logo (52px), lepsie medzery, gradient progress bar, `color-mix` active state s inset glow.
+- **Ikony a spacing** — brand mark 42px s gradient pozadim a `box-shadow`, vacsie `icon-button` (42px).
+- **Settings panel** — sticky glass header, vacsie padding, lepsie hover stavy na sekciach.
+- **Scrollbar** — jemnejsi scrollbar s hover stavom.
+
+#### Removed
+- **Demo funkcionalita** — `loadDemo()` funkcia, `#sampleButton`, demo sekcia v nastaveniach a prislusne preklady (`sample`, `settingsDemo`) boli kompletne odstranene.
+
+#### Fixed
+- **Nastavenia sa nedali zatvori** — CSS `display: flex` na `.settings-panel` prepisoval `hidden` atribut. Opravene pridanim `.settings-panel[hidden] { display: none !important; }`.
+- **Text selection** — pridany `user-select: none` na `body` (s vynimkou `input`, `textarea`, `select`).
+- **HTML5 prehravanie** — pridany `canplay` event listener pre non-HLS obsah, `error` listener pre chyby, HLS fatal error handling.
+
+---
+
 ## [0.4.0] — 2026-05-31
 
 ### Faza 4 — CI/CD a kvalita kodu

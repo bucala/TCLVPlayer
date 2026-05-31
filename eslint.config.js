@@ -47,7 +47,7 @@ export default [
     files: ["app.js", "native/electron/*.js"],
     rules: {
       "no-empty": ["error", { allowEmptyCatch: true }],
-      "no-unused-vars": ["error", { varsIgnorePattern: "^(loadEpgText|loadPlaylistText)$" }],
+      "no-unused-vars": ["error", { varsIgnorePattern: "^(loadEpgText|loadPlaylistText|xmlTvDate)$" }],
     },
   },
   {
