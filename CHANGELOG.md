@@ -11,16 +11,17 @@ Format je zalozeny na [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) a
 ### Faza 5 — Vizualny redizajn a opravy UX
 
 #### Added
-- **Dark Graphite tema** — kompletne prepisany `styles.css` s novym vizualom inspirovanym IPTVnator. Tmavo-sivy vizual s priesvitnymi prvkami (`backdrop-filter: blur`), `color-mix()` povrchy, viacvrstvove graphite odtiene (#0d0f14 → #13161e → #1a1e2a → #222838).
+- **Warm Orange tema** — kompletne prepisany `styles.css` s novym vizualom. Cierne pozadie (`#000`) s teplym oranzovym akcentom (`#e87442`), iOS-style dark povrchy (`#1c1c1e`, `#2c2c2e`), `backdrop-filter: blur` frosted glass efekty, velke zaoblenia (16px default).
 - **DM Sans font** — Google Fonts import s fallbackom na Inter/system-ui. Lepsie kerning a citatelnost.
 - **Frosted glass efekty** — topbar, settings panel header a switch overlay pouzivaju `backdrop-filter: blur(18px)` s polopriehladnym pozadim.
+- **Adaptivny layout** — breakpointy pre TV (>1400px), tablet (701–1024px), mobil portrait (<700px), mobil landscape (<900px landscape), maly telefon (<400px). Optimalizovane pre Smart TV, mobilne zariadenia aj webovy prehliadac.
 - **Animovane EPG** — programy v timeline maju hover efekty (`scaleY`, `border-color` transition), `current` programy maju accent glow. Now-line ma `box-shadow` ziarenie.
 - **Animovany switch overlay** — `@keyframes switchSlideUp` animacia pri zobrazeni notifikacie.
 - **HLS error handling** — `Hls.Events.ERROR` listener pre fatalne chyby. Non-HLS obsah pouziva `canplay` + `error` eventy namiesto okamziteho `play()`.
 
 #### Changed
 - **Switch overlay** — presunuta z `position:absolute;inset:0` (cela plocha) na kompaktnu notifikaciu v spodnej casti playera s `border-radius`, `backdrop-filter` a slide-up animaciou.
-- **Farebna paleta** — `--accent` zmeneny na `#5b8def` (azure blue), novy `--accent-glow` pre selection efekty, `--text-bright` pre nadpisy, `--glass-bg` pre frosted glass povrchy.
+- **Farebna paleta** — `--accent` zmeneny na `#e87442` (warm orange), `--bg` na `#000000`, `--surface` na `#1c1c1e`. Aktivny kanal s lavym orange accent barom. Pill-shaped prvky, vacsie zaoblenia.
 - **Channel karty** — vacsie logo (52px), lepsie medzery, gradient progress bar, `color-mix` active state s inset glow. Podtitulok zobrazuje len nazov programu (bez skupiny).
 - **Ikony a spacing** — brand mark 42px s gradient pozadim a `box-shadow`, vacsie `icon-button` (42px).
 - **Settings panel** — `<details>/<summary>` nahradene plochymi `<div>/<h3>` sekciami (TV ovladac friendly). Sticky glass header, vacsie padding.
