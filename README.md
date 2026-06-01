@@ -1,90 +1,119 @@
-<p align="center">
-  <strong>TCLVPlayer</strong><br>
-  Multiplatformovy IPTV prehravac pre Windows, Android, GoogleTV a web
-</p>
+<div align="center">
 
-<p align="center">
-  <a href="#rychly-start">Rychly start</a> &bull;
-  <a href="#funkcie">Funkcie</a> &bull;
-  <a href="#platformy">Platformy</a> &bull;
-  <a href="#playery">Playery</a> &bull;
-  <a href="#architektura">Architektura</a> &bull;
-  <a href="CHANGELOG.md">Changelog</a>
+<!-- Logo / brand -->
+<img src="favicon.svg" alt="TCLVPlayer logo" width="96" height="96"/>
 
----
+# TCLVPlayer
 
-## Preco TCLVPlayer?
+**Multiplatformový IPTV prehrávač**  
+Windows · Android · GoogleTV · Web
 
-- **Jedno jadro, tri platformy** — rovnaky web kod bezi v Electron okne, Android WebView aj v prehliadaci
-- **Ziadny framework** — cisty vanilla JS, ziadny build step, ziadny bundler
-- **5 player rezimov** — HTML5, Video.js, ArtPlayer, MPV, VLC
-- **EPG s casovou osou** — XMLTV parsing, fuzzy matching kanalov, live progress
-- **Privatne a offline** — ziadny backend, ziadne ucty, vsetky data zostavaju lokalne
+[![CI](https://github.com/bucala/TCLVPlayer/actions/workflows/ci.yml/badge.svg)](https://github.com/bucala/TCLVPlayer/actions/workflows/ci.yml)
+[![Windows Build](https://github.com/bucala/TCLVPlayer/actions/workflows/windows.yml/badge.svg)](https://github.com/bucala/TCLVPlayer/actions/workflows/windows.yml)
+[![Android Build](https://github.com/bucala/TCLVPlayer/actions/workflows/android.yml/badge.svg)](https://github.com/bucala/TCLVPlayer/actions/workflows/android.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-orange.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/version-0.6.1-orange)](#changelog)
+[![Vanilla JS](https://img.shields.io/badge/Vanilla-JS-yellow?logo=javascript)](app.js)
 
 ---
 
-## Rychly start
+[🚀 Rýchly štart](#-rýchly-štart) · [✨ Funkcie](#-funkcie) · [📱 Platformy](#-platformy) · [▶️ Playery](#-playery) · [🏗️ Architektúra](#-architektúra) · [📋 Changelog](CHANGELOG.md)
+
+</div>
+
+---
+
+## 💡 Prečo TCLVPlayer?
+
+> **Jedno jadro, štyri prostredia** — rovnaký web kód beží v Electron okne, Android WebView, na GoogleTV aj v prehliadači.
+
+| | |
+|---|---|
+| 🧩 **Žiadny framework** | Čistý vanilla JS, žiadny build step, žiadny bundler |
+| ▶️ **5 player režimov** | HTML5, Video.js, ArtPlayer, MPV, VLC |
+| 📺 **EPG s časovou osou** | XMLTV parsing, fuzzy matching kanálov, live progress |
+| 🔒 **Súkromné & offline** | Žiadny backend, žiadne účty, všetky dáta zostávajú lokálne |
+| 🎨 **Warm Orange dizajn** | Frosted glass UI, dark mode, adaptívny layout pre TV/tablet/mobil |
+
+---
+
+## 🚀 Rýchly štart
 
 ```bash
+git clone https://github.com/bucala/TCLVPlayer.git
+cd TCLVPlayer
 npm install
 ```
 
-| Platforma | Prikaz | Vystup |
+### Spustenie
+
+| Platforma | Príkaz | Výstup |
 |-----------|--------|--------|
-| **Web** | `npm run web` | `http://127.0.0.1:3000` |
-| **Windows** | `npm run windows` | Electron okno |
-| **Windows installer** | `npm run windows:dist` | `.exe` NSIS + portable |
-| **Android** | `npm run android:setup` | Capacitor projekt |
+| 🌐 **Web** | `npm run web` | `http://127.0.0.1:3000` |
+| 🖥️ **Windows** | `npm run windows` | Electron okno |
+| 📦 **Windows installer** | `npm run windows:dist` | `.exe` NSIS + portable |
+| 🤖 **Android** | `npm run android:setup` | Capacitor projekt |
+
+> **Tip:** Pre vývoj odporúčame spustiť `npm run web` — žiadna inštalácia, okamžitý reload.
 
 ---
 
-## Funkcie
+## ✨ Funkcie
 
-### Playlisty a kanaly
-- Import zo suboru alebo URL — `*.m3u`, `*.m3u8`, `*.xspf`
-- Sprava viacerych playlistov v draweri (pridat, odstranit, prepnut)
-- Skupinovy filter podla `group-title`
-- Vyhladavanie kanalov podla nazvu
-- Vlastne logo kanala z lokalneho uloziska
+### 📋 Playlisty a kanály
 
-### EPG — Elektronicky programovy sprievodca
-- XMLTV format zo suboru alebo URL
-- Zlucovanie viacerych EPG zdrojov
-- Casova os s 8-hodinovym oknom a live indikatorom
-- Vyhladavanie v programe podla nazvu
-- Overlay s aktualnym/nasledujucim programom pri prepnuti kanala
+- 📁 Import zo súboru alebo URL — `*.m3u`, `*.m3u8`, `*.xspf`
+- 🗂️ Správa viacerých playlistov v draweri (pridať, odstrániť, prepnúť)
+- 🔍 Skupinový filter podľa `group-title`
+- 🔎 Vyhľadávanie kanálov podľa názvu
+- 🖼️ Vlastné logo kanála z lokálneho úložiska
 
-### Player system
-- HTML5 video s automatickym HLS fallbackom cez hls.js
-- Video.js s HLS podporou
-- ArtPlayer s HLS podporou cez customType
-- MPV/VLC — nativne spustenie cez Electron bridge alebo Android intent
-- Web fallback pre externe playery — prikaz sa skopiruje do schranky
+### 📺 EPG — Elektronický programový sprievodca
 
-### Nastavenia
-- Prepinanie playerov za behu
-- Jazyky: Slovencina (default), English
-- Konfigurovatelny CORS proxy pre web verziu
-- Vsetko ulozene lokalne v localStorage
+- 📡 XMLTV formát zo súboru alebo URL (vrátane `.gz` kompresie)
+- 🔀 Zlučovanie viacerých EPG zdrojov s deduplikáciou
+- ⏱️ Časová os s 8-hodinovým oknom a live indikátorom
+- 🔍 Vyhľadávanie v programe podľa názvu
+- 💬 Overlay s aktuálnym/nasledujúcim programom pri prepnutí kanála
+- ✅ Toggle aktívnych/neaktívnych EPG zdrojov
 
-### Pristupnost a navigacia
-- Klavesova navigacia sipkami medzi kanalmi
-- Focus-visible ring pre keyboard uzivatelov
-- ARIA labely a live regiony
+### ▶️ Player systém
+
+- 🎬 HTML5 video s automatickým HLS fallbackom cez hls.js
+- 🎞️ Video.js s HLS podporou
+- 🖥️ ArtPlayer s HLS podporou cez `customType`
+- 🖱️ MPV/VLC — natívne spustenie cez Electron bridge alebo Android intent
+- 🔄 **Try-direct-first** stratégia — proxy len keď je nutné (CORS)
+- 🔁 Automatický retry s CORS proxy pri HLS chybe
+
+### ⚙️ Nastavenia
+
+- 🔀 Prepínanie playerov za behu
+- 🌍 Jazyky: Slovenčina (default), English
+- 🌐 Konfigurovateľný CORS proxy pre web verziu (`api.allorigins.win/raw?url=`)
+- 💾 Všetko uložené lokálne v `localStorage`
+
+### ♿ Prístupnosť a navigácia
+
+- ⌨️ Klávesová navigácia šípkami medzi kanálmi, D-pad pre TV
+- 🎯 Focus-visible ring pre keyboard používateľov
+- 🏷️ ARIA labely a live regióny
+- 📺 Leanback layout optimalizovaný pre Smart TV (>1400px)
 
 ---
 
-## Platformy
+## 📱 Platformy
 
-### Windows 11
+<details>
+<summary><strong>🖥️ Windows 11</strong></summary>
 
-Desktop aplikacia cez Electron so sandbox izolovanou bezpecnostou.
+Desktop aplikácia cez Electron so sandbox izolovanou bezpečnosťou.
 
 ```powershell
 npm run windows
 ```
 
-Pre vlastne cesty k MPV/VLC:
+Pre vlastné cesty k MPV/VLC:
 
 ```powershell
 $env:TCLV_MPV_PATH="C:\Program Files\mpv\mpv.exe"
@@ -92,106 +121,162 @@ $env:TCLV_VLC_PATH="C:\Program Files\VideoLAN\VLC\vlc.exe"
 npm run windows
 ```
 
-### Android a GoogleTV
+</details>
 
-Nativna aplikacia cez Capacitor s Kotlin bridge pluginom.
+<details>
+<summary><strong>🤖 Android a GoogleTV</strong></summary>
+
+Natívna aplikácia cez Capacitor s Kotlin bridge pluginom.
 
 ```bash
-npm run android:setup    # prvotna inicializacia
-npm run android:sync     # synchronizacia po zmenach
-npm run android:open     # otvorit v Android Studio
+npm run android:setup    # prvotná inicializácia
+npm run android:sync     # synchronizácia po zmenách
+npm run android:open     # otvoriť v Android Studio
 ```
 
-Plugin `TCLVPlayerPlugin.kt` spusta MPV/VLC cez `Intent.ACTION_VIEW`. GoogleTV manifest obsahuje `LEANBACK_LAUNCHER` kategoriu a nevyzaduje touchscreen.
+Plugin `TCLVPlayerPlugin.kt` spúšťa MPV/VLC cez `Intent.ACTION_VIEW`.  
+GoogleTV manifest obsahuje `LEANBACK_LAUNCHER` kategóriu a nevyžaduje touchscreen.
 
-### Web
+</details>
 
-Doplnkova verzia na rychle testovanie. Pri nacitavani URL playlistov/EPG vo web verzii je nutne nastavit CORS proxy v Nastavenia > Siet.
+<details>
+<summary><strong>🌐 Web</strong></summary>
+
+Doplnková verzia na rýchle testovanie. Pri načítavaní URL playlistov/EPG vo web verzii je nutné nastaviť CORS proxy v **Nastavenia › Sieť**.
 
 ```bash
 npm run web
 ```
 
----
-
-## Playery
-
-| Player | Typ | HLS | Poznamka |
-|--------|-----|-----|----------|
-| **HTML5** | Interny | hls.js auto-fallback | Bez zavislosti, funguje vsade |
-| **Video.js** | Interny | hls.js integrovany | Lazy-load z vendor/ alebo CDN |
-| **ArtPlayer** | Interny | hls.js cez customType | Lazy-load z vendor/ alebo CDN |
-| **MPV** | Externy nativny | nativne | Electron: spawn, Android: intent, Web: clipboard |
-| **VLC** | Externy nativny | nativne | Rovnaky princip ako MPV |
+</details>
 
 ---
 
-## Architektura
+## ▶️ Playery
+
+| Player | Typ | HLS | Poznámka |
+|--------|-----|:---:|---------|
+| **HTML5** | Interný | ✅ hls.js auto-fallback | Bez závislostí, funguje všade |
+| **Video.js** | Interný | ✅ hls.js integrovaný | Lazy-load z `vendor/` alebo CDN |
+| **ArtPlayer** | Interný | ✅ hls.js cez customType | Lazy-load z `vendor/` alebo CDN |
+| **MPV** | Externý natívny | ✅ natívne | Electron: spawn, Android: intent, Web: clipboard |
+| **VLC** | Externý natívny | ✅ natívne | Rovnaký princíp ako MPV |
+
+---
+
+## 🏗️ Architektúra
 
 ```
 TCLVPlayer/
-├── index.html                  # Jediny HTML vstupny bod
-├── app.js                      # Cela aplikacna logika
-├── styles.css                  # Vsetky styly
-├── package.json                # Electron + Capacitor zavislosti
-├── capacitor.config.json       # Capacitor konfiguracia
-├── native/
+├── 📄 index.html                  # Jediný HTML vstupný bod
+├── 📜 app.js                      # Celá aplikačná logika (vanilla JS)
+├── 🎨 styles.css                  # Všetky štýly (Warm Orange téma)
+├── ⚙️  package.json                # Electron + Capacitor závislosti
+├── 📱 capacitor.config.json       # Capacitor konfigurácia
+├── 🖼️  favicon.svg                 # SVG ikona (oranžový gradient)
+│
+├── 📁 native/
 │   ├── electron/
-│   │   ├── main.js             # Electron hlavny proces (sandbox)
+│   │   ├── main.js             # Electron hlavný proces (sandbox)
 │   │   └── preload.js          # IPC bridge → window.TCLVNative
 │   └── android/
 │       ├── TCLVPlayerPlugin.kt # Capacitor plugin (intent bridge)
-│       ├── MainActivity.kt     # Registracia pluginu
+│       ├── MainActivity.kt     # Registrácia pluginu
 │       └── AndroidManifest.additions.xml
-├── scripts/
-│   ├── copy-web.mjs            # Build: kopirovanie web bundlu + vendor libs
+│
+├── 📁 lib/
+│   └── parsers.js              # Čisté funkcie (testovateľné, bez DOM)
+│
+├── 📁 scripts/
+│   ├── copy-web.mjs            # Build: kopírovanie web bundlu + vendor libs
 │   └── apply-android-template.mjs  # Build: patching Android manifestu
-└── .github/workflows/
-    ├── ci.yml                  # Syntax validacia + web bundle artifact
+│
+├── 📁 tests/
+│   └── parsers.test.js         # 31 Vitest unit testov
+│
+└── 📁 .github/workflows/
+    ├── ci.yml                  # Lint + testy + web bundle artifact
     ├── windows.yml             # NSIS + portable .exe
     └── android.yml             # Debug APK
 ```
 
-**Princip:** Jedna web vrstva (`index.html` + `app.js` + `styles.css`) zdielana napriec platformami. Nativne funkcie su dostupne cez:
-- `window.TCLVNative` — Electron (preload.js)
-- `window.Capacitor.Plugins.TCLVPlayer` — Android (Kotlin plugin)
-- `null` — web fallback
+**Princíp:** Jedna web vrstva (`index.html` + `app.js` + `styles.css`) zdieľaná naprieč platformami. Natívne funkcie sú dostupné cez:
+
+| Prostredie | Rozhranie |
+|---|---|
+| Electron (Windows) | `window.TCLVNative` |
+| Android / GoogleTV | `window.Capacitor.Plugins.TCLVPlayer` |
+| Web (prehliadač) | `null` — graceful fallback |
 
 ---
 
-## Bezpecnost
+## 🔒 Bezpečnosť
 
-Electron konfiguracia dodrzuje vsetky odporucane bezpecnostne postupy:
+Electron konfigurácia dodržuje všetky odporúčané bezpečnostné postupy:
 
-- `contextIsolation: true` — renderer nema pristup k Node.js API
-- `nodeIntegration: false` — ziadne require() v renderer procese
-- `sandbox: true` — renderer bezi v sandboxe OS
-- URL validacia — pred spustenim externeho playera sa overuje schema (`http/https/rtsp/rtmp/file`)
-- HTML escaping — vsetky uzivatelske data su escapovane pred vlozenim do DOM
-- Logo URL sanitizacia — povolene iba `https?://` a `data:image/` protokoly
+| Nastavenie | Hodnota | Účel |
+|---|---|---|
+| `contextIsolation` | `true` | Renderer nemá prístup k Node.js API |
+| `nodeIntegration` | `false` | Žiadne `require()` v renderer procese |
+| `sandbox` | `true` | Renderer beží v sandboxe OS |
+| URL validácia | schema whitelist | `http/https/rtsp/rtmp/file` |
+| HTML escaping | vždy | Všetky používateľské dáta escapované pred DOM |
+| Logo URL sanitizácia | regex | Povolené iba `https?://` a `data:image/` |
 
 ---
 
-## CI/CD
+## 🔄 CI/CD
 
-| Workflow | Spustac | Runner | Vystup |
+| Workflow | Spúšťač | Runner | Výstup |
 |----------|---------|--------|--------|
-| `ci.yml` | Push na `main`, PR | `windows-latest` | Web bundle artifact |
-| `windows.yml` | Manualne, tag `v*` | `windows-latest` | `.exe` NSIS + portable |
-| `android.yml` | Manualne, tag `v*` | `ubuntu-latest` | Debug `.apk` |
+| `ci.yml` | Push na `main`, PR | `ubuntu-latest` + `windows-latest` | Lint ✅ · Testy ✅ · Web bundle artifact |
+| `windows.yml` | Manuálne, tag `v*` | `windows-latest` | `.exe` NSIS + portable |
+| `android.yml` | Manuálne, tag `v*` | `ubuntu-latest` | Debug `.apk` |
 
 ---
 
-## Zavislosti
+## 📦 Závislosti
 
-| Balicek | Licencia | Ucel |
+| Balíček | Licencia | Účel |
 |---------|----------|------|
 | `electron` | MIT | Windows desktop shell |
 | `electron-builder` | MIT | Windows build/packaging |
 | `@capacitor/core` + `android` + `cli` | MIT | Android/GoogleTV bridge |
-| `video.js` | Apache-2.0 | Alternativny web player |
-| `artplayer` | MIT | Alternativny web player |
-| `hls.js` | Apache-2.0 | HLS streaming pre vsetky interne playery |
+| `video.js` | Apache-2.0 | Alternatívny web player |
+| `artplayer` | MIT | Alternatívny web player |
+| `hls.js` | Apache-2.0 | HLS streaming pre všetky interné playery |
 | `http-server` | MIT | Dev web server |
+| `eslint` | MIT | Linting |
+| `vitest` | MIT | Unit testy |
 
 ---
+
+## 🤝 Prispievanie
+
+```bash
+# 1. Fork + klon
+git clone https://github.com/YOUR_USERNAME/TCLVPlayer.git
+
+# 2. Nová branch
+git checkout -b feature/moja-zmena
+
+# 3. Lint + testy
+npm run lint
+npm test
+
+# 4. Commit a PR
+git commit -m "feat: popis zmeny"
+git push origin feature/moja-zmena
+```
+
+> Pull requesty sú vítané! Pre väčšie zmeny prosím najprv otvor issue.
+
+---
+
+<div align="center">
+
+**[⬆ Späť nahor](#tcLVplayer)**
+
+MIT License · © 2026 bucala
+
+</div>
