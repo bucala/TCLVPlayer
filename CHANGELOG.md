@@ -8,23 +8,28 @@ Format je zalozeny na [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) a
 
 ## [0.6.0] — 2026-06-01
 
-### Faza 6 — Prehrávanie, EPG auto-detekcia a UX vylepšenia
+### Faza 6 — Opravy prehrávania, EPG a CORS (audit)
 
 #### Added
-- **CORS proxy pre prehrávanie** — HLS streamy cez hls.js teraz používajú `xhrSetup` na proxy všetkých XHR requestov (manifest aj segmenty). Priame HTML5 a Video.js/ArtPlayer URL sú tiež proxované.
-- **Auto-detekcia EPG z M3U** — `x-tvg-url` hlavička v M3U playlistoch je automaticky parsovaná. Relevantné EPG zdroje (podľa `tvg-id` krajiny kanálov) sa načítajú automaticky.
-- **Podpora .gz EPG** — gzipované EPG súbory sú dekompresované cez `DecompressionStream` API.
-- **Indikátor lokálny/sieťový** — zdroje playlistov aj EPG zobrazujú či sú lokálne (súbor) alebo sieťové (URL).
+- **Try-direct-first stratégia** — `loadTextFromUrl()` najprv skúsi priame pripojenie, až pri CORS chybe použije proxy. Eliminuje zbytočné proxy requesty pre servery s CORS hlavičkami.
+- **HLS retry s proxy** — `tryHlsPlayback()` funkcia: hls.js najprv hrá priamo, pri fatálnej chybe automaticky reštartuje s CORS proxy (`xhrSetup`).
+- **EPG active/inactive** — EPG zdroje majú `active` field s "Use" toggle tlačidlom. Neaktívne zdroje sa vynechajú z `rebuildMergedEpg()`.
+- **EPG .xml fallback** — `autoLoadEpgFromPlaylist()` ak .xml.gz zlyhá, skúsi .xml verziu bez kompresie.
+- **Auto-detekcia EPG z M3U** — `x-tvg-url` hlavička v M3U playlistoch je parsovaná. Relevantné EPG zdroje (podľa `tvg-id` krajiny) sa načítajú automaticky.
+- **Podpora .gz EPG** — gzipované EPG súbory dekompresované cez `DecompressionStream` API.
+- **Indikátor lokálny/sieťový** — zdroje playlistov aj EPG zobrazujú typ (lokálny súbor / sieťový URL).
 - **SVG favicon** — oranžová ikona aplikácie (`favicon.svg`) s gradientom zhodným s brand-mark logom.
-- **Oranžový accent-color** — formulárové prvky (select, checkbox) a textová selekcia používajú `accent-color: var(--accent)`.
+- **Oranžový accent-color** — formulárové prvky a `::selection` používajú `accent-color: var(--accent)`.
 
 #### Changed
-- **`proxyUrl()` helper** — nová funkcia centralizuje CORS proxy logiku pre video URL aj fetch requesty.
-- **`extractM3UEpgUrls()`** — parsuje `x-tvg-url` z `#EXTM3U` hlavičky playlistu.
-- **`autoLoadEpgFromPlaylist()`** — po načítaní playlistu automaticky deteguje a načíta relevantné EPG zdroje.
+- **`loadTextFromUrl()`** — prepísaná s try-direct-first logikou a `.gz` dekompresnou podporou.
+- **`playHtml5()`** — deleguje na `tryHlsPlayback()` s automatickým retry cez proxy.
+- **`rebuildMergedEpg()`** — filtruje len aktívne (`active !== false`) EPG zdroje.
+- **`autoLoadEpgFromPlaylist()`** — robustnejšia s .xml fallbackom a viditeľnými chybovými hláškami.
 
 #### Fixed
-- **HLS prehrávanie cez CORS proxy** — hls.js `xhrSetup` zabezpečuje proxy pre všetky requesty vrátane .ts segmentov. Predtým sa proxoval len fetch playlistu, nie samotné video.
+- **HLS prehrávanie** — priame pripojenie pre servery s CORS → proxy retry pre ostatné. Predtým sa vždy proxovalo, čo zlyhávalo s rate-limitovanými verejnými proxy.
+- **EPG načítanie** — chyby sa už tícho nezahlcujú, zobrazujú sa v UI. Fallback z .gz na .xml.
 
 ---
 
