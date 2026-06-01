@@ -21,18 +21,24 @@ Format je zalozeny na [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) a
 #### Changed
 - **Switch overlay** — presunuta z `position:absolute;inset:0` (cela plocha) na kompaktnu notifikaciu v spodnej casti playera s `border-radius`, `backdrop-filter` a slide-up animaciou.
 - **Farebna paleta** — `--accent` zmeneny na `#5b8def` (azure blue), novy `--accent-glow` pre selection efekty, `--text-bright` pre nadpisy, `--glass-bg` pre frosted glass povrchy.
-- **Channel karty** — vacsie logo (52px), lepsie medzery, gradient progress bar, `color-mix` active state s inset glow.
+- **Channel karty** — vacsie logo (52px), lepsie medzery, gradient progress bar, `color-mix` active state s inset glow. Podtitulok zobrazuje len nazov programu (bez skupiny).
 - **Ikony a spacing** — brand mark 42px s gradient pozadim a `box-shadow`, vacsie `icon-button` (42px).
-- **Settings panel** — sticky glass header, vacsie padding, lepsie hover stavy na sekciach.
+- **Settings panel** — `<details>/<summary>` nahradene plochymi `<div>/<h3>` sekciami (TV ovladac friendly). Sticky glass header, vacsie padding.
 - **Scrollbar** — jemnejsi scrollbar s hover stavom.
+- **Player message** — presunuta na `bottom: 54px` aby neprekryvala ovladacie prvky videa.
 
 #### Removed
 - **Demo funkcionalita** — `loadDemo()` funkcia, `#sampleButton`, demo sekcia v nastaveniach a prislusne preklady (`sample`, `settingsDemo`) boli kompletne odstranene.
+- **Sidebar search & group filter** — `#searchInput`, `#groupFilter`, `getGroups()`, `renderGroupFilter()`, `state.selectedGroup` odstranene. Sidebar teraz zobrazuje priamo zoznam kanalov.
+- **Skupinovy text v kartach** — kanal ukazuje len nazov programu, nie nazov skupiny.
+- **Nepotrebne preklady** — `search`, `allGroups` odstranene.
 
 #### Fixed
 - **Nastavenia sa nedali zatvori** — CSS `display: flex` na `.settings-panel` prepisoval `hidden` atribut. Opravene pridanim `.settings-panel[hidden] { display: none !important; }`.
 - **Text selection** — pridany `user-select: none` na `body` (s vynimkou `input`, `textarea`, `select`).
 - **HTML5 prehravanie** — pridany `canplay` event listener pre non-HLS obsah, `error` listener pre chyby, HLS fatal error handling.
+- **Select dropdown farby** — `color-scheme: dark` na `html/body` opravuje biely dropdown s necitatelnym textom.
+- **EPG CORS chyba** — pri zlyhani fetch bez CORS proxy sa zobrazi hláška s navedenim na Nastavenia > Siet (`corsNeeded` preklad).
 
 ---
 

@@ -46,6 +46,7 @@ html, body {
   -moz-osx-font-smoothing: grayscale;
   user-select: none;
   -webkit-user-select: none;
+  color-scheme: dark;
 }
 
 input, textarea, select {
@@ -210,33 +211,13 @@ input, textarea, select {
   border-bottom: 1px solid var(--border);
 }
 
-.settings-section summary {
-  padding: 14px 20px;
+.settings-section h3 {
+  padding: 14px 20px 6px;
   font-weight: 600;
   font-size: 13px;
-  cursor: pointer;
-  list-style: none;
-  user-select: none;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: var(--text);
-  transition: background var(--transition);
-}
-
-.settings-section summary:hover {
-  background: rgba(255, 255, 255, 0.03);
-}
-
-.settings-section summary::before {
-  content: "▶";
-  font-size: 9px;
-  transition: transform 0.25s;
   color: var(--muted);
-}
-
-.settings-section[open] summary::before {
-  transform: rotate(90deg);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .settings-body {
@@ -657,7 +638,7 @@ input[type=search] {
 .player-message {
   display: none;
   position: absolute;
-  bottom: 12px;
+  bottom: 54px;
   left: 12px;
   right: 12px;
   background: rgba(0, 0, 0, 0.82);
