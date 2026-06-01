@@ -6,6 +6,28 @@ Format je zalozeny na [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) a
 
 ---
 
+## [0.6.0] — 2026-06-01
+
+### Faza 6 — Prehrávanie, EPG auto-detekcia a UX vylepšenia
+
+#### Added
+- **CORS proxy pre prehrávanie** — HLS streamy cez hls.js teraz používajú `xhrSetup` na proxy všetkých XHR requestov (manifest aj segmenty). Priame HTML5 a Video.js/ArtPlayer URL sú tiež proxované.
+- **Auto-detekcia EPG z M3U** — `x-tvg-url` hlavička v M3U playlistoch je automaticky parsovaná. Relevantné EPG zdroje (podľa `tvg-id` krajiny kanálov) sa načítajú automaticky.
+- **Podpora .gz EPG** — gzipované EPG súbory sú dekompresované cez `DecompressionStream` API.
+- **Indikátor lokálny/sieťový** — zdroje playlistov aj EPG zobrazujú či sú lokálne (súbor) alebo sieťové (URL).
+- **SVG favicon** — oranžová ikona aplikácie (`favicon.svg`) s gradientom zhodným s brand-mark logom.
+- **Oranžový accent-color** — formulárové prvky (select, checkbox) a textová selekcia používajú `accent-color: var(--accent)`.
+
+#### Changed
+- **`proxyUrl()` helper** — nová funkcia centralizuje CORS proxy logiku pre video URL aj fetch requesty.
+- **`extractM3UEpgUrls()`** — parsuje `x-tvg-url` z `#EXTM3U` hlavičky playlistu.
+- **`autoLoadEpgFromPlaylist()`** — po načítaní playlistu automaticky deteguje a načíta relevantné EPG zdroje.
+
+#### Fixed
+- **HLS prehrávanie cez CORS proxy** — hls.js `xhrSetup` zabezpečuje proxy pre všetky requesty vrátane .ts segmentov. Predtým sa proxoval len fetch playlistu, nie samotné video.
+
+---
+
 ## [0.5.0] — 2026-05-31
 
 ### Faza 5 — Vizualny redizajn a opravy UX

@@ -307,6 +307,10 @@ button {
   font-weight: 600;
 }
 
+.source-item.active .source-main span {
+  color: var(--accent);
+}
+
 .source-actions {
   display: flex;
   gap: 4px;
@@ -330,7 +334,13 @@ button {
 
 /* ─── Inputs ───────────────────────────────────────────────────────────────── */
 
+::selection {
+  background: var(--accent);
+  color: #fff;
+}
+
 input, select {
+  accent-color: var(--accent);
   background: var(--surface2);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);

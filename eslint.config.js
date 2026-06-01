@@ -21,6 +21,8 @@ export default [
         URL: "readonly",
         Intl: "readonly",
         fetch: "readonly",
+        Response: "readonly",
+        DecompressionStream: "readonly",
         setTimeout: "readonly",
         clearTimeout: "readonly",
         setInterval: "readonly",
