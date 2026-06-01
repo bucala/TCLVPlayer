@@ -6,6 +6,28 @@ Format je zalozeny na [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) a
 
 ---
 
+## [0.6.1] — 2026-06-01
+
+### Faza 6.1 — Robustný CORS proxy a EPG retry
+
+#### Added
+- **Proxy fallback (encoded → raw)** — `loadTextFromUrl()` skúsi proxy s `encodeURIComponent(url)`, ak vráti chybu, skúsi s raw URL. Pokrýva rôzne formáty CORS proxy služieb.
+- **HLS proxy fallback** — `tryHlsPlayback()` pri fatálnej chybe automaticky reštartuje s raw proxy URL formátom.
+- **Auto EPG retry pri zmene proxy** — keď používateľ nastaví/zmení CORS proxy, automaticky sa znovu načítajú EPG zdroje z playlistu.
+- **`proxyUrlRaw()`** — helper pre raw (nekódovaný) proxy URL formát.
+
+#### Changed
+- **Proxy placeholder** — zmenený z `corsproxy.io` na `api.allorigins.win/raw?url=` (spoľahlivejší).
+- **`loadTextFromUrl()`** — úplne prepísaná s dual-proxy stratégiou (encoded + raw fallback).
+- **`tryHlsPlayback()`** — pridaný `useRawProxy` parameter s automatickým retry.
+- **CORS proxy change handler** — pri zmene proxy sa znovu spustí `autoLoadEpgFromPlaylist()` a reštartuje prehrávanie.
+
+#### Fixed
+- **Auto EPG bez proxy** — auto-detegované EPG sa pokúšalo načítať pred nastavením CORS proxy. Teraz sa retry spustí automaticky po uložení proxy.
+- **Proxy 403** — `corsproxy.io` vracal 403 pre niektoré URL. Fallback na raw URL formát pokrýva alternatívne proxy služby.
+
+---
+
 ## [0.6.0] — 2026-06-01
 
 ### Faza 6 — Opravy prehrávania, EPG a CORS (audit)
