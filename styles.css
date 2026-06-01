@@ -620,9 +620,8 @@ input[type=search] { -webkit-appearance: none; }
 .player-stage {
   position: relative;
   background: #000;
-  flex-shrink: 0;
-  aspect-ratio: 16 / 9;
-  max-height: 50vh;
+  flex: 1;
+  min-height: 200px;
   border-radius: 0;
 }
 
@@ -954,7 +953,7 @@ input[type=search] { -webkit-appearance: none; }
   .channel-text h3 { font-size: 15px; }
   .channel-text p { font-size: 12px; }
 
-  .player-stage { max-height: 55vh; }
+  .player-stage { min-height: 300px; }
 
   .timeline-row { height: 56px; }
   .timeline-label { width: 210px; }
@@ -1049,7 +1048,7 @@ input[type=search] { -webkit-appearance: none; }
   .channel-logo { width: 40px; height: 30px; }
   .channel-text h3 { font-size: 12px; }
 
-  .player-stage { max-height: 35vw; }
+  .player-stage { flex: 0 0 auto; aspect-ratio: 16 / 9; min-height: 0; max-height: 40vh; }
 
   .section-title {
     padding: 8px 12px;
