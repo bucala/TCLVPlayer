@@ -1,6 +1,6 @@
 {
   "name": "tclvplayer",
-  "version": "0.1.0",
+  "version": "0.7.0",
   "private": true,
   "description": "Simple IPTV player for Windows, Android, GoogleTV and web.",
   "main": "native/electron/main.js",
@@ -24,11 +24,13 @@
       "index.html",
       "styles.css",
       "app.js",
+      "favicon.svg",
       "dist/web/**/*",
       "assets/**/*",
       "native/electron/**/*",
       "node_modules/video.js/dist/**/*",
-      "node_modules/artplayer/dist/**/*"
+      "node_modules/artplayer/dist/**/*",
+      "node_modules/hls.js/dist/**/*"
     ],
     "win": {
       "target": [
