@@ -41,6 +41,7 @@ export default [
         module: "readonly",
         __dirname: "readonly",
         process: "readonly",
+        URL: "readonly",
         console: "readonly",
       },
     },

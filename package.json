@@ -36,7 +36,8 @@
       "target": [
         "nsis",
         "portable"
-      ]
+      ],
+      "icon": "assets/icon.png"
     }
   },
   "dependencies": {
