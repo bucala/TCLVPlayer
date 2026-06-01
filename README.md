@@ -9,7 +9,7 @@
   <a href="#platformy">Platformy</a> &bull;
   <a href="#playery">Playery</a> &bull;
   <a href="#architektura">Architektura</a> &bull;
-  <a href="CHANGELOG.md">Changelog</a>;
+  <a href="CHANGELOG.md">Changelog</a>
 
 ---
 
