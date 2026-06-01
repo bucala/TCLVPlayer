@@ -35,40 +35,40 @@
           <h2>Nastavenia</h2>
           <button id="settingsClose" class="icon-button" aria-label="Zavrieť">✕</button>
         </div>
-        <details class="settings-section" open>
-          <summary data-i18n="settingsPlayer">Prehrávač & Jazyk</summary>
+        <div class="settings-section">
+          <h3 data-i18n="settingsPlayer">Prehrávač & Jazyk</h3>
           <div class="settings-body">
             <label class="field-label"><span data-i18n="labelPlayer">Prehrávač</span><select id="playerSelect" aria-label="Player"><option value="html5">HTML5</option><option value="videojs">Video.js</option><option value="artplayer">ArtPlayer</option><option value="mpv">MPV</option><option value="vlc">VLC</option></select></label>
             <label class="field-label"><span data-i18n="labelLanguage">Jazyk</span><select id="languageSelect" aria-label="Language"><option value="sk">Slovenčina</option><option value="en">English</option></select></label>
           </div>
-        </details>
-        <details class="settings-section">
-          <summary data-i18n="settingsNetwork">Sieť</summary>
+        </div>
+        <div class="settings-section">
+          <h3 data-i18n="settingsNetwork">Sieť</h3>
           <div class="settings-body">
             <label class="field-label"><span data-i18n="labelCorsProxy">CORS proxy (len web)</span><input id="corsProxy" type="url" placeholder="https://corsproxy.io/?" /></label>
             <p class="settings-hint" data-i18n="corsHint">Prefix pre URL requesty vo webovej verzii. Electron a Android ho nepotrebujú.</p>
           </div>
-        </details>
-        <details class="settings-section" open>
-          <summary data-i18n="settingsPlaylists">Playlisty</summary>
+        </div>
+        <div class="settings-section">
+          <h3 data-i18n="settingsPlaylists">Playlisty</h3>
           <div class="settings-body">
             <div class="field-row"><input id="playlistUrl" type="url" placeholder="https://.../playlist.m3u8" /><button id="addPlaylistUrl" type="button" data-i18n="addPlaylist">Pridať URL</button></div>
             <label class="file-button"><input id="playlistFile" type="file" accept=".m3u,.m3u8,.xspf,audio/x-mpegurl,application/xspf+xml" /><span data-i18n="openPlaylist">Otvoriť súbor</span></label>
             <div id="playlistList" class="source-list"></div>
           </div>
-        </details>
-        <details class="settings-section" open>
-          <summary data-i18n="settingsEpg">EPG zdroje</summary>
+        </div>
+        <div class="settings-section">
+          <h3 data-i18n="settingsEpg">EPG zdroje</h3>
           <div class="settings-body">
             <p class="settings-hint" data-i18n="epgHint">Všetky zdroje sa načítajú a zlúčia.</p>
             <div class="field-row"><input id="epgUrl" type="url" placeholder="https://.../epg.xml" /><button id="addEpgUrl" type="button" data-i18n="addEpg">Pridať EPG</button></div>
             <label class="file-button"><input id="epgFile" type="file" accept=".xml,.xmltv,application/xml,text/xml" /><span data-i18n="openEpg">Otvoriť súbor EPG</span></label>
             <div id="epgList" class="source-list"></div>
           </div>
-        </details>
+        </div>
       </aside>
       <main class="workspace">
-        <aside class="sidebar"><section class="panel compact-panel"><div class="field-row"><input id="searchInput" type="search" data-i18n-placeholder="search" placeholder="Hľadať kanál" /></div><select id="groupFilter" aria-label="Group filter"><option value="" data-i18n="allGroups">Všetky skupiny</option></select></section><section class="channel-grid" id="channelGrid" aria-live="polite"></section></aside>
+        <aside class="sidebar"><section class="channel-grid" id="channelGrid" aria-live="polite"></section></aside>
         <section class="content"><section class="player-stage"><video id="videoPlayer" controls playsinline></video><div id="artPlayerHost" class="art-player-host"></div><div id="playerMessage" class="player-message"></div><div id="switchOverlay" class="switch-overlay" aria-live="polite"></div></section><section class="now-panel" id="nowPanel"></section><section class="guide-panel"><div class="section-title"><h2 data-i18n="guide">Program</h2><input id="epgSearch" type="search" class="epg-search" data-i18n-placeholder="searchEpg" placeholder="Hľadať v programe" /><div id="guideRange" class="muted"></div></div><div id="epgGuide" class="epg-guide"></div></section></section>
       </main>
     </div>
