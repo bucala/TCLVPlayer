@@ -9,7 +9,7 @@ function sanitizeLogoUrl(url) {
 }
 function safeGet(key, fallback = null) { try { return localStorage.getItem(key) !== null ? localStorage.getItem(key) : fallback; } catch { return fallback; } }
 function safeSet(key, value) { try { localStorage.setItem(key, value); } catch {} }
-function safeGetJson(key, fallback) { try { const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; } catch { return fallback; } }
+
 function safeSetJson(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch {} }
 
 const translations = {
@@ -19,12 +19,28 @@ const translations = {
     tagline: "Simple IPTV player", openPlaylist: "Playlist", openEpg: "EPG", load: "Load", loadEpg: "Load EPG", guide: "Guide", noChannels: "Load an M3U/M3U8 or XSPF playlist in Settings.", noEpg: "EPG is not loaded yet.", noProgram: "Program is not available", now: "Now", next: "Next", html5Notice: "HTML5 video player is active. Some HLS streams (.m3u8) need native browser support.", optionalMissing: "This player is not bundled. Load its library or use HTML5.",  loadError: "Could not load the source.", playlistLoaded: "Playlist loaded", epgLoaded: "EPG loaded", logoTitle: "Choose logo", settingsPlayer: "Player & Language", labelPlayer: "Player", labelLanguage: "Language", settingsPlaylists: "Playlists", addPlaylist: "Add URL", settingsEpg: "EPG sources", addEpg: "Add EPG", epgHint: "All sources are loaded and merged.", settingsNetwork: "Network", labelCorsProxy: "CORS proxy (web only)", corsHint: "URL prefix ending with &url=. Electron and Android do not need it.", searchEpg: "Search programs", corsNeeded: "CORS error — set a CORS proxy in Settings > Network.", proxyBlocked: "Proxy is blocking the request. Try a different CORS proxy.", streamUnavailable: "Stream is unavailable — server refused or geo-blocked.", clickToPlay: "Click the video to start playback.", local: "local", network: "network", epgAutoDetected: "EPG sources auto-detected from playlist", proxyChanged: "CORS proxy saved. Reloading EPG…", qualityNative: "Native", qualityHigh: "High (1080p)", qualityMedium: "Medium (720p)", qualityLow: "Low (360p)", labelQuality: "Video quality",   }
 };
 
+function migrateStoredSources(key, fallback) {
+  var raw;
+  try { raw = localStorage.getItem(key); } catch { return fallback; }
+  if (!raw) return fallback;
+  try {
+    var arr = JSON.parse(raw);
+    if (!Array.isArray(arr)) return fallback;
+    var cleaned = false;
+    for (var i = 0; i < arr.length; i++) {
+      if (arr[i].text && arr[i].text.length > 1000) { delete arr[i].text; cleaned = true; }
+    }
+    if (cleaned) { try { localStorage.setItem(key, JSON.stringify(arr)); } catch { localStorage.removeItem(key); } }
+    return arr;
+  } catch { localStorage.removeItem(key); return fallback; }
+}
+
 const state = {
   language: safeGet("tclv.language", "sk"), channels: [], epg: new Map(), selectedChannelId: null, selectedLogoChannelId: null, player: safeGet("tclv.player", "html5"), overlayTimer: 0, videoJsPlayer: null, artPlayer: null, hls: null,
   corsProxy: safeGet("tclv.corsProxy", ""),
   epgOffsetHours: 0, epgZoom: 1,
-  playlists: safeGetJson("tclv.playlists", []), activePlaylistId: safeGet("tclv.activePlaylistId", null),
-  epgSources: safeGetJson("tclv.epgSources", []),
+  playlists: migrateStoredSources("tclv.playlists", []), activePlaylistId: safeGet("tclv.activePlaylistId", null),
+  epgSources: migrateStoredSources("tclv.epgSources", []),
   sidebarVisible: safeGet("tclv.sidebarVisible", "true") !== "false",
   epgVisible: false
 };
