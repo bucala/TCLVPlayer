@@ -257,8 +257,66 @@ async function playHtml5(channel) {
     }, { once: true });
   } catch { showMessage(t('html5Notice')); }
 }
-async function playVideoJs(channel) { try { stopArtPlayer(); showHtmlVideo(); await ensureVideoJs(); const isHls = guessMimeType(channel.url) === 'application/x-mpegURL'; if (isHls && !dom.video.canPlayType('application/vnd.apple.mpegurl')) { await ensureHls(); } state.videoJsPlayer = state.videoJsPlayer || window.videojs(dom.video, { autoplay: true, controls: true, liveui: true, fluid: false }); if (isHls && window.Hls?.isSupported() && !dom.video.canPlayType('application/vnd.apple.mpegurl')) { if (state.hls) { try { state.hls.destroy(); } catch {} } const vjsHlsCfg = (!isNativePlatform() && state.corsProxy) ? { xhrSetup: function(xhr, u) { xhr.open('GET', proxyUrl(u), true); } } : {}; state.hls = new window.Hls(vjsHlsCfg); state.hls.loadSource(channel.url); state.hls.attachMedia(state.videoJsPlayer.tech({ IWillNotUseThisInPlugins: true }).el()); state.hls.on(window.Hls.Events.MANIFEST_PARSED, () => state.videoJsPlayer.play()?.catch?.(() => {})); } else { state.videoJsPlayer.src({ src: proxyUrl(channel.url), type: guessMimeType(channel.url) }); state.videoJsPlayer.play()?.catch?.(() => showMessage(t('html5Notice'))); } } catch (error) { showMessage(`${t('optionalMissing')} ${error.message || ''}`.trim()); } }
-async function playArtPlayer(channel) { try { stopVideoJs(); await ensureArtPlayer(); const isHls = guessMimeType(channel.url) === 'application/x-mpegURL'; if (isHls) await ensureHls(); dom.video.pause(); dom.video.removeAttribute('src'); dom.video.load(); dom.video.style.display = 'none'; dom.artPlayerHost.style.display = 'block'; const customType = (isHls && window.Hls?.isSupported()) ? { m3u8: function (videoEl, url) { if (state.hls) { try { state.hls.destroy(); } catch {} } const artHlsCfg = (!isNativePlatform() && state.corsProxy) ? { xhrSetup: function(xhr, u) { xhr.open('GET', proxyUrl(u), true); } } : {}; state.hls = new window.Hls(artHlsCfg); state.hls.loadSource(url); state.hls.attachMedia(videoEl); } } : undefined; if (state.artPlayer) { state.artPlayer.destroy(); state.artPlayer = null; } state.artPlayer = new window.Artplayer({ container: dom.artPlayerHost, url: proxyUrl(channel.url), type: isHls ? 'm3u8' : '', customType, autoplay: true, isLive: true, muted: false, setting: true, fullscreen: true, fullscreenWeb: true }); } catch (error) { showMessage(`${t('optionalMissing')} ${error.message || ''}`.trim()); } }
+function tryVjsHls(channel, proxyMode) {
+  if (!proxyMode) proxyMode = 'direct';
+  if (state.hls) { try { state.hls.destroy(); } catch {} state.hls = null; }
+  var hlsCfg = {};
+  if (!isNativePlatform() && state.corsProxy && proxyMode !== 'direct') {
+    hlsCfg.xhrSetup = proxyMode === 'raw'
+      ? function(xhr, u) { xhr.open('GET', proxyUrlRaw(u), true); }
+      : function(xhr, u) { xhr.open('GET', proxyUrl(u), true); };
+  }
+  state.hls = new window.Hls(hlsCfg);
+  state.hls.on(window.Hls.Events.ERROR, function(_e, data) {
+    if (data.fatal) {
+      state.hls.destroy(); state.hls = null;
+      if (proxyMode === 'direct' && state.corsProxy && !isNativePlatform()) { tryVjsHls(channel, 'encoded'); return; }
+      if (proxyMode === 'encoded' && state.corsProxy && !isNativePlatform()) { tryVjsHls(channel, 'raw'); return; }
+      showMessage(data.type === 'networkError' ? t('streamUnavailable') : t('html5Notice'));
+    }
+  });
+  state.hls.loadSource(channel.url);
+  state.hls.attachMedia(state.videoJsPlayer.tech({ IWillNotUseThisInPlugins: true }).el());
+  state.hls.on(window.Hls.Events.MANIFEST_PARSED, function() { state.videoJsPlayer.play()?.catch?.(function() {}); buildQualityMenu(); });
+}
+async function playVideoJs(channel) { try { stopArtPlayer(); showHtmlVideo(); await ensureVideoJs(); const isHls = guessMimeType(channel.url) === 'application/x-mpegURL'; if (isHls && !dom.video.canPlayType('application/vnd.apple.mpegurl')) { await ensureHls(); } state.videoJsPlayer = state.videoJsPlayer || window.videojs(dom.video, { autoplay: true, controls: true, liveui: true, fluid: false }); if (isHls && window.Hls?.isSupported() && !dom.video.canPlayType('application/vnd.apple.mpegurl')) { tryVjsHls(channel, 'direct'); } else { state.videoJsPlayer.src({ src: channel.url, type: guessMimeType(channel.url) }); state.videoJsPlayer.play()?.catch?.(() => showMessage(t('html5Notice'))); } } catch (error) { showMessage(`${t('optionalMissing')} ${error.message || ''}`.trim()); } }
+async function playArtPlayer(channel) {
+  try {
+    stopVideoJs(); await ensureArtPlayer(); const isHls = guessMimeType(channel.url) === 'application/x-mpegURL'; if (isHls) await ensureHls();
+    dom.video.pause(); dom.video.removeAttribute('src'); dom.video.load(); dom.video.style.display = 'none'; dom.artPlayerHost.style.display = 'block';
+    var artProxyMode = 'direct';
+    function makeArtCustomType(mode) {
+      if (!(isHls && window.Hls?.isSupported())) return undefined;
+      return { m3u8: function(videoEl, url) {
+        if (state.hls) { try { state.hls.destroy(); } catch {} state.hls = null; }
+        var cfg = {};
+        if (!isNativePlatform() && state.corsProxy && mode !== 'direct') {
+          cfg.xhrSetup = mode === 'raw'
+            ? function(xhr, u) { xhr.open('GET', proxyUrlRaw(u), true); }
+            : function(xhr, u) { xhr.open('GET', proxyUrl(u), true); };
+        }
+        state.hls = new window.Hls(cfg);
+        state.hls.on(window.Hls.Events.ERROR, function(_e, data) {
+          if (data.fatal) {
+            state.hls.destroy(); state.hls = null;
+            if (artProxyMode === 'direct' && state.corsProxy && !isNativePlatform()) { artProxyMode = 'encoded'; reloadArt('encoded'); return; }
+            if (artProxyMode === 'encoded' && state.corsProxy && !isNativePlatform()) { artProxyMode = 'raw'; reloadArt('raw'); return; }
+            showMessage(data.type === 'networkError' ? t('streamUnavailable') : t('html5Notice'));
+          }
+        });
+        state.hls.loadSource(url);
+        state.hls.attachMedia(videoEl);
+        state.hls.on(window.Hls.Events.MANIFEST_PARSED, function() { buildQualityMenu(); });
+      }};
+    }
+    function reloadArt(mode) {
+      if (state.artPlayer) { state.artPlayer.destroy(); state.artPlayer = null; }
+      state.artPlayer = new window.Artplayer({ container: dom.artPlayerHost, url: channel.url, type: isHls ? 'm3u8' : '', customType: makeArtCustomType(mode), autoplay: true, isLive: true, muted: false, setting: true, fullscreen: true, fullscreenWeb: true });
+    }
+    if (state.artPlayer) { state.artPlayer.destroy(); state.artPlayer = null; }
+    state.artPlayer = new window.Artplayer({ container: dom.artPlayerHost, url: channel.url, type: isHls ? 'm3u8' : '', customType: makeArtCustomType('direct'), autoplay: true, isLive: true, muted: false, setting: true, fullscreen: true, fullscreenWeb: true });
+  } catch (error) { showMessage(`${t('optionalMissing')} ${error.message || ''}`.trim()); }
+}
 function setPlayerActive(active) {
   var stage = document.querySelector('.player-stage');
   if (stage) stage.classList.toggle('no-video', !active);
