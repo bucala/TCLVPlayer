@@ -270,12 +270,37 @@ function readFile(file) { return new Promise((resolve, reject) => { const reader
 function readFileAsDataUrl(file) { return new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result || '')); reader.onerror = () => reject(reader.error); reader.readAsDataURL(file); }); }
 function xmlTvDate(date) { const pad = (value) => String(value).padStart(2, '0'); const offsetMinutes = -date.getTimezoneOffset(); const sign = offsetMinutes >= 0 ? '+' : '-'; const absolute = Math.abs(offsetMinutes); const offset = `${sign}${pad(Math.floor(absolute / 60))}${pad(absolute % 60)}`; return `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())} ${offset}`; }
 function estimateStorageSize(obj) { try { return JSON.stringify(obj).length; } catch { return 0; } }
-function addPlaylistRecord(record) { state.playlists.unshift(record); const size = estimateStorageSize(state.playlists); if (size > 4 * 1024 * 1024) { console.warn('Playlist storage exceeds 4 MB — localStorage may fail.'); } safeSetJson('tclv.playlists', state.playlists); state.activePlaylistId = record.id; safeSet('tclv.activePlaylistId', record.id); renderSourceLists(); }
-function activatePlaylist(id) { const item = state.playlists.find((p) => p.id === id); if (!item) return; state.activePlaylistId = id; safeSet('tclv.activePlaylistId', id); loadPlaylistText(item.text, item.name); renderSourceLists(); }
-function removePlaylist(id) { state.playlists = state.playlists.filter((p) => p.id !== id); safeSetJson('tclv.playlists', state.playlists); if (state.activePlaylistId === id) { state.activePlaylistId = state.playlists[0]?.id || null; safeSet('tclv.activePlaylistId', state.activePlaylistId || ''); if (state.playlists[0]) loadPlaylistText(state.playlists[0].text, state.playlists[0].name); else { state.channels = []; state.selectedChannelId = null; renderAll(); } } renderSourceLists(); }
-function removeEpgSource(id) { state.epgSources = state.epgSources.filter((e) => e.id !== id); safeSetJson('tclv.epgSources', state.epgSources); rebuildMergedEpg(); }
-function toggleEpgSource(id) { const item = state.epgSources.find(function(e) { return e.id === id; }); if (!item) return; item.active = item.active === false ? true : false; safeSetJson('tclv.epgSources', state.epgSources); rebuildMergedEpg(); }
-function addEpgRecord(record) { if (record.active === undefined) record.active = true; state.epgSources.unshift(record); const size = estimateStorageSize(state.epgSources); if (size > 4 * 1024 * 1024) { console.warn('EPG storage exceeds 4 MB — localStorage may fail.'); } safeSetJson('tclv.epgSources', state.epgSources); renderSourceLists(); rebuildMergedEpg(); }
+function savePlaylistMeta() {
+  var meta = state.playlists.map(function(p) {
+    var entry = { id: p.id, name: p.name, source: p.source, type: p.type, origin: p.origin };
+    if (p.origin === 'local') entry.text = p.text;
+    return entry;
+  });
+  var size = estimateStorageSize(meta);
+  if (size > 4 * 1024 * 1024) {
+    meta = state.playlists.map(function(p) { return { id: p.id, name: p.name, source: p.source, type: p.type, origin: p.origin }; });
+  }
+  safeSetJson('tclv.playlists', meta);
+}
+function addPlaylistRecord(record) { state.playlists.unshift(record); savePlaylistMeta(); state.activePlaylistId = record.id; safeSet('tclv.activePlaylistId', record.id); renderSourceLists(); }
+async function activatePlaylist(id) {
+  var item = state.playlists.find(function(p) { return p.id === id; });
+  if (!item) return;
+  state.activePlaylistId = id; safeSet('tclv.activePlaylistId', id);
+  if (!item.text && item.source && item.origin === 'network') {
+    try { item.text = await loadTextFromUrl(item.source); } catch {}
+  }
+  if (item.text) loadPlaylistText(item.text, item.name);
+  renderSourceLists();
+}
+function removePlaylist(id) { state.playlists = state.playlists.filter((p) => p.id !== id); savePlaylistMeta(); if (state.activePlaylistId === id) { state.activePlaylistId = state.playlists[0]?.id || null; safeSet('tclv.activePlaylistId', state.activePlaylistId || ''); if (state.playlists[0]) loadPlaylistText(state.playlists[0].text, state.playlists[0].name); else { state.channels = []; state.selectedChannelId = null; renderAll(); } } renderSourceLists(); }
+function saveEpgMeta() {
+  var meta = state.epgSources.map(function(s) { return { id: s.id, name: s.name, source: s.source, origin: s.origin, active: s.active }; });
+  safeSetJson('tclv.epgSources', meta);
+}
+function removeEpgSource(id) { state.epgSources = state.epgSources.filter((e) => e.id !== id); saveEpgMeta(); rebuildMergedEpg(); }
+function toggleEpgSource(id) { const item = state.epgSources.find(function(e) { return e.id === id; }); if (!item) return; item.active = item.active === false ? true : false; saveEpgMeta(); rebuildMergedEpg(); }
+function addEpgRecord(record) { if (record.active === undefined) record.active = true; state.epgSources.unshift(record); saveEpgMeta(); renderSourceLists(); rebuildMergedEpg(); }
 function rebuildMergedEpg() { const maps = []; for (const source of state.epgSources) { if (source.active === false) continue; try { maps.push(parseXmlTv(source.text)); } catch {} } state.epg = mergeEpgMaps(maps); renderAll(); showMessage(`${t('epgLoaded')}: ${state.epg.size}`); }
 function epgMatchesChannels(epgText) {
   try {
@@ -380,5 +405,15 @@ function bindEvents() {
   dom.languageSelect.addEventListener('change', () => { state.language = dom.languageSelect.value; safeSet('tclv.language', state.language); renderAll(); });
   dom.logoFile.addEventListener('change', async () => { const file = dom.logoFile.files?.[0]; if (!file || !state.selectedLogoChannelId) return; const dataUrl = await readFileAsDataUrl(file); safeSet(`tclv.logo.${state.selectedLogoChannelId}`, dataUrl); dom.logoFile.value = ''; renderAll(); });
 }
-function init() { bindEvents(); state.player = dom.playerSelect.value = state.player; state.language = translations[state.language] ? state.language : 'sk'; if (dom.corsProxyInput) dom.corsProxyInput.value = state.corsProxy; if (isNativePlatform()) { var netSection = dom.corsProxyInput?.closest('.settings-section'); if (netSection) netSection.style.display = 'none'; } setPlayerActive(false); renderSourceLists(); if (state.playlists.length && state.activePlaylistId) activatePlaylist(state.activePlaylistId); else renderAll(); if (!state.sidebarVisible) { document.querySelector('.workspace')?.classList.add('sidebar-hidden'); if (dom.sidebarToggle) dom.sidebarToggle.innerHTML = '&#x203a;'; } setInterval(() => { if (state.epgVisible) renderGuide(); document.querySelectorAll('.channel-card').forEach((card) => { const ch = state.channels.find((c) => c.id === card.dataset.channelId); if (!ch) return; const prog = currentProgram(ch); const bar = card.querySelector('.progress-track span'); if (bar) bar.style.width = progress(prog) + '%'; const txt = card.querySelector('.channel-text p'); if (txt) txt.textContent = prog?.title || ''; }); }, 60 * 1000); }
+async function reloadEpgSources() {
+  var sources = state.epgSources.filter(function(s) { return s.active !== false && s.source && !s.text; });
+  for (var i = 0; i < sources.length; i++) {
+    try {
+      var text = await loadTextFromUrl(sources[i].source);
+      if (text) sources[i].text = text;
+    } catch {}
+  }
+  if (sources.some(function(s) { return s.text; })) rebuildMergedEpg();
+}
+function init() { bindEvents(); state.player = dom.playerSelect.value = state.player; state.language = translations[state.language] ? state.language : 'sk'; if (dom.corsProxyInput) dom.corsProxyInput.value = state.corsProxy; if (isNativePlatform()) { var netSection = dom.corsProxyInput?.closest('.settings-section'); if (netSection) netSection.style.display = 'none'; } setPlayerActive(false); renderSourceLists(); if (state.playlists.length && state.activePlaylistId) activatePlaylist(state.activePlaylistId); else renderAll(); if (state.epgSources.length && !state.epgSources.some(function(s) { return s.text; })) reloadEpgSources(); if (!state.sidebarVisible) { document.querySelector('.workspace')?.classList.add('sidebar-hidden'); if (dom.sidebarToggle) dom.sidebarToggle.innerHTML = '&#x203a;'; } setInterval(() => { if (state.epgVisible) renderGuide(); document.querySelectorAll('.channel-card').forEach((card) => { const ch = state.channels.find((c) => c.id === card.dataset.channelId); if (!ch) return; const prog = currentProgram(ch); const bar = card.querySelector('.progress-track span'); if (bar) bar.style.width = progress(prog) + '%'; const txt = card.querySelector('.channel-text p'); if (txt) txt.textContent = prog?.title || ''; }); }, 60 * 1000); }
 init();

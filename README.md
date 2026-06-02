@@ -25,15 +25,12 @@ Windows · Android · GoogleTV · Web
 
 ## 💡 Prečo TCLVPlayer?
 
-> **Jedno jadro, štyri prostredia** — rovnaký web kód beží v Electron okne, Android WebView, na GoogleTV aj v prehliadači.
-
-| | |
-|---|---|
-| 🧩 **Žiadny framework** | Čistý vanilla JS, žiadny build step, žiadny bundler |
-| ▶️ **5 player režimov** | HTML5, Video.js, ArtPlayer, MPV, VLC |
-| 📺 **EPG s časovou osou** | XMLTV parsing, fuzzy matching kanálov, live progress |
-| 🔒 **Súkromné & offline** | Žiadny backend, žiadne účty, všetky dáta zostávajú lokálne |
-| 🎨 **Warm Orange dizajn** | Frosted glass UI, dark mode, adaptívny layout pre TV/tablet/mobil |
+- **Jedno jadro, tri platformy** — rovnaky web kod bezi v Electron okne, Android WebView aj v prehliadaci
+- **Ziadny framework** — cisty vanilla JS, ziadny build step, ziadny bundler
+- **3 interne playery** — HTML5, Video.js, ArtPlayer (vsetky s HLS cez hls.js)
+- **EPG s casovou osou** — XMLTV parsing, zoom a navigacia, fuzzy matching kanalov, live progress
+- **Kvalita videa** — vyber HLS kvality (360p / 720p / 1080p / nativna)
+- **Privatne a offline** — ziadny backend, ziadne ucty, vsetky data zostavaju lokalne
 
 ---
 
@@ -58,47 +55,46 @@ npm install
 
 ---
 
-## ✨ Funkcie
+## Funkcie
 
-### 📋 Playlisty a kanály
+### Playlisty a kanaly
+- Import zo suboru alebo URL — `*.m3u`, `*.m3u8`, `*.xspf`
+- Sprava viacerych playlistov v draweri (pridat, odstranit, prepnut)
+- Vlastne logo kanala z lokalneho uloziska
+- Ovladanie klavesnicou (sipky, PageUp/Down, Home/End)
 
-- 📁 Import zo súboru alebo URL — `*.m3u`, `*.m3u8`, `*.xspf`
-- 🗂️ Správa viacerých playlistov v draweri (pridať, odstrániť, prepnúť)
-- 🔍 Skupinový filter podľa `group-title`
-- 🔎 Vyhľadávanie kanálov podľa názvu
-- 🖼️ Vlastné logo kanála z lokálneho úložiska
+### EPG — Elektronicky programovy sprievodca
+- XMLTV format zo suboru alebo URL
+- Automaticka detekcia EPG zdrojov z M3U hlavicky (`x-tvg-url`)
+- Zlucovanie viacerych EPG zdrojov s validaciou zhody kanalov
+- Casova os so zoomom (0.5x–4x) a navigaciou (±3 hodiny)
+- Vyhladavanie v programe podla nazvu
+- Overlay s aktualnym/nasledujucim programom pri prepnuti kanala
 
-### 📺 EPG — Elektronický programový sprievodca
+### Player system
+- **HTML5** — automaticky HLS fallback cez hls.js, muted autoplay stratégia
+- **Video.js** — lazy-load z vendor/ alebo CDN, HLS cez hls.js
+- **ArtPlayer** — lazy-load, HLS cez customType
+- **Kvalita videa** — floating dropdown s vyberom HLS kvality (360p/720p/1080p/nativna)
+- CORS dual-fallback proxy (encoded URL → raw URL)
 
-- 📡 XMLTV formát zo súboru alebo URL (vrátane `.gz` kompresie)
-- 🔀 Zlučovanie viacerých EPG zdrojov s deduplikáciou
-- ⏱️ Časová os s 8-hodinovým oknom a live indikátorom
-- 🔍 Vyhľadávanie v programe podľa názvu
-- 💬 Overlay s aktuálnym/nasledujúcim programom pri prepnutí kanála
-- ✅ Toggle aktívnych/neaktívnych EPG zdrojov
+### Rozlozenie
+- Prepinatelny sidebar (kanal list) s toggle tlacitkom
+- EPG panel prepinatelny z topbaru
+- Mobilne rozlozenie: player hore, kanaly dole, EPG na celu obrazovku
+- Adaptivne pre TV (>1400px), tablet, telefon, landscape
 
-### ▶️ Player systém
+### Nastavenia
+- Prepinanie playerov za behu
+- Jazyky: Slovencina (default), English
+- Konfigurovatelny CORS proxy pre web verziu
+- Metadata ulozene v localStorage, EPG sa refetchuje pri starte
 
-- 🎬 HTML5 video s automatickým HLS fallbackom cez hls.js
-- 🎞️ Video.js s HLS podporou
-- 🖥️ ArtPlayer s HLS podporou cez `customType`
-- 🖱️ MPV/VLC — natívne spustenie cez Electron bridge alebo Android intent
-- 🔄 **Try-direct-first** stratégia — proxy len keď je nutné (CORS)
-- 🔁 Automatický retry s CORS proxy pri HLS chybe
-
-### ⚙️ Nastavenia
-
-- 🔀 Prepínanie playerov za behu
-- 🌍 Jazyky: Slovenčina (default), English
-- 🌐 Konfigurovateľný CORS proxy pre web verziu (`api.allorigins.win/raw?url=`)
-- 💾 Všetko uložené lokálne v `localStorage`
-
-### ♿ Prístupnosť a navigácia
-
-- ⌨️ Klávesová navigácia šípkami medzi kanálmi, D-pad pre TV
-- 🎯 Focus-visible ring pre keyboard používateľov
-- 🏷️ ARIA labely a live regióny
-- 📺 Leanback layout optimalizovaný pre Smart TV (>1400px)
+### Pristupnost a navigacia
+- Klavesova navigacia sipkami medzi kanalmi
+- Focus-visible ring pre keyboard uzivatelov
+- ARIA labely a live regiony
+- Touch-friendly EPG ovladanie
 
 ---
 
@@ -113,20 +109,18 @@ Desktop aplikácia cez Electron so sandbox izolovanou bezpečnosťou.
 npm run windows
 ```
 
-Pre vlastné cesty k MPV/VLC:
-
-```powershell
-$env:TCLV_MPV_PATH="C:\Program Files\mpv\mpv.exe"
-$env:TCLV_VLC_PATH="C:\Program Files\VideoLAN\VLC\vlc.exe"
-npm run windows
-```
+Electron automaticky:
+- Nastavuje Chrome User-Agent a Referer hlavicky
+- Odstrañuje Origin hlavicku z requestov
+- Injektuje CORS hlavicky do odpovedi (`Access-Control-Allow-Origin: *`)
+- Streamy ktore funguju v iptvnator budu fungovat aj tu
 
 </details>
 
 <details>
 <summary><strong>🤖 Android a GoogleTV</strong></summary>
 
-Natívna aplikácia cez Capacitor s Kotlin bridge pluginom.
+Nativna aplikacia cez Capacitor.
 
 ```bash
 npm run android:setup    # prvotná inicializácia
@@ -134,13 +128,7 @@ npm run android:sync     # synchronizácia po zmenách
 npm run android:open     # otvoriť v Android Studio
 ```
 
-Plugin `TCLVPlayerPlugin.kt` spúšťa MPV/VLC cez `Intent.ACTION_VIEW`.  
-GoogleTV manifest obsahuje `LEANBACK_LAUNCHER` kategóriu a nevyžaduje touchscreen.
-
-</details>
-
-<details>
-<summary><strong>🌐 Web</strong></summary>
+### Web
 
 Doplnková verzia na rýchle testovanie. Pri načítavaní URL playlistov/EPG vo web verzii je nutné nastaviť CORS proxy v **Nastavenia › Sieť**.
 
@@ -154,13 +142,11 @@ npm run web
 
 ## ▶️ Playery
 
-| Player | Typ | HLS | Poznámka |
-|--------|-----|:---:|---------|
-| **HTML5** | Interný | ✅ hls.js auto-fallback | Bez závislostí, funguje všade |
-| **Video.js** | Interný | ✅ hls.js integrovaný | Lazy-load z `vendor/` alebo CDN |
-| **ArtPlayer** | Interný | ✅ hls.js cez customType | Lazy-load z `vendor/` alebo CDN |
-| **MPV** | Externý natívny | ✅ natívne | Electron: spawn, Android: intent, Web: clipboard |
-| **VLC** | Externý natívny | ✅ natívne | Rovnaký princíp ako MPV |
+| Player | HLS | Poznamka |
+|--------|-----|----------|
+| **HTML5** | hls.js auto-fallback | Bez zavislosti, funguje vsade |
+| **Video.js** | hls.js integrovany | Lazy-load z vendor/ alebo CDN |
+| **ArtPlayer** | hls.js cez customType | Lazy-load z vendor/ alebo CDN |
 
 ---
 
@@ -168,70 +154,44 @@ npm run web
 
 ```
 TCLVPlayer/
-├── 📄 index.html                  # Jediný HTML vstupný bod
-├── 📜 app.js                      # Celá aplikačná logika (vanilla JS)
-├── 🎨 styles.css                  # Všetky štýly (Warm Orange téma)
-├── ⚙️  package.json                # Electron + Capacitor závislosti
-├── 📱 capacitor.config.json       # Capacitor konfigurácia
-├── 🖼️  favicon.svg                 # SVG ikona (oranžový gradient)
-│
-├── 📁 native/
+├── index.html                  # Jediny HTML vstupny bod
+├── app.js                      # Cela aplikacna logika (~390 riadkov)
+├── styles.css                  # Vsetky styly (responsive, dark theme)
+├── favicon.svg                 # App ikona (SVG)
+├── package.json                # Electron + Capacitor zavislosti
+├── capacitor.config.json       # Capacitor konfiguracia
+├── native/
 │   ├── electron/
-│   │   ├── main.js             # Electron hlavný proces (sandbox)
-│   │   └── preload.js          # IPC bridge → window.TCLVNative
+│   │   ├── main.js             # Electron hlavny proces (CORS bypass, UA override)
+│   │   └── preload.js          # Platform detection → window.TCLVNative
 │   └── android/
-│       ├── TCLVPlayerPlugin.kt # Capacitor plugin (intent bridge)
-│       ├── MainActivity.kt     # Registrácia pluginu
-│       └── AndroidManifest.additions.xml
-│
-├── 📁 lib/
-│   └── parsers.js              # Čisté funkcie (testovateľné, bez DOM)
-│
-├── 📁 scripts/
-│   ├── copy-web.mjs            # Build: kopírovanie web bundlu + vendor libs
-│   └── apply-android-template.mjs  # Build: patching Android manifestu
-│
-├── 📁 tests/
-│   └── parsers.test.js         # 31 Vitest unit testov
-│
-└── 📁 .github/workflows/
-    ├── ci.yml                  # Lint + testy + web bundle artifact
-    ├── windows.yml             # NSIS + portable .exe
-    └── android.yml             # Debug APK
+│       └── ...                 # Capacitor Android wrapper
+├── assets/
+│   ├── icon.png                # App ikona 512px
+│   └── icon.svg                # App ikona vektorova
+├── scripts/
+│   ├── copy-web.mjs            # Build: kopirovanie web bundlu + vendor libs
+│   └── apply-android-template.mjs
+├── tests/
+│   └── parsers.test.js         # Unit testy (vitest)
+└── eslint.config.js            # ESLint konfiguracia
 ```
 
-**Princíp:** Jedna web vrstva (`index.html` + `app.js` + `styles.css`) zdieľaná naprieč platformami. Natívne funkcie sú dostupné cez:
-
-| Prostredie | Rozhranie |
-|---|---|
-| Electron (Windows) | `window.TCLVNative` |
-| Android / GoogleTV | `window.Capacitor.Plugins.TCLVPlayer` |
-| Web (prehliadač) | `null` — graceful fallback |
+**Princip:** Jedna web vrstva (`index.html` + `app.js` + `styles.css`) zdielana napriec platformami. Nativne funkcie su dostupne cez:
+- `window.TCLVNative` — Electron (preload.js) — detekcia platformy
+- `window.Capacitor` — Android
+- `null` — web fallback
 
 ---
 
 ## 🔒 Bezpečnosť
 
-Electron konfigurácia dodržuje všetky odporúčané bezpečnostné postupy:
-
-| Nastavenie | Hodnota | Účel |
-|---|---|---|
-| `contextIsolation` | `true` | Renderer nemá prístup k Node.js API |
-| `nodeIntegration` | `false` | Žiadne `require()` v renderer procese |
-| `sandbox` | `true` | Renderer beží v sandboxe OS |
-| URL validácia | schema whitelist | `http/https/rtsp/rtmp/file` |
-| HTML escaping | vždy | Všetky používateľské dáta escapované pred DOM |
-| Logo URL sanitizácia | regex | Povolené iba `https?://` a `data:image/` |
-
----
-
-## 🔄 CI/CD
-
-| Workflow | Spúšťač | Runner | Výstup |
-|----------|---------|--------|--------|
-| `ci.yml` | Push na `main`, PR | `ubuntu-latest` + `windows-latest` | Lint ✅ · Testy ✅ · Web bundle artifact |
-| `windows.yml` | Manuálne, tag `v*` | `windows-latest` | `.exe` NSIS + portable |
-| `android.yml` | Manuálne, tag `v*` | `ubuntu-latest` | Debug `.apk` |
+- `contextIsolation: true` — renderer nema pristup k Node.js API
+- `nodeIntegration: false` — ziadne require() v renderer procese
+- `sandbox: true` — renderer bezi v sandboxe OS
+- HTML escaping — vsetky uzivatelske data su escapovane pred vlozenim do DOM
+- Logo URL sanitizacia — povolene iba `https?://` a `data:image/` protokoly
+- EPG text sa neuklada do localStorage (len metadata) — prevencia 5MB limitu
 
 ---
 
@@ -246,8 +206,8 @@ Electron konfigurácia dodržuje všetky odporúčané bezpečnostné postupy:
 | `artplayer` | MIT | Alternatívny web player |
 | `hls.js` | Apache-2.0 | HLS streaming pre všetky interné playery |
 | `http-server` | MIT | Dev web server |
-| `eslint` | MIT | Linting |
 | `vitest` | MIT | Unit testy |
+| `eslint` | MIT | Linting |
 
 ---
 
