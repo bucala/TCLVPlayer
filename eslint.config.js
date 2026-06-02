@@ -43,6 +43,7 @@ export default [
         process: "readonly",
         URL: "readonly",
         console: "readonly",
+        setTimeout: "readonly",
       },
     },
   },
