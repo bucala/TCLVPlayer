@@ -177,12 +177,20 @@ async function ensureArtPlayer() { if (window.Artplayer) return; await ensureScr
 async function ensureHls() { if (window.Hls) return; await ensureScript('hls-js', ['./vendor/hls.js/hls.min.js', 'https://cdn.jsdelivr.net/npm/hls.js@latest']); }
 function showMessage(message) { dom.playerMessage.textContent = message; dom.playerMessage.style.display = 'block'; }
 function hideMessage() { dom.playerMessage.style.display = 'none'; dom.playerMessage.textContent = ''; }
-function tryHlsPlayback(url, useRawProxy) {
-  var hlsCfg = (!isNativePlatform() && state.corsProxy) ? { xhrSetup: function(xhr, u) { xhr.open('GET', useRawProxy ? proxyUrlRaw(u) : proxyUrl(u), true); } } : {};
+function tryHlsPlayback(url, proxyMode) {
+  if (!proxyMode) proxyMode = 'direct';
+  var hlsCfg = {};
+  if (!isNativePlatform() && state.corsProxy && proxyMode !== 'direct') {
+    hlsCfg.xhrSetup = proxyMode === 'raw'
+      ? function(xhr, u) { xhr.open('GET', proxyUrlRaw(u), true); }
+      : function(xhr, u) { xhr.open('GET', proxyUrl(u), true); };
+  }
   state.hls = new window.Hls(hlsCfg);
   state.hls.on(window.Hls.Events.ERROR, function(_e, data) {
     if (data.fatal) {
-      if (!useRawProxy && state.corsProxy && !isNativePlatform()) { state.hls.destroy(); state.hls = null; tryHlsPlayback(url, true); return; }
+      state.hls.destroy(); state.hls = null;
+      if (proxyMode === 'direct' && state.corsProxy && !isNativePlatform()) { tryHlsPlayback(url, 'encoded'); return; }
+      if (proxyMode === 'encoded' && state.corsProxy && !isNativePlatform()) { tryHlsPlayback(url, 'raw'); return; }
       var detail = data.type === 'networkError' ? t('streamUnavailable') : t('html5Notice');
       showMessage(detail);
     }
@@ -234,13 +242,19 @@ async function playHtml5(channel) {
   const isHls = guessMimeType(channel.url) === 'application/x-mpegURL';
   try {
     if (isHls) {
-      if (dom.video.canPlayType('application/vnd.apple.mpegurl')) { dom.video.src = proxyUrl(channel.url); tryAutoplay(); return; }
+      if (dom.video.canPlayType('application/vnd.apple.mpegurl')) { dom.video.src = channel.url; tryAutoplay(); return; }
       await ensureHls();
-      if (window.Hls?.isSupported()) { tryHlsPlayback(channel.url); return; }
+      if (window.Hls?.isSupported()) { tryHlsPlayback(channel.url, 'direct'); return; }
     }
-    dom.video.src = proxyUrl(channel.url);
+    dom.video.src = channel.url;
     dom.video.addEventListener('canplay', tryAutoplay, { once: true });
-    dom.video.addEventListener('error', function() { showMessage(t('streamUnavailable')); }, { once: true });
+    dom.video.addEventListener('error', function() {
+      if (state.corsProxy && !isNativePlatform()) {
+        dom.video.src = proxyUrl(channel.url);
+        dom.video.addEventListener('canplay', tryAutoplay, { once: true });
+        dom.video.addEventListener('error', function() { showMessage(t('streamUnavailable')); }, { once: true });
+      } else { showMessage(t('streamUnavailable')); }
+    }, { once: true });
   } catch { showMessage(t('html5Notice')); }
 }
 async function playVideoJs(channel) { try { stopArtPlayer(); showHtmlVideo(); await ensureVideoJs(); const isHls = guessMimeType(channel.url) === 'application/x-mpegURL'; if (isHls && !dom.video.canPlayType('application/vnd.apple.mpegurl')) { await ensureHls(); } state.videoJsPlayer = state.videoJsPlayer || window.videojs(dom.video, { autoplay: true, controls: true, liveui: true, fluid: false }); if (isHls && window.Hls?.isSupported() && !dom.video.canPlayType('application/vnd.apple.mpegurl')) { if (state.hls) { try { state.hls.destroy(); } catch {} } const vjsHlsCfg = (!isNativePlatform() && state.corsProxy) ? { xhrSetup: function(xhr, u) { xhr.open('GET', proxyUrl(u), true); } } : {}; state.hls = new window.Hls(vjsHlsCfg); state.hls.loadSource(channel.url); state.hls.attachMedia(state.videoJsPlayer.tech({ IWillNotUseThisInPlugins: true }).el()); state.hls.on(window.Hls.Events.MANIFEST_PARSED, () => state.videoJsPlayer.play()?.catch?.(() => {})); } else { state.videoJsPlayer.src({ src: proxyUrl(channel.url), type: guessMimeType(channel.url) }); state.videoJsPlayer.play()?.catch?.(() => showMessage(t('html5Notice'))); } } catch (error) { showMessage(`${t('optionalMissing')} ${error.message || ''}`.trim()); } }
