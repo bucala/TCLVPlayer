@@ -264,7 +264,59 @@ function removeEpgSource(id) { state.epgSources = state.epgSources.filter((e) =>
 function toggleEpgSource(id) { const item = state.epgSources.find(function(e) { return e.id === id; }); if (!item) return; item.active = item.active === false ? true : false; safeSetJson('tclv.epgSources', state.epgSources); rebuildMergedEpg(); }
 function addEpgRecord(record) { if (record.active === undefined) record.active = true; state.epgSources.unshift(record); const size = estimateStorageSize(state.epgSources); if (size > 4 * 1024 * 1024) { console.warn('EPG storage exceeds 4 MB — localStorage may fail.'); } safeSetJson('tclv.epgSources', state.epgSources); renderSourceLists(); rebuildMergedEpg(); }
 function rebuildMergedEpg() { const maps = []; for (const source of state.epgSources) { if (source.active === false) continue; try { maps.push(parseXmlTv(source.text)); } catch {} } state.epg = mergeEpgMaps(maps); renderAll(); showMessage(`${t('epgLoaded')}: ${state.epg.size}`); }
-async function autoLoadEpgFromPlaylist(text) { var urls = extractM3UEpgUrls(text); if (!urls.length) return; for (var i = 0; i < urls.length; i++) { var url = urls[i]; if (state.epgSources.some(function(s) { return s.source === url; })) continue; var epgText = null; try { epgText = await loadTextFromUrl(url); } catch { if (url.endsWith('.xml.gz')) { try { epgText = await loadTextFromUrl(url.replace(/\.gz$/, '')); } catch (e2) { showMessage(t('loadError') + ' ' + (url.split('/').pop() || '') + ': ' + (e2.message || '')); } } else { showMessage(t('loadError') + ' ' + (url.split('/').pop() || '')); } } if (epgText) { addEpgRecord({ id: 'epg-' + Date.now() + '-' + Math.random().toString(36).slice(2,6), name: url.split('/').pop() || 'epg.xml', source: url, origin: 'network', active: true, text: epgText }); } } if (state.epgSources.length) showMessage(t('epgAutoDetected')); }
+function epgMatchesChannels(epgText) {
+  try {
+    var map = parseXmlTv(epgText);
+    if (!map.size) return 0;
+    var hits = 0;
+    for (var i = 0; i < state.channels.length; i++) {
+      var ch = state.channels[i];
+      var keys = [ch.tvgId, ch.id, ch.name].filter(Boolean);
+      for (var j = 0; j < keys.length; j++) { if (map.has(keys[j])) { hits++; break; } }
+      if (hits === 0) {
+        var wanted = normalizeId(ch.name);
+        for (var k of map.keys()) { if (normalizeId(k) === wanted) { hits++; break; } }
+      }
+    }
+    return hits;
+  } catch { return 0; }
+}
+async function fetchEpgWithFallback(url) {
+  try { return await loadTextFromUrl(url); } catch {
+    if (url.endsWith('.xml.gz')) { try { return await loadTextFromUrl(url.replace(/\.gz$/, '')); } catch {} }
+    return null;
+  }
+}
+async function autoLoadEpgFromPlaylist(text) {
+  var urls = extractM3UEpgUrls(text);
+  if (!urls.length) return;
+  var countries = new Set();
+  for (var c = 0; c < state.channels.length; c++) {
+    var m = state.channels[c].tvgId?.match(/\.([a-z]{2})$/i);
+    if (m) countries.add(m[1].toUpperCase());
+  }
+  var prioritized = urls;
+  if (countries.size) {
+    var matched = urls.filter(function(url) {
+      var fn = (url.split('/').pop() || '').toUpperCase();
+      return [...countries].some(function(c) { return fn.includes('_' + c) || fn.includes(c + '.'); });
+    });
+    if (matched.length) prioritized = matched.concat(urls.filter(function(u) { return matched.indexOf(u) === -1; }));
+  }
+  var loaded = 0;
+  var maxAttempts = Math.min(prioritized.length, 12);
+  for (var i = 0; i < maxAttempts && loaded < 3; i++) {
+    var url = prioritized[i];
+    if (state.epgSources.some(function(s) { return s.source === url; })) continue;
+    var epgText = await fetchEpgWithFallback(url);
+    if (!epgText) continue;
+    var hits = epgMatchesChannels(epgText);
+    if (hits === 0) continue;
+    addEpgRecord({ id: 'epg-' + Date.now() + '-' + Math.random().toString(36).slice(2,6), name: url.split('/').pop() || 'epg.xml', source: url, origin: 'network', active: true, text: epgText });
+    loaded++;
+  }
+  if (loaded > 0) showMessage(t('epgAutoDetected'));
+}
 function openSettings() { dom.settingsPanel.hidden = false; dom.settingsOverlay.hidden = false; dom.menuToggle?.setAttribute('aria-expanded', 'true'); }
 function closeSettings() { dom.settingsPanel.hidden = true; dom.settingsOverlay.hidden = true; dom.menuToggle?.setAttribute('aria-expanded', 'false'); }
 function bindEvents() {
