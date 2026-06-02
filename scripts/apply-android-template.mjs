@@ -29,8 +29,13 @@ manifest = addAfter(
 manifest = manifest.replace(
   /<application\b([^>]*)>/,
   (match, attrs) => {
-    if (/android:banner=/.test(attrs)) return match;
-    return `<application${attrs} android:banner="@mipmap/ic_launcher">`;
+    if (!(/android:usesCleartextTraffic=/.test(attrs))) {
+      attrs += ' android:usesCleartextTraffic="true"';
+    }
+    if (!(/android:banner=/.test(attrs))) {
+      attrs += ' android:banner="@mipmap/ic_launcher"';
+    }
+    return `<application${attrs}>`;
   },
 );
 
