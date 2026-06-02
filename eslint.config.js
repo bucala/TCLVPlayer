@@ -27,6 +27,7 @@ export default [
         clearTimeout: "readonly",
         setInterval: "readonly",
         requestAnimationFrame: "readonly",
+        location: "readonly",
         console: "readonly",
       },
     },
