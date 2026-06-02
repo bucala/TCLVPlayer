@@ -4,7 +4,7 @@
   <uses-feature android:name="android.software.leanback" android:required="false" />
   <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
 
-  <application android:banner="@mipmap/ic_launcher">
+  <application android:usesCleartextTraffic="true" android:banner="@mipmap/ic_launcher">
     <!-- Add to the MainActivity intent-filter so TCLVPlayer appears on GoogleTV launchers. -->
     <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
   </application>

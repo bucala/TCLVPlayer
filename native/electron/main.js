@@ -36,13 +36,13 @@ function createWindow() {
     { urls: ["http://*/*", "https://*/*"] },
     (details, callback) => {
       details.requestHeaders["User-Agent"] = BROWSER_USER_AGENT;
-      if (!details.requestHeaders["Referer"]) {
-        try {
-          const u = new URL(details.url);
+      try {
+        const u = new URL(details.url);
+        details.requestHeaders["Origin"] = u.origin;
+        if (!details.requestHeaders["Referer"]) {
           details.requestHeaders["Referer"] = u.origin + "/";
-        } catch {}
-      }
-      delete details.requestHeaders["Origin"];
+        }
+      } catch {}
       callback({ requestHeaders: details.requestHeaders });
     }
   );
