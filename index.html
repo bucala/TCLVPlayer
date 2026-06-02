@@ -40,7 +40,7 @@
         <div class="settings-section">
           <h3 data-i18n="settingsPlayer">Prehrávač & Jazyk</h3>
           <div class="settings-body">
-            <label class="field-label"><span data-i18n="labelPlayer">Prehrávač</span><select id="playerSelect" aria-label="Player"><option value="html5">HTML5</option><option value="videojs">Video.js</option><option value="artplayer">ArtPlayer</option><option value="mpv">MPV</option><option value="vlc">VLC</option></select></label>
+            <label class="field-label"><span data-i18n="labelPlayer">Prehrávač</span><select id="playerSelect" aria-label="Player"><option value="html5">HTML5</option><option value="videojs">Video.js</option><option value="artplayer">ArtPlayer</option></select></label>
             <label class="field-label"><span data-i18n="labelLanguage">Jazyk</span><select id="languageSelect" aria-label="Language"><option value="sk">Slovenčina</option><option value="en">English</option></select></label>
           </div>
         </div>
@@ -72,7 +72,7 @@
       <main class="workspace">
         <button id="sidebarToggle" class="sidebar-toggle" aria-label="Toggle channels">&#x2039;</button>
         <aside class="sidebar" id="sidebar"><section class="channel-grid" id="channelGrid" aria-live="polite"></section></aside>
-        <section class="content"><section class="player-stage"><video id="videoPlayer" controls playsinline></video><div id="artPlayerHost" class="art-player-host"></div><div id="qualityControl" class="quality-control" hidden><select id="qualitySelect" aria-label="Kvalita videa"></select></div><div id="playerMessage" class="player-message"></div><div id="switchOverlay" class="switch-overlay" aria-live="polite"></div></section><section class="guide-panel" id="guidePanel" hidden><div class="section-title"><h2 data-i18n="guide">Program</h2><input id="epgSearch" type="search" class="epg-search" data-i18n-placeholder="searchEpg" placeholder="Hľadať v programe" /><div id="guideRange" class="muted"></div></div><div id="epgGuide" class="epg-guide"></div></section></section>
+        <section class="content"><section class="player-stage"><video id="videoPlayer" controls playsinline></video><div id="artPlayerHost" class="art-player-host"></div><div id="qualityControl" class="quality-control" hidden><select id="qualitySelect" aria-label="Kvalita videa"></select></div><div id="playerMessage" class="player-message"></div><div id="switchOverlay" class="switch-overlay" aria-live="polite"></div></section><section class="guide-panel" id="guidePanel" hidden><div class="section-title"><h2 data-i18n="guide">Program</h2><div class="epg-nav"><button id="epgBack" class="epg-nav-btn" aria-label="Back" title="−3h">◀</button><button id="epgZoomOut" class="epg-nav-btn" aria-label="Zoom out" title="Zoom −">−</button><button id="epgZoomIn" class="epg-nav-btn" aria-label="Zoom in" title="Zoom +">+</button><button id="epgFwd" class="epg-nav-btn" aria-label="Forward" title="+3h">▶</button></div><input id="epgSearch" type="search" class="epg-search" data-i18n-placeholder="searchEpg" placeholder="Hľadať v programe" /><div id="guideRange" class="muted"></div></div><div id="epgGuide" class="epg-guide"></div></section></section>
       </main>
     </div>
     <input id="logoFile" type="file" accept="image/*" hidden />
