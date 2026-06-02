@@ -187,8 +187,13 @@ function makeHlsConfig(proxyMode) {
   }
   return cfg;
 }
+function initialProxyMode(url) {
+  if (isNativePlatform()) return 'direct';
+  if (isMixedContent(url) && state.corsProxy) return 'encoded';
+  return 'direct';
+}
 function tryHlsPlayback(url, proxyMode) {
-  if (!proxyMode) proxyMode = 'direct';
+  if (!proxyMode) proxyMode = initialProxyMode(url);
   destroyHls();
   var hls = new window.Hls(makeHlsConfig(proxyMode));
   state.hls = hls;
@@ -247,16 +252,18 @@ function safeAutoplay(videoEl) {
 async function playHtml5(channel) {
   stopInternalPlayers(); showHtmlVideo(); dom.video.removeAttribute('src'); dom.video.load();
   const isHls = guessMimeType(channel.url) === 'application/x-mpegURL';
+  var mixed = isMixedContent(channel.url);
   try {
     if (isHls) {
-      if (dom.video.canPlayType('application/vnd.apple.mpegurl')) { dom.video.src = channel.url; safeAutoplay(dom.video); return; }
+      if (!mixed && dom.video.canPlayType('application/vnd.apple.mpegurl')) { dom.video.src = channel.url; safeAutoplay(dom.video); return; }
       await ensureHls();
-      if (window.Hls?.isSupported()) { tryHlsPlayback(channel.url, 'direct'); return; }
+      if (window.Hls?.isSupported()) { tryHlsPlayback(channel.url); return; }
     }
-    dom.video.src = channel.url;
+    var srcUrl = (mixed && state.corsProxy) ? proxyUrl(channel.url) : channel.url;
+    dom.video.src = srcUrl;
     dom.video.addEventListener('canplay', function() { safeAutoplay(dom.video); }, { once: true });
     dom.video.addEventListener('error', function() {
-      if (state.corsProxy && !isNativePlatform()) {
+      if (!mixed && state.corsProxy && !isNativePlatform()) {
         dom.video.src = proxyUrl(channel.url);
         dom.video.addEventListener('canplay', function() { safeAutoplay(dom.video); }, { once: true });
         dom.video.addEventListener('error', function() { showMessage(t('streamUnavailable')); }, { once: true });
@@ -265,7 +272,7 @@ async function playHtml5(channel) {
   } catch { showMessage(t('html5Notice')); }
 }
 function tryVjsHls(channel, proxyMode) {
-  if (!proxyMode) proxyMode = 'direct';
+  if (!proxyMode) proxyMode = initialProxyMode(channel.url);
   destroyHls();
   var hls = new window.Hls(makeHlsConfig(proxyMode));
   state.hls = hls;
@@ -280,12 +287,12 @@ function tryVjsHls(channel, proxyMode) {
   hls.attachMedia(state.videoJsPlayer.tech({ IWillNotUseThisInPlugins: true }).el());
   hls.on(window.Hls.Events.MANIFEST_PARSED, function() { state.videoJsPlayer.play()?.catch?.(function() {}); buildQualityMenu(); });
 }
-async function playVideoJs(channel) { try { stopArtPlayer(); showHtmlVideo(); await ensureVideoJs(); const isHls = guessMimeType(channel.url) === 'application/x-mpegURL'; if (isHls && !dom.video.canPlayType('application/vnd.apple.mpegurl')) { await ensureHls(); } state.videoJsPlayer = state.videoJsPlayer || window.videojs(dom.video, { autoplay: true, controls: true, liveui: true, fluid: false }); if (isHls && window.Hls?.isSupported() && !dom.video.canPlayType('application/vnd.apple.mpegurl')) { tryVjsHls(channel, 'direct'); } else { state.videoJsPlayer.src({ src: channel.url, type: guessMimeType(channel.url) }); state.videoJsPlayer.play()?.catch?.(() => showMessage(t('html5Notice'))); } } catch (error) { showMessage(`${t('optionalMissing')} ${error.message || ''}`.trim()); } }
+async function playVideoJs(channel) { try { stopArtPlayer(); showHtmlVideo(); await ensureVideoJs(); const isHls = guessMimeType(channel.url) === 'application/x-mpegURL'; if (isHls && !dom.video.canPlayType('application/vnd.apple.mpegurl')) { await ensureHls(); } state.videoJsPlayer = state.videoJsPlayer || window.videojs(dom.video, { autoplay: true, controls: true, liveui: true, fluid: false }); if (isHls && window.Hls?.isSupported() && !dom.video.canPlayType('application/vnd.apple.mpegurl')) { tryVjsHls(channel); } else { var vjsSrc = (isMixedContent(channel.url) && state.corsProxy) ? proxyUrl(channel.url) : channel.url; state.videoJsPlayer.src({ src: vjsSrc, type: guessMimeType(channel.url) }); state.videoJsPlayer.play()?.catch?.(() => showMessage(t('html5Notice'))); } } catch (error) { showMessage(`${t('optionalMissing')} ${error.message || ''}`.trim()); } }
 async function playArtPlayer(channel) {
   try {
     stopVideoJs(); await ensureArtPlayer(); const isHls = guessMimeType(channel.url) === 'application/x-mpegURL'; if (isHls) await ensureHls();
     dom.video.pause(); dom.video.removeAttribute('src'); dom.video.load(); dom.video.style.display = 'none'; dom.artPlayerHost.style.display = 'block';
-    var artProxyMode = 'direct';
+    var artProxyMode = initialProxyMode(channel.url);
     function makeArtCustomType(mode) {
       if (!(isHls && window.Hls?.isSupported())) return undefined;
       return { m3u8: function(videoEl, url) {
@@ -312,7 +319,7 @@ async function playArtPlayer(channel) {
       state.artPlayer = createArt(mode);
     }
     if (state.artPlayer) { try { state.artPlayer.destroy(); } catch {} state.artPlayer = null; }
-    state.artPlayer = createArt('direct');
+    state.artPlayer = createArt(artProxyMode);
   } catch (error) { showMessage(`${t('optionalMissing')} ${error.message || ''}`.trim()); }
 }
 function setPlayerActive(active) {
@@ -329,15 +336,17 @@ function playChannel(channel) {
 function showSwitchOverlay(channel) { const now = currentProgram(channel); const next = nextProgram(channel); dom.switchOverlay.innerHTML = `<img src="${getChannelLogo(channel)}" alt=""><div><h2>${escapeHtml(channel.name)}</h2><p><strong>${t('now')}:</strong> ${escapeHtml(now?.title || t('noProgram'))}</p><p><strong>${t('next')}:</strong> ${escapeHtml(next?.title || t('noProgram'))}</p></div>`; dom.switchOverlay.classList.add('show'); clearTimeout(state.overlayTimer); state.overlayTimer = setTimeout(() => dom.switchOverlay.classList.remove('show'), 5200); }
 function selectChannel(id) { const channel = state.channels.find((item) => item.id === id); if (!channel) return; state.selectedChannelId = id; playChannel(channel); showSwitchOverlay(channel); renderChannels(); requestAnimationFrame(() => { const active = dom.channelGrid.querySelector('.channel-card.active'); active?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }); }
 function isNativePlatform() { return !!(window.TCLVNative || window.Capacitor); }
+function isMixedContent(url) { return location.protocol === 'https:' && String(url || '').startsWith('http://'); }
 function proxyUrl(url) { if (isNativePlatform() || !state.corsProxy) return url; return state.corsProxy + encodeURIComponent(url); }
 function proxyUrlRaw(url) { if (isNativePlatform() || !state.corsProxy) return url; return state.corsProxy + url; }
 async function loadTextFromUrl(url) {
   function decode(r, u) { if (u.endsWith('.gz') && typeof DecompressionStream !== 'undefined') return new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).text(); return r.text(); }
-  if (isNativePlatform() || !state.corsProxy) {
+  if (isNativePlatform() || (!state.corsProxy && !isMixedContent(url))) {
     var response; try { response = await fetch(url); } catch (err) { if (!isNativePlatform()) throw new Error(t('corsNeeded'), { cause: err }); throw err; }
     if (!response.ok) throw new Error(response.status + ' ' + response.statusText);
     return decode(response, url);
   }
+  if (!state.corsProxy) throw new Error(t('corsNeeded'));
   var encodedUrl = state.corsProxy + encodeURIComponent(url);
   var resp;
   try { resp = await fetch(encodedUrl); } catch { resp = null; }
