@@ -6,6 +6,51 @@ Format je zalozeny na [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) a
 
 ---
 
+## [0.8.0] — 2026-06-02
+
+### Faza 8 — Stabilizácia, EPG navigácia, CORS bypass
+
+#### Added
+- **EPG zoom a navigácia** — tlačidlá ◀ (−3h), ▶ (+3h) pre posúvanie časovej osi; + a − pre zoom (0.5x–4x rozsah)
+- **HLS kvalita videa** — floating dropdown v prehrávači pre výber kvality (Natívna / 360p / 720p / 1080p)
+- **Electron CORS bypass** — `onHeadersReceived` injektuje `Access-Control-Allow-Origin: *`, mazanie `Origin` z requestov (rovnaký prístup ako iptvnator)
+- **EPG smart auto-load** — validácia stiahnutého EPG oproti kanálom v playliste, skip irelevantných zdrojov
+- **EPG re-fetch pri štarte** — metadata v localStorage, plný text sa refetchuje pri každom štarte
+
+#### Changed
+- **Odstránené MPV/VLC** — len HTML5 / Video.js / ArtPlayer
+- **Odstránený externý player kód** — spawn, intent://, IPC bridge, preload simplifikovaný
+- **Video sizing** — `overflow: hidden` na player-stage, Video.js wrapper absolute positioning
+- **Mobile layout** — player-stage max 30vh, kolapsuje keď neprehrváva
+- **localStorage optimalizácia** — EPG text sa neukladá (len URL metadata), prevencia 5MB crashu
+
+#### Fixed
+- **STATUS_BREAKPOINT crash** — ukladanie plného EPG XML do localStorage prekročilo 5MB limit prehliadača
+- **EPG načítavalo nesprávne zdroje** — albánske namiesto slovenských (chýbajúci filter)
+- **Video overflow** — HTML5 a Video.js video pretekalo mimo player kontajnera
+
+---
+
+## [0.7.0] — 2026-06-01
+
+### Faza 7 — Layout redesign, Electron opravy, Windows/Android build
+
+#### Added
+- **Sidebar toggle** — tlačidlo na skrytie/zobrazenie zoznamu kanálov
+- **EPG toggle** — prepínanie EPG panelu z topbaru
+- **Electron User-Agent** — Chrome UA override pre kompatibilitu so streamami
+- **Electron Referer** — automatický Referer header pre všetky requesty
+- **App ikona** — vlastná oranžová TV ikona (512px PNG + SVG)
+- **Muted autoplay** — video sa spustí stlmené, po úspechu odtlmí
+
+#### Changed
+- **Layout** — z grid na flex, sidebar 280px s transition
+- **Mobile** — flex-direction: column, player hore, kanály dole
+- **Electron menu** — odstránený default menu bar
+- **Electron CORS sekcia** — skrytá v nastaveniach (nepotrebná)
+
+---
+
 ## [0.6.1] — 2026-06-01
 
 ### Faza 6.1 — Robustný CORS proxy a EPG retry
