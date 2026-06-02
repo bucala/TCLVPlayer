@@ -1083,7 +1083,10 @@ input[type=search] { -webkit-appearance: none; }
   .channel-logo { width: 40px; height: 30px; }
   .channel-text h3 { font-size: 12px; }
 
-  .player-stage { flex: 0 0 auto; aspect-ratio: 16 / 9; min-height: 0; max-height: 40vh; }
+  .player-stage { flex: 0 0 auto; aspect-ratio: 16 / 9; min-height: 0; max-height: 30vh; }
+  .player-stage.no-video { aspect-ratio: auto; max-height: none; height: auto; min-height: 48px; }
+  .player-stage.no-video #videoPlayer { display: none; }
+  .player-stage.no-video .player-message { position: static; display: block; margin: 8px; }
 
   .section-title {
     padding: 8px 12px;
