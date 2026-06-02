@@ -623,6 +623,7 @@ input[type=search] { -webkit-appearance: none; }
   flex: 1;
   min-height: 200px;
   border-radius: 0;
+  overflow: hidden;
 }
 
 #videoPlayer, .art-player-host {
@@ -634,6 +635,40 @@ input[type=search] { -webkit-appearance: none; }
 }
 
 .art-player-host { display: none; }
+
+/* Video.js creates a wrapper div — force it to fill the stage */
+.player-stage .video-js {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.quality-control {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  z-index: 6;
+}
+.quality-control[hidden] { display: none !important; }
+.quality-control select {
+  background: rgba(0, 0, 0, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  border-radius: var(--radius-xs);
+  padding: 0 8px;
+  height: 28px;
+  font-size: 11px;
+  width: auto;
+  cursor: pointer;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: none;
+}
+.quality-control select:focus {
+  border-color: var(--accent);
+  box-shadow: none;
+}
 
 .player-message {
   display: none;

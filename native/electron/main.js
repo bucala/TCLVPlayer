@@ -73,17 +73,35 @@ ipcMain.handle("tclv:open-external-player", async (_event, payload) => {
   }
 
   const streamUrl = validateStreamUrl(payload?.url);
-  const child = spawn(executable, [streamUrl], {
-    detached: true,
-    stdio: "ignore",
-    windowsHide: true,
-  });
-  child.unref();
 
-  return {
-    ok: true,
-    player,
-  };
+  return new Promise((resolve, reject) => {
+    const child = spawn(executable, [streamUrl], {
+      detached: true,
+      stdio: "ignore",
+      windowsHide: true,
+    });
+
+    let done = false;
+
+    child.on("error", (err) => {
+      if (done) return;
+      done = true;
+      const name = player.toUpperCase();
+      const envVar = player === "mpv" ? "TCLV_MPV_PATH" : "TCLV_VLC_PATH";
+      if (err.code === "ENOENT") {
+        reject(new Error(`${name} nie je nainštalovaný. Nainštalujte ho alebo nastavte premennú ${envVar}.`));
+      } else {
+        reject(err);
+      }
+    });
+
+    setTimeout(() => {
+      if (done) return;
+      done = true;
+      child.unref();
+      resolve({ ok: true, player });
+    }, 300);
+  });
 });
 
 app.whenReady().then(() => {
