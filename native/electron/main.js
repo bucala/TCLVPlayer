@@ -2,13 +2,7 @@
 
 const path = require("node:path");
 const fs = require("node:fs");
-const { spawn } = require("node:child_process");
-const { app, BrowserWindow, ipcMain, session, Menu } = require("electron");
-
-const playerExecutables = {
-  mpv: process.env.TCLV_MPV_PATH || "mpv",
-  vlc: process.env.TCLV_VLC_PATH || "vlc",
-};
+const { app, BrowserWindow, session, Menu } = require("electron");
 
 const BROWSER_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
 
@@ -48,7 +42,21 @@ function createWindow() {
           details.requestHeaders["Referer"] = u.origin + "/";
         } catch {}
       }
+      delete details.requestHeaders["Origin"];
       callback({ requestHeaders: details.requestHeaders });
+    }
+  );
+
+  session.defaultSession.webRequest.onHeadersReceived(
+    { urls: ["http://*/*", "https://*/*"] },
+    (details, callback) => {
+      const headers = details.responseHeaders || {};
+      headers["Access-Control-Allow-Origin"] = ["*"];
+      headers["Access-Control-Allow-Headers"] = ["*"];
+      headers["Access-Control-Allow-Methods"] = ["*"];
+      delete headers["x-frame-options"];
+      delete headers["X-Frame-Options"];
+      callback({ responseHeaders: headers });
     }
   );
 
@@ -56,53 +64,6 @@ function createWindow() {
   const sourceWeb = path.join(__dirname, "..", "..", "index.html");
   mainWindow.loadFile(fs.existsSync(packagedWeb) ? packagedWeb : sourceWeb);
 }
-
-function validateStreamUrl(url) {
-  const value = String(url || "").trim();
-  if (!/^(https?|rtsp|rtmp|file):/i.test(value)) {
-    throw new Error("Unsupported stream URL.");
-  }
-  return value;
-}
-
-ipcMain.handle("tclv:open-external-player", async (_event, payload) => {
-  const player = String(payload?.player || "").toLowerCase();
-  const executable = playerExecutables[player];
-  if (!executable) {
-    throw new Error("Unsupported player.");
-  }
-
-  const streamUrl = validateStreamUrl(payload?.url);
-
-  return new Promise((resolve, reject) => {
-    const child = spawn(executable, [streamUrl], {
-      detached: true,
-      stdio: "ignore",
-      windowsHide: true,
-    });
-
-    let done = false;
-
-    child.on("error", (err) => {
-      if (done) return;
-      done = true;
-      const name = player.toUpperCase();
-      const envVar = player === "mpv" ? "TCLV_MPV_PATH" : "TCLV_VLC_PATH";
-      if (err.code === "ENOENT") {
-        reject(new Error(`${name} nie je nainštalovaný. Nainštalujte ho alebo nastavte premennú ${envVar}.`));
-      } else {
-        reject(err);
-      }
-    });
-
-    setTimeout(() => {
-      if (done) return;
-      done = true;
-      child.unref();
-      resolve({ ok: true, player });
-    }, 300);
-  });
-});
 
 app.whenReady().then(() => {
   createWindow();
