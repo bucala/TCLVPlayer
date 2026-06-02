@@ -1,20 +1,29 @@
-<p align="center">
-  <strong>TCLVPlayer</strong><br>
-  Multiplatformovy IPTV prehravac pre Windows, Android, GoogleTV a web
-</p>
+<div align="center">
 
-<p align="center">
-  <a href="#rychly-start">Rychly start</a> &bull;
-  <a href="#funkcie">Funkcie</a> &bull;
-  <a href="#platformy">Platformy</a> &bull;
-  <a href="#playery">Playery</a> &bull;
-  <a href="#architektura">Architektura</a> &bull;
-  <a href="CHANGELOG.md">Changelog</a> &bull;
-</p>
+<!-- Logo / brand -->
+<img src="favicon.svg" alt="TCLVPlayer logo" width="96" height="96"/>
+
+# TCLVPlayer
+
+**Multiplatformový IPTV prehrávač**  
+Windows · Android · GoogleTV · Web
+
+[![CI](https://github.com/bucala/TCLVPlayer/actions/workflows/ci.yml/badge.svg)](https://github.com/bucala/TCLVPlayer/actions/workflows/ci.yml)
+[![Windows Build](https://github.com/bucala/TCLVPlayer/actions/workflows/windows.yml/badge.svg)](https://github.com/bucala/TCLVPlayer/actions/workflows/windows.yml)
+[![Android Build](https://github.com/bucala/TCLVPlayer/actions/workflows/android.yml/badge.svg)](https://github.com/bucala/TCLVPlayer/actions/workflows/android.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-orange.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/version-0.6.1-orange)](#changelog)
+[![Vanilla JS](https://img.shields.io/badge/Vanilla-JS-yellow?logo=javascript)](app.js)
 
 ---
 
-## Preco TCLVPlayer?
+[🚀 Rýchly štart](#-rýchly-štart) · [✨ Funkcie](#-funkcie) · [📱 Platformy](#-platformy) · [▶️ Playery](#-playery) · [🏗️ Architektúra](#-architektúra) · [📋 Changelog](CHANGELOG.md)
+
+</div>
+
+---
+
+## 💡 Prečo TCLVPlayer?
 
 - **Jedno jadro, tri platformy** — rovnaky web kod bezi v Electron okne, Android WebView aj v prehliadaci
 - **Ziadny framework** — cisty vanilla JS, ziadny build step, ziadny bundler
@@ -25,18 +34,24 @@
 
 ---
 
-## Rychly start
+## 🚀 Rýchly štart
 
 ```bash
+git clone https://github.com/bucala/TCLVPlayer.git
+cd TCLVPlayer
 npm install
 ```
 
-| Platforma | Prikaz | Vystup |
+### Spustenie
+
+| Platforma | Príkaz | Výstup |
 |-----------|--------|--------|
-| **Web** | `npm run web` | `http://127.0.0.1:3000` |
-| **Windows** | `npm run windows` | Electron okno |
-| **Windows installer** | `npm run windows:dist` | `.exe` NSIS + portable |
-| **Android** | `npm run android:setup` | Capacitor projekt |
+| 🌐 **Web** | `npm run web` | `http://127.0.0.1:3000` |
+| 🖥️ **Windows** | `npm run windows` | Electron okno |
+| 📦 **Windows installer** | `npm run windows:dist` | `.exe` NSIS + portable |
+| 🤖 **Android** | `npm run android:setup` | Capacitor projekt |
+
+> **Tip:** Pre vývoj odporúčame spustiť `npm run web` — žiadna inštalácia, okamžitý reload.
 
 ---
 
@@ -83,11 +98,12 @@ npm install
 
 ---
 
-## Platformy
+## 📱 Platformy
 
-### Windows 11
+<details>
+<summary><strong>🖥️ Windows 11</strong></summary>
 
-Desktop aplikacia cez Electron so sandbox izolovanou bezpecnostou.
+Desktop aplikácia cez Electron so sandbox izolovanou bezpečnosťou.
 
 ```powershell
 npm run windows
@@ -99,27 +115,32 @@ Electron automaticky:
 - Injektuje CORS hlavicky do odpovedi (`Access-Control-Allow-Origin: *`)
 - Streamy ktore funguju v iptvnator budu fungovat aj tu
 
-### Android a GoogleTV
+</details>
+
+<details>
+<summary><strong>🤖 Android a GoogleTV</strong></summary>
 
 Nativna aplikacia cez Capacitor.
 
 ```bash
-npm run android:setup    # prvotna inicializacia
-npm run android:sync     # synchronizacia po zmenach
-npm run android:open     # otvorit v Android Studio
+npm run android:setup    # prvotná inicializácia
+npm run android:sync     # synchronizácia po zmenách
+npm run android:open     # otvoriť v Android Studio
 ```
 
 ### Web
 
-Doplnkova verzia na rychle testovanie. Pri nacitavani URL playlistov/EPG vo web verzii je nutne nastavit CORS proxy v Nastavenia > Siet.
+Doplnková verzia na rýchle testovanie. Pri načítavaní URL playlistov/EPG vo web verzii je nutné nastaviť CORS proxy v **Nastavenia › Sieť**.
 
 ```bash
 npm run web
 ```
 
+</details>
+
 ---
 
-## Playery
+## ▶️ Playery
 
 | Player | HLS | Poznamka |
 |--------|-----|----------|
@@ -129,7 +150,7 @@ npm run web
 
 ---
 
-## Architektura
+## 🏗️ Architektúra
 
 ```
 TCLVPlayer/
@@ -163,7 +184,7 @@ TCLVPlayer/
 
 ---
 
-## Bezpecnost
+## 🔒 Bezpečnosť
 
 - `contextIsolation: true` — renderer nema pristup k Node.js API
 - `nodeIntegration: false` — ziadne require() v renderer procese
@@ -174,18 +195,48 @@ TCLVPlayer/
 
 ---
 
-## Zavislosti
+## 📦 Závislosti
 
-| Balicek | Licencia | Ucel |
+| Balíček | Licencia | Účel |
 |---------|----------|------|
 | `electron` | MIT | Windows desktop shell |
 | `electron-builder` | MIT | Windows build/packaging |
 | `@capacitor/core` + `android` + `cli` | MIT | Android/GoogleTV bridge |
-| `video.js` | Apache-2.0 | Alternativny web player |
-| `artplayer` | MIT | Alternativny web player |
-| `hls.js` | Apache-2.0 | HLS streaming pre vsetky interne playery |
+| `video.js` | Apache-2.0 | Alternatívny web player |
+| `artplayer` | MIT | Alternatívny web player |
+| `hls.js` | Apache-2.0 | HLS streaming pre všetky interné playery |
 | `http-server` | MIT | Dev web server |
 | `vitest` | MIT | Unit testy |
 | `eslint` | MIT | Linting |
 
 ---
+
+## 🤝 Prispievanie
+
+```bash
+# 1. Fork + klon
+git clone https://github.com/YOUR_USERNAME/TCLVPlayer.git
+
+# 2. Nová branch
+git checkout -b feature/moja-zmena
+
+# 3. Lint + testy
+npm run lint
+npm test
+
+# 4. Commit a PR
+git commit -m "feat: popis zmeny"
+git push origin feature/moja-zmena
+```
+
+> Pull requesty sú vítané! Pre väčšie zmeny prosím najprv otvor issue.
+
+---
+
+<div align="center">
+
+**[⬆ Späť nahor](#tcLVplayer)**
+
+MIT License · © 2026 bucala
+
+</div>
