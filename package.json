@@ -30,7 +30,8 @@
       "native/electron/**/*",
       "node_modules/video.js/dist/**/*",
       "node_modules/artplayer/dist/**/*",
-      "node_modules/hls.js/dist/**/*"
+      "node_modules/hls.js/dist/**/*",
+      "node_modules/mpegts.js/dist/**/*"
     ],
     "win": {
       "target": [
@@ -45,6 +46,7 @@
     "@capacitor/core": "^8.3.4",
     "artplayer": "^5.2.5",
     "hls.js": "^1.5.20",
+    "mpegts.js": "^1.8.0",
     "video.js": "^8.21.1"
   },
   "devDependencies": {
