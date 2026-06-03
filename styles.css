@@ -688,6 +688,23 @@ input[type=search] { -webkit-appearance: none; }
   color: var(--accent);
 }
 
+/* ─── Stream status dot ───────────────────────────────────────────────────── */
+
+.status-dot {
+  position: absolute;
+  left: 46px;
+  top: 10px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 2px solid var(--surface);
+  background: transparent;
+  pointer-events: none;
+  transition: background 0.3s;
+}
+.status-dot.ok  { background: #30d158; border-color: var(--surface); }
+.status-dot.error { background: var(--danger); border-color: var(--surface); }
+
 .empty-state {
   color: var(--muted);
   font-size: 13px;
@@ -740,6 +757,30 @@ input[type=search] { -webkit-appearance: none; }
   right: 8px;
   z-index: 6;
 }
+/* ─── PiP button ───────────────────────────────────────────────────────────── */
+
+.pip-button {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 6;
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.75);
+  border-radius: var(--radius-xs);
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.pip-button:hover { background: rgba(0, 0, 0, 0.8); color: #fff; }
+.pip-button.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.pip-button[hidden] { display: none !important; }
+
 .quality-control[hidden] { display: none !important; }
 .quality-control select {
   background: rgba(0, 0, 0, 0.72);
