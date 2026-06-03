@@ -36,16 +36,14 @@ function migrateStoredSources(key, fallback) {
 }
 
 function detectCorsProxy() {
-  var saved = safeGet("tclv.corsProxy", "");
-  if (saved) return saved;
-  if (!isNativePlatform() && location.protocol === 'https:') {
+  if (typeof location !== 'undefined' && location.protocol === 'https:') {
     return location.origin + '/api/proxy?url=';
   }
-  return "";
+  return safeGet("tclv.corsProxy", "");
 }
 
 const state = {
-  language: safeGet("tclv.language", "sk"), channels: [], epg: new Map(), selectedChannelId: null, selectedLogoChannelId: null, player: safeGet("tclv.player", "html5"), overlayTimer: 0, videoJsPlayer: null, artPlayer: null, hls: null,
+  language: safeGet("tclv.language", "sk"), channels: [], epg: new Map(), selectedChannelId: null, selectedLogoChannelId: null, player: safeGet("tclv.player", "html5"), overlayTimer: 0, videoJsPlayer: null, artPlayer: null, hls: null, mpegtsPlayer: null,
   corsProxy: "",
   epgOffsetHours: 0, epgZoom: 1,
   playlists: migrateStoredSources("tclv.playlists", []), activePlaylistId: safeGet("tclv.activePlaylistId", null),
@@ -176,49 +174,63 @@ function renderAll() { translateUi(); renderSourceLists(); renderChannels(); if 
 
 function stopVideoJs() { if (state.videoJsPlayer) state.videoJsPlayer.pause(); }
 function stopArtPlayer() { if (state.artPlayer) { try { state.artPlayer.destroy(); } catch {} state.artPlayer = null; } dom.artPlayerHost.style.display = 'none'; }
-function destroyHls() { if (state.hls) { try { state.hls.destroy(); } catch {} state.hls = null; } }
+function destroyHls() { if (state.hls) { try { state.hls.destroy(); } catch {} state.hls = null; } if (state.mpegtsPlayer) { try { state.mpegtsPlayer.destroy(); } catch {} state.mpegtsPlayer = null; } }
 function stopInternalPlayers() { stopVideoJs(); stopArtPlayer(); destroyHls(); dom.video.pause(); if (dom.qualityControl) dom.qualityControl.hidden = true; }
 function showHtmlVideo() { dom.video.style.display = 'block'; dom.artPlayerHost.style.display = 'none'; }
-function guessMimeType(url) { const clean = String(url || '').split('?')[0].toLowerCase(); if (clean.endsWith('.m3u8')) return 'application/x-mpegURL'; if (clean.endsWith('.mp4')) return 'video/mp4'; if (clean.endsWith('.webm')) return 'video/webm'; return 'application/x-mpegURL'; }
+function getStreamType(url) {
+  var clean = String(url || '').split('?')[0].toLowerCase();
+  if (clean.endsWith('.m3u8')) return 'hls';
+  if (clean.endsWith('.ts')) return 'ts';
+  if (clean.endsWith('.mp4') || clean.endsWith('.mpv')) return 'mp4';
+  if (clean.endsWith('.webm')) return 'webm';
+  var hasExt = /\.[a-z0-9]{2,5}$/i.test(clean.split('/').pop() || '');
+  if (!hasExt) return 'ts';
+  return 'hls';
+}
+function guessMimeType(url) { var t = getStreamType(url); if (t === 'hls') return 'application/x-mpegURL'; if (t === 'mp4') return 'video/mp4'; if (t === 'webm') return 'video/webm'; return 'application/x-mpegURL'; }
 async function ensureScript(id, sources) { if (document.querySelector(`script[data-loader-id="${id}"]`)) return; for (const source of sources) { try { await new Promise((resolve, reject) => { const script = document.createElement('script'); script.src = source; script.dataset.loaderId = id; script.onload = resolve; script.onerror = reject; document.head.append(script); }); return; } catch {} } throw new Error('Asset could not be loaded.'); }
 async function ensureStyle(id, sources) { if (document.querySelector(`link[data-loader-id="${id}"]`)) return; for (const source of sources) { try { await new Promise((resolve, reject) => { const link = document.createElement('link'); link.rel = 'stylesheet'; link.href = source; link.dataset.loaderId = id; link.onload = resolve; link.onerror = reject; document.head.append(link); }); return; } catch {} } throw new Error('Asset could not be loaded.'); }
 async function ensureVideoJs() { if (window.videojs) return; await ensureStyle('videojs-css', ['./vendor/video.js/video-js.min.css','https://vjs.zencdn.net/8.21.1/video-js.min.css']); await ensureScript('videojs-js', ['./vendor/video.js/video.min.js','https://vjs.zencdn.net/8.21.1/video.min.js']); }
 async function ensureArtPlayer() { if (window.Artplayer) return; await ensureScript('artplayer-js', ['./vendor/artplayer/artplayer.js','https://cdn.jsdelivr.net/npm/artplayer@5/dist/artplayer.js']); }
 async function ensureHls() { if (window.Hls) return; await ensureScript('hls-js', ['./vendor/hls.js/hls.min.js', 'https://cdn.jsdelivr.net/npm/hls.js@latest']); }
+async function ensureMpegts() { if (window.mpegts) return; await ensureScript('mpegts-js', ['./vendor/mpegts.js/mpegts.min.js', 'https://cdn.jsdelivr.net/npm/mpegts.js@latest/dist/mpegts.min.js']); }
 function showMessage(message) { dom.playerMessage.textContent = message; dom.playerMessage.style.display = 'block'; }
 function hideMessage() { dom.playerMessage.style.display = 'none'; dom.playerMessage.textContent = ''; }
-function makeHlsConfig(proxyMode) {
-  var cfg = { enableWorker: false };
-  if (!isNativePlatform() && state.corsProxy && proxyMode !== 'direct') {
-    cfg.xhrSetup = proxyMode === 'raw'
-      ? function(xhr, u) { xhr.open('GET', proxyUrlRaw(u), true); }
-      : function(xhr, u) { xhr.open('GET', proxyUrl(u), true); };
+function streamUrl(url) {
+  if (isNativePlatform()) return url;
+  if (state.corsProxy && isMixedContent(url)) return proxyUrl(url);
+  return url;
+}
+function hlsConfig(url) {
+  if (isNativePlatform()) return {};
+  if (state.corsProxy && isMixedContent(url)) {
+    return { xhrSetup: function(xhr, u) { xhr.open('GET', proxyUrl(u), true); } };
   }
-  return cfg;
+  return {};
 }
-function initialProxyMode(url) {
-  if (isNativePlatform()) return 'direct';
-  if (isMixedContent(url) && state.corsProxy) return 'encoded';
-  return 'direct';
-}
-function tryHlsPlayback(url, proxyMode) {
-  if (!proxyMode) proxyMode = initialProxyMode(url);
+function tryHlsPlayback(url) {
   destroyHls();
-  var hls = new window.Hls(makeHlsConfig(proxyMode));
+  var hls = new window.Hls(hlsConfig(url));
   state.hls = hls;
   hls.on(window.Hls.Events.ERROR, function(_e, data) {
     if (!data.fatal) return;
-    if (state.hls === hls) { destroyHls(); }
-    if (proxyMode === 'direct' && state.corsProxy && !isNativePlatform()) { tryHlsPlayback(url, 'encoded'); return; }
-    if (proxyMode === 'encoded' && state.corsProxy && !isNativePlatform()) { tryHlsPlayback(url, 'raw'); return; }
+    if (state.hls === hls) destroyHls();
     showMessage(data.type === 'networkError' ? t('streamUnavailable') : t('html5Notice'));
   });
-  hls.loadSource(url);
+  hls.loadSource(streamUrl(url));
   hls.attachMedia(dom.video);
   hls.on(window.Hls.Events.MANIFEST_PARSED, function() {
     safeAutoplay(dom.video);
     buildQualityMenu();
   });
+}
+function tryMpegtsPlayback(url) {
+  destroyHls();
+  if (!window.mpegts?.isSupported()) { showMessage(t('html5Notice')); return; }
+  state.mpegtsPlayer = window.mpegts.createPlayer({ type: 'mpegts', isLive: true, url: streamUrl(url) });
+  state.mpegtsPlayer.attachMediaElement(dom.video);
+  state.mpegtsPlayer.load();
+  safeAutoplay(dom.video);
 }
 function buildQualityMenu() {
   if (!dom.qualityControl || !dom.qualitySelect) return;
@@ -260,75 +272,64 @@ function safeAutoplay(videoEl) {
 }
 async function playHtml5(channel) {
   stopInternalPlayers(); showHtmlVideo(); dom.video.removeAttribute('src'); dom.video.load();
-  const isHls = guessMimeType(channel.url) === 'application/x-mpegURL';
-  var mixed = isMixedContent(channel.url);
+  var type = getStreamType(channel.url);
   try {
-    if (isHls) {
-      if (!mixed && dom.video.canPlayType('application/vnd.apple.mpegurl')) { dom.video.src = channel.url; safeAutoplay(dom.video); return; }
+    if (type === 'ts') {
+      await ensureMpegts();
+      if (window.mpegts?.isSupported()) { tryMpegtsPlayback(channel.url); return; }
+    }
+    if (type === 'hls') {
+      if (dom.video.canPlayType('application/vnd.apple.mpegurl') && !isMixedContent(channel.url)) {
+        dom.video.src = channel.url; safeAutoplay(dom.video); return;
+      }
       await ensureHls();
       if (window.Hls?.isSupported()) { tryHlsPlayback(channel.url); return; }
     }
-    var srcUrl = (mixed && state.corsProxy) ? proxyUrl(channel.url) : channel.url;
-    dom.video.src = srcUrl;
+    dom.video.src = streamUrl(channel.url);
     dom.video.addEventListener('canplay', function() { safeAutoplay(dom.video); }, { once: true });
-    dom.video.addEventListener('error', function() {
-      if (!mixed && state.corsProxy && !isNativePlatform()) {
-        dom.video.src = proxyUrl(channel.url);
-        dom.video.addEventListener('canplay', function() { safeAutoplay(dom.video); }, { once: true });
-        dom.video.addEventListener('error', function() { showMessage(t('streamUnavailable')); }, { once: true });
-      } else { showMessage(t('streamUnavailable')); }
-    }, { once: true });
+    dom.video.addEventListener('error', function() { showMessage(t('streamUnavailable')); }, { once: true });
   } catch { showMessage(t('html5Notice')); }
 }
-function tryVjsHls(channel, proxyMode) {
-  if (!proxyMode) proxyMode = initialProxyMode(channel.url);
-  destroyHls();
-  var hls = new window.Hls(makeHlsConfig(proxyMode));
-  state.hls = hls;
-  hls.on(window.Hls.Events.ERROR, function(_e, data) {
-    if (!data.fatal) return;
-    if (state.hls === hls) { destroyHls(); }
-    if (proxyMode === 'direct' && state.corsProxy && !isNativePlatform()) { tryVjsHls(channel, 'encoded'); return; }
-    if (proxyMode === 'encoded' && state.corsProxy && !isNativePlatform()) { tryVjsHls(channel, 'raw'); return; }
-    showMessage(data.type === 'networkError' ? t('streamUnavailable') : t('html5Notice'));
-  });
-  hls.loadSource(channel.url);
-  hls.attachMedia(state.videoJsPlayer.tech({ IWillNotUseThisInPlugins: true }).el());
-  hls.on(window.Hls.Events.MANIFEST_PARSED, function() { state.videoJsPlayer.play()?.catch?.(function() {}); buildQualityMenu(); });
+async function playVideoJs(channel) {
+  try {
+    stopArtPlayer(); showHtmlVideo(); await ensureVideoJs();
+    var type = getStreamType(channel.url);
+    if (type === 'hls' && !dom.video.canPlayType('application/vnd.apple.mpegurl')) await ensureHls();
+    state.videoJsPlayer = state.videoJsPlayer || window.videojs(dom.video, { autoplay: true, controls: true, liveui: true, fluid: false });
+    if (type === 'hls' && window.Hls?.isSupported() && !dom.video.canPlayType('application/vnd.apple.mpegurl')) {
+      destroyHls();
+      var hls = new window.Hls(hlsConfig(channel.url));
+      state.hls = hls;
+      hls.on(window.Hls.Events.ERROR, function(_e, data) { if (data.fatal) { if (state.hls === hls) destroyHls(); showMessage(t('streamUnavailable')); } });
+      hls.loadSource(streamUrl(channel.url));
+      hls.attachMedia(state.videoJsPlayer.tech({ IWillNotUseThisInPlugins: true }).el());
+      hls.on(window.Hls.Events.MANIFEST_PARSED, function() { state.videoJsPlayer.play()?.catch?.(function() {}); buildQualityMenu(); });
+    } else {
+      state.videoJsPlayer.src({ src: streamUrl(channel.url), type: guessMimeType(channel.url) });
+      state.videoJsPlayer.play()?.catch?.(() => showMessage(t('html5Notice')));
+    }
+  } catch (error) { showMessage(`${t('optionalMissing')} ${error.message || ''}`.trim()); }
 }
-async function playVideoJs(channel) { try { stopArtPlayer(); showHtmlVideo(); await ensureVideoJs(); const isHls = guessMimeType(channel.url) === 'application/x-mpegURL'; if (isHls && !dom.video.canPlayType('application/vnd.apple.mpegurl')) { await ensureHls(); } state.videoJsPlayer = state.videoJsPlayer || window.videojs(dom.video, { autoplay: true, controls: true, liveui: true, fluid: false }); if (isHls && window.Hls?.isSupported() && !dom.video.canPlayType('application/vnd.apple.mpegurl')) { tryVjsHls(channel); } else { var vjsSrc = (isMixedContent(channel.url) && state.corsProxy) ? proxyUrl(channel.url) : channel.url; state.videoJsPlayer.src({ src: vjsSrc, type: guessMimeType(channel.url) }); state.videoJsPlayer.play()?.catch?.(() => showMessage(t('html5Notice'))); } } catch (error) { showMessage(`${t('optionalMissing')} ${error.message || ''}`.trim()); } }
 async function playArtPlayer(channel) {
   try {
-    stopVideoJs(); await ensureArtPlayer(); const isHls = guessMimeType(channel.url) === 'application/x-mpegURL'; if (isHls) await ensureHls();
-    dom.video.pause(); dom.video.removeAttribute('src'); dom.video.load(); dom.video.style.display = 'none'; dom.artPlayerHost.style.display = 'block';
-    var artProxyMode = initialProxyMode(channel.url);
-    function makeArtCustomType(mode) {
-      if (!(isHls && window.Hls?.isSupported())) return undefined;
-      return { m3u8: function(videoEl, url) {
+    stopVideoJs(); await ensureArtPlayer();
+    var type = getStreamType(channel.url);
+    if (type === 'hls') await ensureHls();
+    dom.video.pause(); dom.video.removeAttribute('src'); dom.video.load();
+    dom.video.style.display = 'none'; dom.artPlayerHost.style.display = 'block';
+    var customType = (type === 'hls' && window.Hls?.isSupported()) ? {
+      m3u8: function(videoEl, url) {
         destroyHls();
-        var hls = new window.Hls(makeHlsConfig(mode));
+        var hls = new window.Hls(hlsConfig(channel.url));
         state.hls = hls;
-        hls.on(window.Hls.Events.ERROR, function(_e, data) {
-          if (!data.fatal) return;
-          if (state.hls === hls) { destroyHls(); }
-          if (artProxyMode === 'direct' && state.corsProxy && !isNativePlatform()) { artProxyMode = 'encoded'; reloadArt('encoded'); return; }
-          if (artProxyMode === 'encoded' && state.corsProxy && !isNativePlatform()) { artProxyMode = 'raw'; reloadArt('raw'); return; }
-          showMessage(data.type === 'networkError' ? t('streamUnavailable') : t('html5Notice'));
-        });
-        hls.loadSource(url);
+        hls.on(window.Hls.Events.ERROR, function(_e, data) { if (data.fatal) { if (state.hls === hls) destroyHls(); showMessage(t('streamUnavailable')); } });
+        hls.loadSource(streamUrl(url));
         hls.attachMedia(videoEl);
         hls.on(window.Hls.Events.MANIFEST_PARSED, function() { buildQualityMenu(); });
-      }};
-    }
-    function createArt(mode) {
-      return new window.Artplayer({ container: dom.artPlayerHost, url: channel.url, type: isHls ? 'm3u8' : '', customType: makeArtCustomType(mode), autoplay: true, isLive: true, muted: true, setting: true, fullscreen: true, fullscreenWeb: true });
-    }
-    function reloadArt(mode) {
-      if (state.artPlayer) { try { state.artPlayer.destroy(); } catch {} state.artPlayer = null; }
-      state.artPlayer = createArt(mode);
-    }
+      }
+    } : undefined;
     if (state.artPlayer) { try { state.artPlayer.destroy(); } catch {} state.artPlayer = null; }
-    state.artPlayer = createArt(artProxyMode);
+    state.artPlayer = new window.Artplayer({ container: dom.artPlayerHost, url: streamUrl(channel.url), type: type === 'hls' ? 'm3u8' : '', customType: customType, autoplay: true, isLive: true, muted: true, setting: true, fullscreen: true, fullscreenWeb: true });
   } catch (error) { showMessage(`${t('optionalMissing')} ${error.message || ''}`.trim()); }
 }
 function setPlayerActive(active) {
@@ -347,7 +348,6 @@ function selectChannel(id) { const channel = state.channels.find((item) => item.
 function isNativePlatform() { return !!(window.TCLVNative || window.Capacitor); }
 function isMixedContent(url) { return location.protocol === 'https:' && String(url || '').startsWith('http://'); }
 function proxyUrl(url) { if (isNativePlatform() || !state.corsProxy) return url; return state.corsProxy + encodeURIComponent(url); }
-function proxyUrlRaw(url) { if (isNativePlatform() || !state.corsProxy) return url; return state.corsProxy + url; }
 async function loadTextFromUrl(url) {
   function decode(r, u) { if (u.endsWith('.gz') && typeof DecompressionStream !== 'undefined') return new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).text(); return r.text(); }
   if (isNativePlatform() || (!state.corsProxy && !isMixedContent(url))) {

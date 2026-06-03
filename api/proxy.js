@@ -1,4 +1,13 @@
 export default async function handler(req, res) {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "*");
+
+  if (req.method === "OPTIONS") {
+    res.status(204).end();
+    return;
+  }
+
   const url = req.query.url;
   if (!url) {
     res.status(400).json({ error: "Missing url parameter" });
@@ -38,9 +47,6 @@ export default async function handler(req, res) {
       signal: AbortSignal.timeout(15000),
     });
 
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "*");
     res.setHeader("Cache-Control", "no-store");
 
     const ct = upstream.headers.get("content-type");
