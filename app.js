@@ -14,9 +14,9 @@ function safeSetJson(key, value) { try { localStorage.setItem(key, JSON.stringif
 
 const translations = {
   sk: {
-    tagline: "Jednoduchy IPTV prehravac", openPlaylist: "Playlist", openEpg: "EPG", load: "Nacitat", loadEpg: "Nacitat EPG", guide: "Program", noChannels: "Nacitajte M3U/M3U8 alebo XSPF playlist v Nastaveniach.", noEpg: "EPG este nie je nacitane.", noProgram: "Program nie je dostupny", now: "Teraz", next: "Nasleduje", html5Notice: "HTML5 video prehravac je aktivny. Niektore HLS streamy (.m3u8) potrebuju nativnu podporu prehliadaca.", optionalMissing: "Tento player nie je pribaleny. Nacitajte jeho kniznicu alebo pouzite HTML5.",  loadError: "Nepodarilo sa nacitat zdroj.", playlistLoaded: "Playlist nacitany", epgLoaded: "EPG nacitane", logoTitle: "Vybrat logo", settingsPlayer: "Prehrávač & Jazyk", labelPlayer: "Prehrávač", labelLanguage: "Jazyk", settingsPlaylists: "Playlisty", addPlaylist: "Pridať URL", settingsEpg: "EPG zdroje", addEpg: "Pridať EPG", epgHint: "Všetky zdroje sa načítajú a zlúčia.", settingsNetwork: "Sieť", labelCorsProxy: "CORS proxy (len web)", corsHint: "Na Verceli sa automaticky použije vstavaný proxy. Electron a Android ho nepotrebujú.", searchEpg: "Hladat v programe", corsNeeded: "CORS chyba — nastavte CORS proxy v Nastaveniach > Sieť.", proxyBlocked: "Proxy blokuje požiadavku. Skúste iný CORS proxy.", streamUnavailable: "Stream nie je dostupný — server odmietol pripojenie alebo je geo-blokovaný.", clickToPlay: "Kliknite na video pre spustenie prehrávania.", local: "lokálny", network: "sieťový", epgAutoDetected: "EPG zdroje automaticky detegované z playlistu", proxyChanged: "CORS proxy uložený. Znovu načítavam EPG…", qualityNative: "Natívna", qualityHigh: "Vysoká (1080p)", qualityMedium: "Stredná (720p)", qualityLow: "Nízka (360p)", labelQuality: "Kvalita videa", searchChannels: "Hľadať kanály", groupAll: "Všetky", groupFavorites: "Obľúbené", settingsXtream: "Xtream Codes API", xtreamHint: "Prihlasovacie údaje od IPTV poskytovateľa.", addXtream: "Načítať", xtreamLoading: "Načítavanie Xtream playlistu…", settingsBackup: "Export / Import", backupHint: "Zálohovanie a obnovenie nastavení, playlistov a obľúbených.", exportSettings: "Exportovať", importSettings: "Importovať", settingsImported: "Nastavenia obnovené.", catchupAvailable: "Archív dostupný", catchupTitle: "Archív", catchupUnavailable: "Archív nie je dostupný pre tento kanál.",   },
+    tagline: "Jednoduchy IPTV prehravac", openPlaylist: "Playlist", openEpg: "EPG", load: "Nacitat", loadEpg: "Nacitat EPG", guide: "Program", noChannels: "Nacitajte M3U/M3U8 alebo XSPF playlist v Nastaveniach.", noEpg: "EPG este nie je nacitane.", noProgram: "Program nie je dostupny", now: "Teraz", next: "Nasleduje", html5Notice: "HTML5 video prehravac je aktivny. Niektore HLS streamy (.m3u8) potrebuju nativnu podporu prehliadaca.", optionalMissing: "Tento player nie je pribaleny. Nacitajte jeho kniznicu alebo pouzite HTML5.",  loadError: "Nepodarilo sa nacitat zdroj.", playlistLoaded: "Playlist nacitany", epgLoaded: "EPG nacitane", logoTitle: "Vybrat logo", settingsPlayer: "Prehrávač & Jazyk", labelPlayer: "Prehrávač", labelLanguage: "Jazyk", settingsPlaylists: "Playlisty", addPlaylist: "Pridať URL", settingsEpg: "EPG zdroje", addEpg: "Pridať EPG", epgHint: "Všetky zdroje sa načítajú a zlúčia.", settingsNetwork: "Sieť", labelCorsProxy: "CORS proxy (len web)", corsHint: "Na Verceli sa automaticky použije vstavaný proxy. Electron a Android ho nepotrebujú.", searchEpg: "Hladat v programe", corsNeeded: "CORS chyba — nastavte CORS proxy v Nastaveniach > Sieť.", proxyBlocked: "Proxy blokuje požiadavku. Skúste iný CORS proxy.", streamUnavailable: "Stream nie je dostupný — server odmietol pripojenie alebo je geo-blokovaný.", clickToPlay: "Kliknite na video pre spustenie prehrávania.", local: "lokálny", network: "sieťový", epgAutoDetected: "EPG zdroje automaticky detegované z playlistu", proxyChanged: "CORS proxy uložený. Znovu načítavam EPG…", qualityNative: "Natívna", qualityHigh: "Vysoká (1080p)", qualityMedium: "Stredná (720p)", qualityLow: "Nízka (360p)", labelQuality: "Kvalita videa", searchChannels: "Hľadať kanály", groupAll: "Všetky", groupFavorites: "Obľúbené", settingsXtream: "Xtream Codes API", xtreamHint: "Prihlasovacie údaje od IPTV poskytovateľa.", addXtream: "Načítať", xtreamLoading: "Načítavanie Xtream playlistu…", settingsBackup: "Export / Import", backupHint: "Zálohovanie a obnovenie nastavení, playlistov a obľúbených.", exportSettings: "Exportovať", importSettings: "Importovať", settingsImported: "Nastavenia obnovené.", catchupAvailable: "Archív dostupný", catchupTitle: "Archív", catchupUnavailable: "Archív nie je dostupný pre tento kanál.", rtmpUnsupported: "RTMP/RTSP streamy nie sú podporované v prehliadači. Použite natívnu aplikáciu (Android/Electron).", reconnecting: "Opätovné pripájanie…",   },
   en: {
-    tagline: "Simple IPTV player", openPlaylist: "Playlist", openEpg: "EPG", load: "Load", loadEpg: "Load EPG", guide: "Guide", noChannels: "Load an M3U/M3U8 or XSPF playlist in Settings.", noEpg: "EPG is not loaded yet.", noProgram: "Program is not available", now: "Now", next: "Next", html5Notice: "HTML5 video player is active. Some HLS streams (.m3u8) need native browser support.", optionalMissing: "This player is not bundled. Load its library or use HTML5.",  loadError: "Could not load the source.", playlistLoaded: "Playlist loaded", epgLoaded: "EPG loaded", logoTitle: "Choose logo", settingsPlayer: "Player & Language", labelPlayer: "Player", labelLanguage: "Language", settingsPlaylists: "Playlists", addPlaylist: "Add URL", settingsEpg: "EPG sources", addEpg: "Add EPG", epgHint: "All sources are loaded and merged.", settingsNetwork: "Network", labelCorsProxy: "CORS proxy (web only)", corsHint: "Built-in proxy is used automatically on Vercel. Electron and Android do not need it.", searchEpg: "Search programs", corsNeeded: "CORS error — set a CORS proxy in Settings > Network.", proxyBlocked: "Proxy is blocking the request. Try a different CORS proxy.", streamUnavailable: "Stream is unavailable — server refused or geo-blocked.", clickToPlay: "Click the video to start playback.", local: "local", network: "network", epgAutoDetected: "EPG sources auto-detected from playlist", proxyChanged: "CORS proxy saved. Reloading EPG…", qualityNative: "Native", qualityHigh: "High (1080p)", qualityMedium: "Medium (720p)", qualityLow: "Low (360p)", labelQuality: "Video quality", searchChannels: "Search channels", groupAll: "All", groupFavorites: "Favorites", settingsXtream: "Xtream Codes API", xtreamHint: "Enter credentials from your IPTV provider.", addXtream: "Load", xtreamLoading: "Loading Xtream playlist…", settingsBackup: "Export / Import", backupHint: "Back up and restore all settings, playlists and favourites.", exportSettings: "Export", importSettings: "Import", settingsImported: "Settings restored.", catchupAvailable: "Archive available", catchupTitle: "Archive", catchupUnavailable: "Archive not available for this channel.",   }
+    tagline: "Simple IPTV player", openPlaylist: "Playlist", openEpg: "EPG", load: "Load", loadEpg: "Load EPG", guide: "Guide", noChannels: "Load an M3U/M3U8 or XSPF playlist in Settings.", noEpg: "EPG is not loaded yet.", noProgram: "Program is not available", now: "Now", next: "Next", html5Notice: "HTML5 video player is active. Some HLS streams (.m3u8) need native browser support.", optionalMissing: "This player is not bundled. Load its library or use HTML5.",  loadError: "Could not load the source.", playlistLoaded: "Playlist loaded", epgLoaded: "EPG loaded", logoTitle: "Choose logo", settingsPlayer: "Player & Language", labelPlayer: "Player", labelLanguage: "Language", settingsPlaylists: "Playlists", addPlaylist: "Add URL", settingsEpg: "EPG sources", addEpg: "Add EPG", epgHint: "All sources are loaded and merged.", settingsNetwork: "Network", labelCorsProxy: "CORS proxy (web only)", corsHint: "Built-in proxy is used automatically on Vercel. Electron and Android do not need it.", searchEpg: "Search programs", corsNeeded: "CORS error — set a CORS proxy in Settings > Network.", proxyBlocked: "Proxy is blocking the request. Try a different CORS proxy.", streamUnavailable: "Stream is unavailable — server refused or geo-blocked.", clickToPlay: "Click the video to start playback.", local: "local", network: "network", epgAutoDetected: "EPG sources auto-detected from playlist", proxyChanged: "CORS proxy saved. Reloading EPG…", qualityNative: "Native", qualityHigh: "High (1080p)", qualityMedium: "Medium (720p)", qualityLow: "Low (360p)", labelQuality: "Video quality", searchChannels: "Search channels", groupAll: "All", groupFavorites: "Favorites", settingsXtream: "Xtream Codes API", xtreamHint: "Enter credentials from your IPTV provider.", addXtream: "Load", xtreamLoading: "Loading Xtream playlist…", settingsBackup: "Export / Import", backupHint: "Back up and restore all settings, playlists and favourites.", exportSettings: "Export", importSettings: "Import", settingsImported: "Settings restored.", catchupAvailable: "Archive available", catchupTitle: "Archive", catchupUnavailable: "Archive not available for this channel.", rtmpUnsupported: "RTMP/RTSP streams are not supported in the browser. Use the native app (Android/Electron).", reconnecting: "Reconnecting…",   }
 };
 
 function migrateStoredSources(key, fallback) {
@@ -417,7 +417,10 @@ function destroyHls() { if (state.hls) { try { state.hls.destroy(); } catch {} s
 function stopInternalPlayers() { stopVideoJs(); stopArtPlayer(); destroyHls(); dom.video.pause(); if (dom.qualityControl) dom.qualityControl.hidden = true; }
 function showHtmlVideo() { dom.video.style.display = 'block'; dom.artPlayerHost.style.display = 'none'; }
 function getStreamType(url) {
-  var clean = String(url || '').split('?')[0].toLowerCase();
+  var raw = String(url || '');
+  if (/^rtmps?:\/\//i.test(raw)) return 'rtmp';
+  if (/^rtsps?:/i.test(raw)) return 'rtsp';
+  var clean = raw.split('?')[0].toLowerCase();
   if (clean.endsWith('.m3u8')) return 'hls';
   if (clean.endsWith('.ts')) return 'ts';
   if (clean.endsWith('.mp4') || clean.endsWith('.mpv')) return 'mp4';
@@ -442,27 +445,56 @@ function streamUrl(url) {
 }
 function hlsConfig(url) {
   if (isNativePlatform()) return {};
+  var cfg = {
+    enableWorker: true,
+    lowLatencyMode: true,
+    backBufferLength: 30,
+    maxBufferLength: 30,
+    maxMaxBufferLength: 120,
+    maxBufferHole: 0.5,
+    fragLoadingTimeOut: 20000,
+    fragLoadingMaxRetry: 6,
+    fragLoadingRetryDelay: 1000,
+    manifestLoadingTimeOut: 15000,
+    manifestLoadingMaxRetry: 4,
+    manifestLoadingRetryDelay: 1000,
+    levelLoadingTimeOut: 15000,
+    levelLoadingMaxRetry: 4,
+  };
   if (state.corsProxy && isMixedContent(url)) {
-    return { xhrSetup: function(xhr, u) {
+    cfg.xhrSetup = function(xhr, u) {
       xhr.open('GET', proxyUrl(u), true);
       Object.defineProperty(xhr, 'responseURL', { get: function() { return u; } });
-    } };
+    };
   }
-  return {};
+  return cfg;
 }
 function tryHlsPlayback(url) {
   destroyHls();
   var hls = new window.Hls(hlsConfig(url));
+  var reconnectTimer = null;
+  var reconnects = 0;
   state.hls = hls;
   hls.on(window.Hls.Events.ERROR, function(_e, data) {
     if (!data.fatal) return;
-    if (state.hls === hls) destroyHls();
+    if (state.hls !== hls) return;
+    if (data.type === 'networkError' && reconnects < 3) {
+      reconnects++;
+      showMessage(t('reconnecting'));
+      reconnectTimer = setTimeout(function() {
+        if (state.hls === hls) { try { hls.startLoad(); } catch {} }
+      }, 2000 * reconnects);
+      return;
+    }
+    clearTimeout(reconnectTimer);
+    destroyHls();
     setStreamStatus(state.selectedChannelId, 'error');
     showMessage(data.type === 'networkError' ? t('streamUnavailable') : t('html5Notice'));
   });
   hls.loadSource(url);
   hls.attachMedia(dom.video);
   hls.on(window.Hls.Events.MANIFEST_PARSED, function() {
+    reconnects = 0;
     safeAutoplay(dom.video);
     buildQualityMenu();
   });
@@ -516,6 +548,7 @@ function safeAutoplay(videoEl) {
 async function playHtml5(channel) {
   stopInternalPlayers(); showHtmlVideo(); dom.video.removeAttribute('src'); dom.video.load();
   var type = getStreamType(channel.url);
+  if (type === 'rtmp' || type === 'rtsp') { showMessage(t('rtmpUnsupported')); return; }
   try {
     if (type === 'ts') {
       await ensureMpegts();
@@ -534,9 +567,10 @@ async function playHtml5(channel) {
   } catch { showMessage(t('html5Notice')); }
 }
 async function playVideoJs(channel) {
+  var type = getStreamType(channel.url);
+  if (type === 'rtmp' || type === 'rtsp') { showMessage(t('rtmpUnsupported')); return; }
   try {
     stopArtPlayer(); showHtmlVideo(); await ensureVideoJs();
-    var type = getStreamType(channel.url);
     if (type === 'hls' && !dom.video.canPlayType('application/vnd.apple.mpegurl')) await ensureHls();
     state.videoJsPlayer = state.videoJsPlayer || window.videojs(dom.video, { autoplay: true, controls: true, liveui: true, fluid: false });
     if (type === 'hls' && window.Hls?.isSupported() && !dom.video.canPlayType('application/vnd.apple.mpegurl')) {
@@ -554,9 +588,10 @@ async function playVideoJs(channel) {
   } catch (error) { showMessage(`${t('optionalMissing')} ${error.message || ''}`.trim()); }
 }
 async function playArtPlayer(channel) {
+  var type = getStreamType(channel.url);
+  if (type === 'rtmp' || type === 'rtsp') { showMessage(t('rtmpUnsupported')); return; }
   try {
     stopVideoJs(); await ensureArtPlayer();
-    var type = getStreamType(channel.url);
     if (type === 'hls') await ensureHls();
     dom.video.pause(); dom.video.removeAttribute('src'); dom.video.load();
     dom.video.style.display = 'none'; dom.artPlayerHost.style.display = 'block';
