@@ -69,6 +69,6 @@ export default [
     },
   },
   {
-    ignores: ["dist/", "android/", "node_modules/"],
+    ignores: ["dist/", "android/", "node_modules/", "api/"],
   },
 ];
