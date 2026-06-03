@@ -485,6 +485,69 @@ input[type=search] { -webkit-appearance: none; }
 .workspace.sidebar-hidden .sidebar { width: 0; border-right: none; overflow: hidden; }
 .workspace.sidebar-hidden .sidebar-toggle { left: 0; }
 
+/* ─── Sidebar header: search + group tabs ─────────────────────────────────── */
+
+.sidebar-header {
+  padding: 8px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.channel-search {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  padding: 8px 10px;
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s, background 0.2s;
+}
+.channel-search:focus {
+  border-color: var(--accent);
+  background: var(--surface3);
+}
+.channel-search::placeholder { color: var(--muted); }
+
+.group-tabs {
+  display: flex;
+  overflow-x: auto;
+  padding: 6px 8px;
+  gap: 6px;
+  flex-shrink: 0;
+  scrollbar-width: none;
+  border-bottom: 1px solid var(--border);
+}
+.group-tabs::-webkit-scrollbar { display: none; }
+.group-tabs:empty { display: none; padding: 0; border: none; }
+
+.group-tab {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  padding: 5px 12px;
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: all 0.2s var(--ease);
+  height: 28px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.group-tab:hover { background: var(--surface3); color: var(--text); }
+.group-tab.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
 .channel-grid {
   flex: 1;
   overflow-y: auto;
@@ -596,6 +659,33 @@ input[type=search] { -webkit-appearance: none; }
 .channel-card:hover .logo-action {
   display: grid;
   place-items: center;
+}
+
+.fav-action {
+  position: absolute;
+  top: 6px;
+  right: 32px;
+  width: 22px;
+  height: 22px;
+  font-size: 15px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-xs);
+  color: var(--muted);
+  display: none;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  transition: color 0.15s;
+}
+.channel-card:hover .fav-action {
+  display: grid;
+  place-items: center;
+}
+.fav-action.active {
+  display: grid;
+  place-items: center;
+  color: var(--accent);
 }
 
 .empty-state {
