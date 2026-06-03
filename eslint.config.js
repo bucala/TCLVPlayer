@@ -29,6 +29,7 @@ export default [
         requestAnimationFrame: "readonly",
         location: "readonly",
         console: "readonly",
+        Blob: "readonly",
       },
     },
   },

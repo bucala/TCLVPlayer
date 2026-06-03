@@ -21,6 +21,7 @@
           </div>
         </div>
         <nav class="top-actions">
+          <button id="mvToggle" class="epg-toggle" aria-label="Multi-view" aria-pressed="false" title="Multi-view">⊞</button>
           <button id="epgToggle" class="epg-toggle" aria-label="EPG" aria-pressed="false">EPG</button>
           <button id="menuToggle" class="icon-button" aria-label="Nastavenia" aria-expanded="false" aria-controls="settingsPanel">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
@@ -51,6 +52,18 @@
             <p class="settings-hint" data-i18n="corsHint">Na Verceli sa automaticky použije vstavaný proxy.</p>
           </div>
         </div>
+        <div class="settings-section" id="xtreamSection">
+          <h3 data-i18n="settingsXtream">Xtream Codes API</h3>
+          <div class="settings-body">
+            <p class="settings-hint" data-i18n="xtreamHint">Prihlasovacie údaje od IPTV poskytovateľa.</p>
+            <input id="xtreamServer" type="url" placeholder="http://server.com:8080" autocomplete="off" />
+            <div class="field-row" style="margin-top:6px">
+              <input id="xtreamUser" type="text" placeholder="username" autocomplete="off" />
+              <input id="xtreamPass" type="password" placeholder="password" autocomplete="off" />
+            </div>
+            <button id="addXtream" type="button" class="btn-primary" style="margin-top:8px" data-i18n="addXtream">Načítať</button>
+          </div>
+        </div>
         <div class="settings-section">
           <h3 data-i18n="settingsPlaylists">Playlisty</h3>
           <div class="settings-body">
@@ -68,15 +81,31 @@
             <div id="epgList" class="source-list"></div>
           </div>
         </div>
+        <div class="settings-section">
+          <h3 data-i18n="settingsBackup">Export / Import</h3>
+          <div class="settings-body">
+            <p class="settings-hint" data-i18n="backupHint">Zálohovanie a obnovenie všetkých nastavení.</p>
+            <div class="field-row">
+              <button id="exportSettings" type="button" data-i18n="exportSettings">Exportovať</button>
+              <label class="file-button"><input id="importFile" type="file" accept=".json" /><span data-i18n="importSettings">Importovať</span></label>
+            </div>
+          </div>
+        </div>
       </aside>
       <main class="workspace">
         <button id="sidebarToggle" class="sidebar-toggle" aria-label="Toggle channels">&#x2039;</button>
-        <aside class="sidebar" id="sidebar"><section class="channel-grid" id="channelGrid" aria-live="polite"></section></aside>
-        <section class="content"><section class="player-stage"><video id="videoPlayer" controls playsinline></video><div id="artPlayerHost" class="art-player-host"></div><div id="qualityControl" class="quality-control" hidden><select id="qualitySelect" aria-label="Kvalita videa"></select></div><div id="playerMessage" class="player-message"></div><div id="switchOverlay" class="switch-overlay" aria-live="polite"></div></section><section class="guide-panel" id="guidePanel" hidden><div class="section-title"><h2 data-i18n="guide">Program</h2><div class="epg-nav"><button id="epgBack" class="epg-nav-btn" aria-label="Back" title="−3h">◀</button><button id="epgZoomOut" class="epg-nav-btn" aria-label="Zoom out" title="Zoom −">−</button><button id="epgZoomIn" class="epg-nav-btn" aria-label="Zoom in" title="Zoom +">+</button><button id="epgFwd" class="epg-nav-btn" aria-label="Forward" title="+3h">▶</button></div><input id="epgSearch" type="search" class="epg-search" data-i18n-placeholder="searchEpg" placeholder="Hľadať v programe" /><div id="guideRange" class="muted"></div></div><div id="epgGuide" class="epg-guide"></div></section></section>
+        <aside class="sidebar" id="sidebar">
+          <div class="sidebar-header">
+            <input id="channelSearch" type="search" class="channel-search" data-i18n-placeholder="searchChannels" placeholder="Hľadať kanály" autocomplete="off" />
+          </div>
+          <div id="groupTabs" class="group-tabs"></div>
+          <section class="channel-grid" id="channelGrid" aria-live="polite"></section>
+        </aside>
+        <section class="content"><section class="player-stage"><div class="mv-slot mv-focused" id="mvSlot0"><video id="videoPlayer" controls playsinline></video><div id="artPlayerHost" class="art-player-host"></div><button id="pipButton" class="pip-button" hidden title="Picture-in-Picture"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><rect x="2" y="7" width="20" height="15" rx="2"/><path d="M14 3h7v5h-7z"/></svg></button><div id="qualityControl" class="quality-control" hidden><select id="qualitySelect" aria-label="Kvalita videa"></select></div><div id="playerMessage" class="player-message"></div><div id="switchOverlay" class="switch-overlay" aria-live="polite"></div></div><div class="mv-slot" id="mvSlot1" hidden><video id="videoPlayer2" controls playsinline muted></video><div id="playerMessage2" class="player-message"></div></div></section><div id="catchupModal" class="catchup-modal" hidden></div><section class="guide-panel" id="guidePanel" hidden><div class="section-title"><h2 data-i18n="guide">Program</h2><div class="epg-nav"><button id="epgBack" class="epg-nav-btn" aria-label="Back" title="−3h">◀</button><button id="epgZoomOut" class="epg-nav-btn" aria-label="Zoom out" title="Zoom −">−</button><button id="epgZoomIn" class="epg-nav-btn" aria-label="Zoom in" title="Zoom +">+</button><button id="epgFwd" class="epg-nav-btn" aria-label="Forward" title="+3h">▶</button></div><input id="epgSearch" type="search" class="epg-search" data-i18n-placeholder="searchEpg" placeholder="Hľadať v programe" /><div id="guideRange" class="muted"></div></div><div id="epgGuide" class="epg-guide"></div></section></section>
       </main>
     </div>
     <input id="logoFile" type="file" accept="image/*" hidden />
-    <template id="channelTemplate"><article class="channel-card"><button class="logo-action" type="button" title="Logo">+</button><img class="channel-logo" alt="" /><div class="channel-text"><h3></h3><p></p></div><div class="progress-track"><span></span></div></article></template>
+    <template id="channelTemplate"><article class="channel-card"><button class="logo-action" type="button" title="Logo">+</button><button class="fav-action" type="button" aria-label="Obľúbené">☆</button><img class="channel-logo" alt="" /><span class="status-dot"></span><div class="channel-text"><h3></h3><p></p></div><div class="progress-track"><span></span></div></article></template>
     <script src="./app.js"></script>
   </body>
 </html>
