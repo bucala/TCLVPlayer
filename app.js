@@ -14,9 +14,9 @@ function safeSetJson(key, value) { try { localStorage.setItem(key, JSON.stringif
 
 const translations = {
   sk: {
-    tagline: "Jednoduchy IPTV prehravac", openPlaylist: "Playlist", openEpg: "EPG", load: "Nacitat", loadEpg: "Nacitat EPG", guide: "Program", noChannels: "Nacitajte M3U/M3U8 alebo XSPF playlist v Nastaveniach.", noEpg: "EPG este nie je nacitane.", noProgram: "Program nie je dostupny", now: "Teraz", next: "Nasleduje", html5Notice: "HTML5 video prehravac je aktivny. Niektore HLS streamy (.m3u8) potrebuju nativnu podporu prehliadaca.", optionalMissing: "Tento player nie je pribaleny. Nacitajte jeho kniznicu alebo pouzite HTML5.",  loadError: "Nepodarilo sa nacitat zdroj.", playlistLoaded: "Playlist nacitany", epgLoaded: "EPG nacitane", logoTitle: "Vybrat logo", settingsPlayer: "Prehrávač & Jazyk", labelPlayer: "Prehrávač", labelLanguage: "Jazyk", settingsPlaylists: "Playlisty", addPlaylist: "Pridať URL", settingsEpg: "EPG zdroje", addEpg: "Pridať EPG", epgHint: "Všetky zdroje sa načítajú a zlúčia.", settingsNetwork: "Sieť", labelCorsProxy: "CORS proxy (len web)", corsHint: "Na Verceli sa automaticky použije vstavaný proxy. Electron a Android ho nepotrebujú.", searchEpg: "Hladat v programe", corsNeeded: "CORS chyba — nastavte CORS proxy v Nastaveniach > Sieť.", proxyBlocked: "Proxy blokuje požiadavku. Skúste iný CORS proxy.", streamUnavailable: "Stream nie je dostupný — server odmietol pripojenie alebo je geo-blokovaný.", clickToPlay: "Kliknite na video pre spustenie prehrávania.", local: "lokálny", network: "sieťový", epgAutoDetected: "EPG zdroje automaticky detegované z playlistu", proxyChanged: "CORS proxy uložený. Znovu načítavam EPG…", qualityNative: "Natívna", qualityHigh: "Vysoká (1080p)", qualityMedium: "Stredná (720p)", qualityLow: "Nízka (360p)", labelQuality: "Kvalita videa", searchChannels: "Hľadať kanály", groupAll: "Všetky", groupFavorites: "Obľúbené", settingsXtream: "Xtream Codes API", xtreamHint: "Prihlasovacie údaje od IPTV poskytovateľa.", addXtream: "Načítať", xtreamLoading: "Načítavanie Xtream playlistu…",   },
+    tagline: "Jednoduchy IPTV prehravac", openPlaylist: "Playlist", openEpg: "EPG", load: "Nacitat", loadEpg: "Nacitat EPG", guide: "Program", noChannels: "Nacitajte M3U/M3U8 alebo XSPF playlist v Nastaveniach.", noEpg: "EPG este nie je nacitane.", noProgram: "Program nie je dostupny", now: "Teraz", next: "Nasleduje", html5Notice: "HTML5 video prehravac je aktivny. Niektore HLS streamy (.m3u8) potrebuju nativnu podporu prehliadaca.", optionalMissing: "Tento player nie je pribaleny. Nacitajte jeho kniznicu alebo pouzite HTML5.",  loadError: "Nepodarilo sa nacitat zdroj.", playlistLoaded: "Playlist nacitany", epgLoaded: "EPG nacitane", logoTitle: "Vybrat logo", settingsPlayer: "Prehrávač & Jazyk", labelPlayer: "Prehrávač", labelLanguage: "Jazyk", settingsPlaylists: "Playlisty", addPlaylist: "Pridať URL", settingsEpg: "EPG zdroje", addEpg: "Pridať EPG", epgHint: "Všetky zdroje sa načítajú a zlúčia.", settingsNetwork: "Sieť", labelCorsProxy: "CORS proxy (len web)", corsHint: "Na Verceli sa automaticky použije vstavaný proxy. Electron a Android ho nepotrebujú.", searchEpg: "Hladat v programe", corsNeeded: "CORS chyba — nastavte CORS proxy v Nastaveniach > Sieť.", proxyBlocked: "Proxy blokuje požiadavku. Skúste iný CORS proxy.", streamUnavailable: "Stream nie je dostupný — server odmietol pripojenie alebo je geo-blokovaný.", clickToPlay: "Kliknite na video pre spustenie prehrávania.", local: "lokálny", network: "sieťový", epgAutoDetected: "EPG zdroje automaticky detegované z playlistu", proxyChanged: "CORS proxy uložený. Znovu načítavam EPG…", qualityNative: "Natívna", qualityHigh: "Vysoká (1080p)", qualityMedium: "Stredná (720p)", qualityLow: "Nízka (360p)", labelQuality: "Kvalita videa", searchChannels: "Hľadať kanály", groupAll: "Všetky", groupFavorites: "Obľúbené", settingsXtream: "Xtream Codes API", xtreamHint: "Prihlasovacie údaje od IPTV poskytovateľa.", addXtream: "Načítať", xtreamLoading: "Načítavanie Xtream playlistu…", settingsBackup: "Export / Import", backupHint: "Zálohovanie a obnovenie nastavení, playlistov a obľúbených.", exportSettings: "Exportovať", importSettings: "Importovať", settingsImported: "Nastavenia obnovené.", catchupAvailable: "Archív dostupný", catchupTitle: "Archív", catchupUnavailable: "Archív nie je dostupný pre tento kanál.",   },
   en: {
-    tagline: "Simple IPTV player", openPlaylist: "Playlist", openEpg: "EPG", load: "Load", loadEpg: "Load EPG", guide: "Guide", noChannels: "Load an M3U/M3U8 or XSPF playlist in Settings.", noEpg: "EPG is not loaded yet.", noProgram: "Program is not available", now: "Now", next: "Next", html5Notice: "HTML5 video player is active. Some HLS streams (.m3u8) need native browser support.", optionalMissing: "This player is not bundled. Load its library or use HTML5.",  loadError: "Could not load the source.", playlistLoaded: "Playlist loaded", epgLoaded: "EPG loaded", logoTitle: "Choose logo", settingsPlayer: "Player & Language", labelPlayer: "Player", labelLanguage: "Language", settingsPlaylists: "Playlists", addPlaylist: "Add URL", settingsEpg: "EPG sources", addEpg: "Add EPG", epgHint: "All sources are loaded and merged.", settingsNetwork: "Network", labelCorsProxy: "CORS proxy (web only)", corsHint: "Built-in proxy is used automatically on Vercel. Electron and Android do not need it.", searchEpg: "Search programs", corsNeeded: "CORS error — set a CORS proxy in Settings > Network.", proxyBlocked: "Proxy is blocking the request. Try a different CORS proxy.", streamUnavailable: "Stream is unavailable — server refused or geo-blocked.", clickToPlay: "Click the video to start playback.", local: "local", network: "network", epgAutoDetected: "EPG sources auto-detected from playlist", proxyChanged: "CORS proxy saved. Reloading EPG…", qualityNative: "Native", qualityHigh: "High (1080p)", qualityMedium: "Medium (720p)", qualityLow: "Low (360p)", labelQuality: "Video quality", searchChannels: "Search channels", groupAll: "All", groupFavorites: "Favorites", settingsXtream: "Xtream Codes API", xtreamHint: "Enter credentials from your IPTV provider.", addXtream: "Load", xtreamLoading: "Loading Xtream playlist…",   }
+    tagline: "Simple IPTV player", openPlaylist: "Playlist", openEpg: "EPG", load: "Load", loadEpg: "Load EPG", guide: "Guide", noChannels: "Load an M3U/M3U8 or XSPF playlist in Settings.", noEpg: "EPG is not loaded yet.", noProgram: "Program is not available", now: "Now", next: "Next", html5Notice: "HTML5 video player is active. Some HLS streams (.m3u8) need native browser support.", optionalMissing: "This player is not bundled. Load its library or use HTML5.",  loadError: "Could not load the source.", playlistLoaded: "Playlist loaded", epgLoaded: "EPG loaded", logoTitle: "Choose logo", settingsPlayer: "Player & Language", labelPlayer: "Player", labelLanguage: "Language", settingsPlaylists: "Playlists", addPlaylist: "Add URL", settingsEpg: "EPG sources", addEpg: "Add EPG", epgHint: "All sources are loaded and merged.", settingsNetwork: "Network", labelCorsProxy: "CORS proxy (web only)", corsHint: "Built-in proxy is used automatically on Vercel. Electron and Android do not need it.", searchEpg: "Search programs", corsNeeded: "CORS error — set a CORS proxy in Settings > Network.", proxyBlocked: "Proxy is blocking the request. Try a different CORS proxy.", streamUnavailable: "Stream is unavailable — server refused or geo-blocked.", clickToPlay: "Click the video to start playback.", local: "local", network: "network", epgAutoDetected: "EPG sources auto-detected from playlist", proxyChanged: "CORS proxy saved. Reloading EPG…", qualityNative: "Native", qualityHigh: "High (1080p)", qualityMedium: "Medium (720p)", qualityLow: "Low (360p)", labelQuality: "Video quality", searchChannels: "Search channels", groupAll: "All", groupFavorites: "Favorites", settingsXtream: "Xtream Codes API", xtreamHint: "Enter credentials from your IPTV provider.", addXtream: "Load", xtreamLoading: "Loading Xtream playlist…", settingsBackup: "Export / Import", backupHint: "Back up and restore all settings, playlists and favourites.", exportSettings: "Export", importSettings: "Import", settingsImported: "Settings restored.", catchupAvailable: "Archive available", catchupTitle: "Archive", catchupUnavailable: "Archive not available for this channel.",   }
 };
 
 function migrateStoredSources(key, fallback) {
@@ -53,7 +53,12 @@ const state = {
   favorites: new Set(JSON.parse(safeGet("tclv.favorites", "[]") || "[]")),
   searchQuery: "",
   activeGroup: "all",
-  streamStatus: {}
+  streamStatus: {},
+  multiview: false,
+  mvSlot: 0,
+  mvChannel1: null,
+  hls2: null,
+  mpegts2: null
 };
 
 const dom = {
@@ -74,7 +79,15 @@ const dom = {
   xtreamUser: document.querySelector("#xtreamUser"),
   xtreamPass: document.querySelector("#xtreamPass"),
   addXtream: document.querySelector("#addXtream"),
-  pipButton: document.querySelector("#pipButton")
+  pipButton: document.querySelector("#pipButton"),
+  mvToggle: document.querySelector("#mvToggle"),
+  mvSlot0: document.querySelector("#mvSlot0"),
+  mvSlot1: document.querySelector("#mvSlot1"),
+  video2: document.querySelector("#videoPlayer2"),
+  playerMessage2: document.querySelector("#playerMessage2"),
+  catchupModal: document.querySelector("#catchupModal"),
+  exportSettings: document.querySelector("#exportSettings"),
+  importFile: document.querySelector("#importFile")
 };
 
 function t(key) { return translations[state.language]?.[key] || translations.en[key] || key; }
@@ -82,7 +95,7 @@ function hashCode(value) { let hash = 0; for (let i = 0; i < value.length; i += 
 function escapeXml(value) { return String(value).replace(/[<>&"']/g, (char) => ({"<":"&lt;",">":"&gt;","&":"&amp;","\"":"&quot;","'":"&apos;"})[char]); }
 function normalizeId(value) { return String(value || "").trim().toLowerCase().replace(/[^a-z0-9._-]+/g, "-").replace(/^-+|-+$/g, ""); }
 function placeholderLogo(name) { const initials = (name || "TV").split(/\s+/).map((part) => part[0]).join("").slice(0,3).toUpperCase(); const hue = Math.abs(hashCode(name || "TV")) % 360; const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160"><rect width="160" height="160" fill="hsl(${hue} 72% 46%)"/><text x="80" y="92" text-anchor="middle" font-family="Arial, sans-serif" font-size="42" font-weight="700" fill="white">${escapeXml(initials)}</text></svg>`; return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`; }
-function getChannelLogo(channel) { return safeGet(`tclv.logo.${channel.id}`) || sanitizeLogoUrl(channel.logo) || placeholderLogo(channel.name); }
+function getChannelLogo(channel) { var url = safeGet(`tclv.logo.${channel.id}`) || sanitizeLogoUrl(channel.logo); if (url && location.protocol === 'https:' && url.startsWith('http://')) url = url.replace('http://', 'https://'); return url || placeholderLogo(channel.name); }
 function attr(text, name) { const pattern = new RegExp(`${name}\\s*=\\s*("([^"]*)"|'([^']*)'|([^\\s]+))`, "i"); const match = text.match(pattern); return match ? (match[2] || match[3] || match[4] || "").trim() : ""; }
 function uniqueId(seed, existing) { const base = normalizeId(seed) || "channel"; const ids = new Set(existing.map((item) => item.id)); let value = base; let counter = 2; while (ids.has(value)) { value = `${base}-${counter}`; counter += 1; } return value; }
 function parseXml(text) { const doc = new DOMParser().parseFromString(text, "application/xml"); const error = doc.querySelector("parsererror"); if (error) throw new Error(error.textContent || "XML parse error"); return doc; }
@@ -95,8 +108,8 @@ function parseM3U(text) {
   const lines = text.replace(/^\uFEFF/, "").split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
   const channels = []; let meta = null;
   for (const line of lines) {
-    if (line.startsWith("#EXTINF")) { const commaIndex = line.indexOf(","); const info = commaIndex >= 0 ? line.slice(0, commaIndex) : line; const title = commaIndex >= 0 ? line.slice(commaIndex + 1).trim() : ""; meta = { name: attr(info, "tvg-name") || title || "Channel", tvgId: attr(info, "tvg-id") || attr(info, "channel-id") || "", logo: attr(info, "tvg-logo") || "", group: attr(info, "group-title") || "" }; continue; }
-    if (!line.startsWith("#")) { const name = meta?.name || line.split("/").pop() || "Channel"; const tvgId = meta?.tvgId || ""; channels.push({ id: uniqueId(tvgId || name || line, channels), tvgId, name, logo: meta?.logo || "", group: meta?.group || "", url: line }); meta = null; }
+    if (line.startsWith("#EXTINF")) { const commaIndex = line.indexOf(","); const info = commaIndex >= 0 ? line.slice(0, commaIndex) : line; const title = commaIndex >= 0 ? line.slice(commaIndex + 1).trim() : ""; meta = { name: attr(info, "tvg-name") || title || "Channel", tvgId: attr(info, "tvg-id") || attr(info, "channel-id") || "", logo: attr(info, "tvg-logo") || "", group: attr(info, "group-title") || "", catchup: attr(info, "catchup") || "", catchupSource: attr(info, "catchup-source") || attr(info, "catchup_source") || "", catchupDays: parseInt(attr(info, "catchup-days") || attr(info, "catchup_days") || "0", 10) || 0 }; continue; }
+    if (!line.startsWith("#")) { const name = meta?.name || line.split("/").pop() || "Channel"; const tvgId = meta?.tvgId || ""; channels.push({ id: uniqueId(tvgId || name || line, channels), tvgId, name, logo: meta?.logo || "", group: meta?.group || "", url: line, catchup: meta?.catchup || "", catchupSource: meta?.catchupSource || "", catchupDays: meta?.catchupDays || 0 }); meta = null; }
   }
   return channels;
 }
@@ -143,6 +156,149 @@ function renderGroupTabs() {
 }
 function extractM3UEpgUrls(text) { if (!text) return []; const first = (text.split(/\r?\n/)[0] || '').trim(); if (!first.startsWith('#EXTM3U')) return []; const m = first.match(/x-tvg-url\s*=\s*"([^"]*)"/i); return m ? m[1].split(',').map(function(u) { return u.trim(); }).filter(Boolean) : []; }
 
+// ── Multi-view ────────────────────────────────────────────────────────────────
+function toggleMultiview() {
+  state.multiview = !state.multiview;
+  var stage = document.querySelector('.player-stage');
+  stage?.classList.toggle('multiview', state.multiview);
+  if (dom.mvSlot1) dom.mvSlot1.hidden = !state.multiview;
+  if (dom.mvToggle) { dom.mvToggle.classList.toggle('active', state.multiview); dom.mvToggle.setAttribute('aria-pressed', String(state.multiview)); }
+  if (!state.multiview) { destroySlot1(); state.mvChannel1 = null; state.mvSlot = 0; setMvFocus(0); renderChannels(); }
+  else { setMvFocus(0); }
+}
+function setMvFocus(n) {
+  state.mvSlot = n;
+  dom.mvSlot0?.classList.toggle('mv-focused', n === 0);
+  dom.mvSlot1?.classList.toggle('mv-focused', n === 1);
+}
+function destroySlot1() {
+  if (state.hls2) { try { state.hls2.destroy(); } catch {} state.hls2 = null; }
+  if (state.mpegts2) { try { state.mpegts2.destroy(); } catch {} state.mpegts2 = null; }
+  if (dom.video2) { dom.video2.pause(); dom.video2.removeAttribute('src'); dom.video2.load(); }
+}
+async function playInSlot1(channel) {
+  destroySlot1();
+  if (!dom.video2) return;
+  var url = channel.url;
+  var type = getStreamType(url);
+  try {
+    if (type === 'hls') {
+      await ensureHls();
+      if (window.Hls?.isSupported()) {
+        var hls = new window.Hls(hlsConfig(url));
+        state.hls2 = hls;
+        hls.on(window.Hls.Events.ERROR, function(_e, data) { if (data.fatal) { if (state.hls2 === hls) destroySlot1(); } });
+        hls.loadSource(url);
+        hls.attachMedia(dom.video2);
+        hls.on(window.Hls.Events.MANIFEST_PARSED, function() { dom.video2.muted = true; dom.video2.play().catch(function() {}); });
+        return;
+      }
+    }
+    if (type === 'ts') {
+      await ensureMpegts();
+      if (window.mpegts?.isSupported()) {
+        state.mpegts2 = window.mpegts.createPlayer({ type: 'mpegts', isLive: true, url: streamUrl(url) });
+        state.mpegts2.attachMediaElement(dom.video2);
+        state.mpegts2.load();
+        dom.video2.muted = true;
+        dom.video2.play().catch(function() {});
+        return;
+      }
+    }
+    dom.video2.src = streamUrl(url);
+    dom.video2.muted = true;
+    dom.video2.play().catch(function() {});
+  } catch {}
+}
+// ── Catchup ───────────────────────────────────────────────────────────────────
+function buildCatchupUrl(channel, start, duration) {
+  var pad = function(n) { return String(n).padStart(2, '0'); };
+  var startStr = start.getFullYear() + '-' + pad(start.getMonth() + 1) + '-' + pad(start.getDate()) + ':' + pad(start.getHours()) + '-' + pad(start.getMinutes());
+  var utc = Math.floor(start.getTime() / 1000);
+  var utcEnd = utc + duration * 60;
+  if (channel.catchupSource) {
+    return channel.catchupSource
+      .replace(/\{utc\}/gi, utc).replace(/\{utcend\}/gi, utcEnd)
+      .replace(/\{start\}/gi, startStr).replace(/\{duration\}/gi, duration)
+      .replace(/\{stream\}/gi, channel.url.split('/').pop() || '');
+  }
+  var m = channel.url.match(/^(https?:\/\/[^/]+)\/(live|movie|series|radio)\/([^/]+)\/([^/]+)\/(.+)$/);
+  if (m) return m[1] + '/timeshift/' + m[3] + '/' + m[4] + '/' + duration + '/' + startStr + '/' + m[5];
+  return null;
+}
+function openCatchup(channel) {
+  if (!dom.catchupModal) return;
+  dom.catchupModal.innerHTML = '';
+  var header = document.createElement('div'); header.className = 'catchup-header';
+  var title = document.createElement('h3'); title.textContent = channel.name;
+  var closeBtn = document.createElement('button'); closeBtn.textContent = '✕'; closeBtn.addEventListener('click', closeCatchupModal);
+  header.append(title, closeBtn);
+  var body = document.createElement('div'); body.className = 'catchup-body';
+  var days = Math.min(channel.catchupDays || 7, 30);
+  var now = new Date();
+  for (var d = 0; d < days; d++) {
+    var date = new Date(now);
+    date.setDate(date.getDate() - d);
+    date.setHours(0, 0, 0, 0);
+    var dayEl = document.createElement('div'); dayEl.className = 'catchup-day';
+    var dayHeader = document.createElement('div'); dayHeader.className = 'catchup-day-header';
+    var dayLabel = d === 0 ? 'Dnes' : d === 1 ? 'Včera' : date.toLocaleDateString(state.language === 'sk' ? 'sk-SK' : 'en-US', { weekday: 'short', day: 'numeric', month: 'short' });
+    dayHeader.innerHTML = '<span>' + dayLabel + '</span><span>▼</span>';
+    var hoursEl = document.createElement('div'); hoursEl.className = 'catchup-hours'; if (d > 0) hoursEl.hidden = true;
+    var maxHour = d === 0 ? now.getHours() : 23;
+    for (var h = 0; h <= maxHour; h++) {
+      var start = new Date(date); start.setHours(h);
+      var hourBtn = document.createElement('button'); hourBtn.className = 'catchup-hour';
+      hourBtn.textContent = String(h).padStart(2, '0') + ':00';
+      hourBtn.dataset.start = start.toISOString();
+      (function(ch, s) { hourBtn.addEventListener('click', function() { playCatchup(ch, new Date(s), 60); }); })(channel, start.toISOString());
+      hoursEl.append(hourBtn);
+    }
+    dayHeader.addEventListener('click', function(e) { var h = e.currentTarget.nextElementSibling; h.hidden = !h.hidden; e.currentTarget.querySelector('span:last-child').textContent = h.hidden ? '▼' : '▲'; });
+    dayEl.append(dayHeader, hoursEl); body.append(dayEl);
+  }
+  dom.catchupModal.append(header, body);
+  dom.catchupModal.hidden = false;
+}
+function closeCatchupModal() { if (dom.catchupModal) dom.catchupModal.hidden = true; }
+function playCatchup(channel, start, duration) {
+  var url = buildCatchupUrl(channel, start, duration);
+  if (!url) { showMessage(t('catchupUnavailable')); return; }
+  closeCatchupModal();
+  setPlayerActive(true);
+  stopInternalPlayers(); showHtmlVideo();
+  dom.video.removeAttribute('src'); dom.video.load();
+  playHtml5(Object.assign({}, channel, { url: url }));
+}
+// ── Export / Import ───────────────────────────────────────────────────────────
+function exportSettings() {
+  var data = {
+    version: 1,
+    playlists: state.playlists.map(function(p) { return { id: p.id, name: p.name, source: p.source, type: p.type, origin: p.origin }; }),
+    epgSources: state.epgSources.map(function(s) { return { id: s.id, name: s.name, source: s.source, origin: s.origin, active: s.active }; }),
+    favorites: [...state.favorites],
+    language: state.language, player: state.player, corsProxy: state.corsProxy
+  };
+  var json = JSON.stringify(data, null, 2);
+  var blob = new Blob([json], { type: 'application/json' });
+  var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'tclvplayer-settings.json'; a.click(); URL.revokeObjectURL(a.href);
+}
+async function importSettingsFromFile(file) {
+  try {
+    var text = await readFile(file);
+    var data = JSON.parse(text);
+    if (!data.version) throw new Error('Invalid file');
+    if (Array.isArray(data.favorites)) { state.favorites = new Set(data.favorites); safeSet('tclv.favorites', JSON.stringify(data.favorites)); }
+    if (Array.isArray(data.playlists)) { state.playlists = data.playlists; savePlaylistMeta(); }
+    if (Array.isArray(data.epgSources)) { state.epgSources = data.epgSources; saveEpgMeta(); }
+    if (data.language) { state.language = data.language; safeSet('tclv.language', state.language); }
+    if (data.player) { state.player = data.player; safeSet('tclv.player', state.player); }
+    if (data.corsProxy) { state.corsProxy = data.corsProxy; safeSet('tclv.corsProxy', state.corsProxy); if (dom.corsProxyInput) dom.corsProxyInput.value = state.corsProxy; }
+    renderAll();
+    if (state.playlists.length && state.activePlaylistId) activatePlaylist(state.activePlaylistId);
+    showMessage(t('settingsImported'));
+  } catch (err) { showMessage(t('loadError') + ' ' + (err.message || '')); }
+}
 function setStreamStatus(channelId, status) {
   state.streamStatus[channelId] = status;
   updateChannelStatusDot(channelId);
@@ -216,7 +372,7 @@ function translateUi() {
 function renderChannels() {
   const channels = filteredChannels(); dom.channelGrid.textContent = "";
   if (!channels.length) { const empty = document.createElement('div'); empty.className = 'empty-state'; empty.textContent = state.searchQuery || state.activeGroup !== 'all' ? (state.activeGroup === 'favorites' ? t('groupFavorites') + ': 0' : t('noChannels')) : t('noChannels'); dom.channelGrid.append(empty); return; }
-  const now = new Date(); channels.forEach((channel) => { const node = dom.channelTemplate.content.firstElementChild.cloneNode(true); const program = currentProgram(channel, now); node.dataset.id = channel.id; node.dataset.channelId = channel.id; node.tabIndex = 0; node.setAttribute('role', 'button'); node.setAttribute('aria-label', channel.name); node.classList.toggle('active', channel.id === state.selectedChannelId); node.querySelector('.channel-logo').src = getChannelLogo(channel); node.querySelector('.channel-logo').alt = channel.name; node.querySelector('h3').textContent = channel.name; node.querySelector('p').textContent = program?.title || t('noProgram'); node.querySelector('.progress-track span').style.width = `${progress(program, now)}%`; node.querySelector('.logo-action').title = t('logoTitle'); node.querySelector('.logo-action').addEventListener('click', (event) => { event.stopPropagation(); state.selectedLogoChannelId = channel.id; dom.logoFile.click(); }); var favBtn = node.querySelector('.fav-action'); if (favBtn) { favBtn.classList.toggle('active', isFavorite(channel.id)); favBtn.textContent = isFavorite(channel.id) ? '★' : '☆'; favBtn.title = isFavorite(channel.id) ? t('groupFavorites') : t('groupFavorites'); favBtn.addEventListener('click', function(event) { event.stopPropagation(); toggleFavorite(channel.id); }); } var dot = node.querySelector('.status-dot'); if (dot) { var s = state.streamStatus[channel.id]; dot.className = 'status-dot' + (s ? ' ' + s : ''); } node.addEventListener('click', () => selectChannel(channel.id)); node.addEventListener('keydown', (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); selectChannel(channel.id); } }); dom.channelGrid.append(node); });
+  const now = new Date(); channels.forEach((channel) => { const node = dom.channelTemplate.content.firstElementChild.cloneNode(true); const program = currentProgram(channel, now); node.dataset.id = channel.id; node.dataset.channelId = channel.id; node.tabIndex = 0; node.setAttribute('role', 'button'); node.setAttribute('aria-label', channel.name); node.classList.toggle('active', channel.id === state.selectedChannelId); var logoImg = node.querySelector('.channel-logo'); logoImg.src = getChannelLogo(channel); logoImg.alt = channel.name; logoImg.onerror = function() { this.onerror = null; this.src = placeholderLogo(channel.name); }; node.querySelector('h3').textContent = channel.name; node.querySelector('p').textContent = program?.title || t('noProgram'); node.querySelector('.progress-track span').style.width = `${progress(program, now)}%`; node.querySelector('.logo-action').title = t('logoTitle'); node.querySelector('.logo-action').addEventListener('click', (event) => { event.stopPropagation(); state.selectedLogoChannelId = channel.id; dom.logoFile.click(); }); var favBtn = node.querySelector('.fav-action'); if (favBtn) { favBtn.classList.toggle('active', isFavorite(channel.id)); favBtn.textContent = isFavorite(channel.id) ? '★' : '☆'; favBtn.title = isFavorite(channel.id) ? t('groupFavorites') : t('groupFavorites'); favBtn.addEventListener('click', function(event) { event.stopPropagation(); toggleFavorite(channel.id); }); } var dot = node.querySelector('.status-dot'); if (dot) { var s = state.streamStatus[channel.id]; dot.className = 'status-dot' + (s ? ' ' + s : ''); } if (channel.catchupDays > 0) { var catchupBtn = document.createElement('button'); catchupBtn.className = 'catchup-badge'; catchupBtn.title = t('catchupAvailable'); catchupBtn.textContent = '📅'; catchupBtn.addEventListener('click', function(ev) { ev.stopPropagation(); openCatchup(channel); }); node.querySelector('.channel-text').append(catchupBtn); } node.addEventListener('click', () => selectChannel(channel.id)); node.addEventListener('keydown', (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); selectChannel(channel.id); } }); dom.channelGrid.append(node); });
 }
 function toggleSidebar() {
   state.sidebarVisible = !state.sidebarVisible;
@@ -247,7 +403,7 @@ function renderGuide() {
   const header = document.createElement('div'); header.className = 'timeline-header'; header.innerHTML = `<div class="timeline-corner"></div><div class="time-slots"></div>`; header.querySelector('.time-slots').style.width = `${width}px`;
   for (let cursor = new Date(start); cursor <= end; cursor = new Date(cursor.getTime() + 30 * 60 * 1000)) { const slot = document.createElement('div'); slot.className = 'time-slot'; slot.style.left = `${((cursor - start) / duration) * width}px`; slot.style.width = `${width / 16}px`; slot.textContent = formatTime(cursor); header.querySelector('.time-slots').append(slot); }
   timeline.append(header);
-  channels.forEach((channel) => { const row = document.createElement('div'); row.className = 'timeline-row'; row.innerHTML = `<div class="timeline-label"><img src="${getChannelLogo(channel)}" alt=""><span>${escapeHtml(channel.name)}</span></div><div class="program-track"></div>`; const track = row.querySelector('.program-track'); track.style.width = `${width}px`; const programs = findPrograms(channel).filter((program) => program.stop > start && program.start < end); if (!programs.length) { const empty = document.createElement('div'); empty.className = 'program'; empty.style.left = '8px'; empty.style.width = '160px'; empty.innerHTML = `<strong>${t('noEpg')}</strong>`; track.append(empty); } else { programs.forEach((program) => { const left = Math.max(0, ((program.start - start) / duration) * width); const right = Math.min(width, ((program.stop - start) / duration) * width); const node = document.createElement('div'); node.className = `program${program.start <= new Date() && program.stop > new Date() ? ' current' : ''}`; node.style.left = `${left}px`; node.style.width = `${Math.max(44, right - left - 4)}px`; node.title = `${program.title} ${formatTime(program.start)}-${formatTime(program.stop)}`; node.innerHTML = `<strong>${escapeHtml(program.title)}</strong><span>${formatTime(program.start)} - ${formatTime(program.stop)}</span>`; track.append(node); }); }
+  channels.forEach((channel) => { const row = document.createElement('div'); row.className = 'timeline-row'; row.innerHTML = `<div class="timeline-label"><img src="${getChannelLogo(channel)}" alt="" onerror="this.onerror=null;this.src='${placeholderLogo(channel.name).replace(/'/g, "\\'")}';"><span>${escapeHtml(channel.name)}</span></div><div class="program-track"></div>`; const track = row.querySelector('.program-track'); track.style.width = `${width}px`; const programs = findPrograms(channel).filter((program) => program.stop > start && program.start < end); if (!programs.length) { const empty = document.createElement('div'); empty.className = 'program'; empty.style.left = '8px'; empty.style.width = '160px'; empty.innerHTML = `<strong>${t('noEpg')}</strong>`; track.append(empty); } else { programs.forEach((program) => { const left = Math.max(0, ((program.start - start) / duration) * width); const right = Math.min(width, ((program.stop - start) / duration) * width); const node = document.createElement('div'); node.className = `program${program.start <= new Date() && program.stop > new Date() ? ' current' : ''}`; node.style.left = `${left}px`; node.style.width = `${Math.max(44, right - left - 4)}px`; node.title = `${program.title} ${formatTime(program.start)}-${formatTime(program.stop)}`; node.innerHTML = `<strong>${escapeHtml(program.title)}</strong><span>${formatTime(program.start)} - ${formatTime(program.stop)}</span>`; track.append(node); }); }
     const nowLine = document.createElement('div'); nowLine.className = 'now-line'; nowLine.style.left = `${Math.max(0, Math.min(width, ((Date.now() - start.getTime()) / duration) * width))}px`; track.append(nowLine);
     timeline.append(row);
   });
@@ -255,7 +411,7 @@ function renderGuide() {
 }
 function renderAll() { translateUi(); renderSourceLists(); renderGroupTabs(); renderChannels(); if (state.epgVisible) renderGuide(); }
 
-function stopVideoJs() { if (state.videoJsPlayer) state.videoJsPlayer.pause(); }
+function stopVideoJs() { if (state.videoJsPlayer) { state.videoJsPlayer.pause(); try { state.videoJsPlayer.reset(); } catch {} } }
 function stopArtPlayer() { if (state.artPlayer) { try { state.artPlayer.destroy(); } catch {} state.artPlayer = null; } dom.artPlayerHost.style.display = 'none'; }
 function destroyHls() { if (state.hls) { try { state.hls.destroy(); } catch {} state.hls = null; } if (state.mpegtsPlayer) { try { state.mpegtsPlayer.destroy(); } catch {} state.mpegtsPlayer = null; } }
 function stopInternalPlayers() { stopVideoJs(); stopArtPlayer(); destroyHls(); dom.video.pause(); if (dom.qualityControl) dom.qualityControl.hidden = true; }
@@ -287,7 +443,10 @@ function streamUrl(url) {
 function hlsConfig(url) {
   if (isNativePlatform()) return {};
   if (state.corsProxy && isMixedContent(url)) {
-    return { xhrSetup: function(xhr, u) { xhr.open('GET', proxyUrl(u), true); } };
+    return { xhrSetup: function(xhr, u) {
+      xhr.open('GET', proxyUrl(u), true);
+      Object.defineProperty(xhr, 'responseURL', { get: function() { return u; } });
+    } };
   }
   return {};
 }
@@ -431,8 +590,8 @@ function playChannel(channel) {
   if (state.player === 'artplayer') return playArtPlayer(channel);
   return playHtml5(channel);
 }
-function showSwitchOverlay(channel) { const now = currentProgram(channel); const next = nextProgram(channel); dom.switchOverlay.innerHTML = `<img src="${getChannelLogo(channel)}" alt=""><div><h2>${escapeHtml(channel.name)}</h2><p><strong>${t('now')}:</strong> ${escapeHtml(now?.title || t('noProgram'))}</p><p><strong>${t('next')}:</strong> ${escapeHtml(next?.title || t('noProgram'))}</p></div>`; dom.switchOverlay.classList.add('show'); clearTimeout(state.overlayTimer); state.overlayTimer = setTimeout(() => dom.switchOverlay.classList.remove('show'), 5200); }
-function selectChannel(id) { const channel = state.channels.find((item) => item.id === id); if (!channel) return; state.selectedChannelId = id; playChannel(channel); showSwitchOverlay(channel); renderChannels(); requestAnimationFrame(() => { const active = dom.channelGrid.querySelector('.channel-card.active'); active?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }); }
+function showSwitchOverlay(channel) { const now = currentProgram(channel); const next = nextProgram(channel); dom.switchOverlay.innerHTML = `<img src="${getChannelLogo(channel)}" alt="" onerror="this.onerror=null;this.src='${placeholderLogo(channel.name).replace(/'/g, "\\'")}';"><div><h2>${escapeHtml(channel.name)}</h2><p><strong>${t('now')}:</strong> ${escapeHtml(now?.title || t('noProgram'))}</p><p><strong>${t('next')}:</strong> ${escapeHtml(next?.title || t('noProgram'))}</p></div>`; dom.switchOverlay.classList.add('show'); clearTimeout(state.overlayTimer); state.overlayTimer = setTimeout(() => dom.switchOverlay.classList.remove('show'), 5200); }
+function selectChannel(id) { const channel = state.channels.find((item) => item.id === id); if (!channel) return; if (state.multiview && state.mvSlot === 1) { state.mvChannel1 = channel; playInSlot1(channel); renderChannels(); return; } state.selectedChannelId = id; playChannel(channel); showSwitchOverlay(channel); renderChannels(); requestAnimationFrame(() => { const active = dom.channelGrid.querySelector('.channel-card.active'); active?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }); }
 function isNativePlatform() { return !!(window.TCLVNative || window.Capacitor); }
 function isMixedContent(url) { return location.protocol === 'https:' && String(url || '').startsWith('http://'); }
 function proxyUrl(url) { if (isNativePlatform() || !state.corsProxy) return url; return state.corsProxy + encodeURIComponent(url); }
@@ -582,6 +741,11 @@ function bindEvents() {
   dom.pipButton?.addEventListener('click', togglePip);
   document.addEventListener('enterpictureinpicture', function() { dom.pipButton?.classList.add('active'); });
   document.addEventListener('leavepictureinpicture', function() { dom.pipButton?.classList.remove('active'); });
+  dom.mvToggle?.addEventListener('click', toggleMultiview);
+  dom.mvSlot0?.addEventListener('click', function() { if (state.multiview && state.mvSlot !== 0) setMvFocus(0); });
+  dom.mvSlot1?.addEventListener('click', function() { if (state.multiview && state.mvSlot !== 1) setMvFocus(1); });
+  dom.exportSettings?.addEventListener('click', exportSettings);
+  dom.importFile?.addEventListener('change', function() { var file = dom.importFile.files?.[0]; if (file) { importSettingsFromFile(file); dom.importFile.value = ''; } });
   dom.channelGrid.addEventListener('keydown', (event) => {
     const cards = [...dom.channelGrid.querySelectorAll('.channel-card')];
     const focused = document.activeElement;
