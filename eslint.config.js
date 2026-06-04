@@ -30,6 +30,7 @@ export default [
         location: "readonly",
         console: "readonly",
         Blob: "readonly",
+        Image: "readonly",
       },
     },
   },
