@@ -12,7 +12,7 @@ Windows · Android · GoogleTV · Web
 [![Windows Build](https://github.com/bucala/TCLVPlayer/actions/workflows/windows.yml/badge.svg)](https://github.com/bucala/TCLVPlayer/actions/workflows/windows.yml)
 [![Android Build](https://github.com/bucala/TCLVPlayer/actions/workflows/android.yml/badge.svg)](https://github.com/bucala/TCLVPlayer/actions/workflows/android.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-orange.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.6.1-orange)](#changelog)
+[![Version](https://img.shields.io/badge/version-1.0.0-orange)](#changelog)
 [![Vanilla JS](https://img.shields.io/badge/Vanilla-JS-yellow?logo=javascript)](app.js)
 
 ---
@@ -27,9 +27,12 @@ Windows · Android · GoogleTV · Web
 
 - **Jedno jadro, tri platformy** — rovnaky web kod bezi v Electron okne, Android WebView aj v prehliadaci
 - **Ziadny framework** — cisty vanilla JS, ziadny build step, ziadny bundler
-- **3 interne playery** — HTML5, Video.js, ArtPlayer (vsetky s HLS cez hls.js)
+- **Platformove playery** — Android: nativny system player (Intent), Windows: in-app s CORS bypass, Web: HTML5/Video.js/ArtPlayer
 - **EPG s casovou osou** — XMLTV parsing, zoom a navigacia, fuzzy matching kanalov, live progress
 - **Kvalita videa** — vyber HLS kvality (360p / 720p / 1080p / nativna)
+- **Automaticke loga** — tv-logos repozitar s 10 000+ logami kanalov
+- **Lokálny proxy bridge** — `npm run proxy` pre priame streamovanie cez lokalnu siet z Vercel HTTPS
+- **Bezpecnostny audit** — CSP, XSS ochrana, SSRF blokovanie, import validacia
 - **Privatne a offline** — ziadny backend, ziadne ucty, vsetky data zostavaju lokalne
 
 ---
@@ -47,11 +50,12 @@ npm install
 | Platforma | Príkaz | Výstup |
 |-----------|--------|--------|
 | 🌐 **Web** | `npm run web` | `http://127.0.0.1:3000` |
+| 🌐 **Web + proxy** | `npm run proxy` | Lokálny proxy na porte 3939 |
 | 🖥️ **Windows** | `npm run windows` | Electron okno |
 | 📦 **Windows installer** | `npm run windows:dist` | `.exe` NSIS + portable |
 | 🤖 **Android** | `npm run android:setup` | Capacitor projekt |
 
-> **Tip:** Pre vývoj odporúčame spustiť `npm run web` — žiadna inštalácia, okamžitý reload.
+> **Tip:** Pre Vercel/HTTPS: spustite `npm run proxy` na lokalnom PC — streamy pojdu priamo cez vasu siet.
 
 ---
 
@@ -142,11 +146,13 @@ npm run web
 
 ## ▶️ Playery
 
-| Player | HLS | Poznamka |
-|--------|-----|----------|
-| **HTML5** | hls.js auto-fallback | Bez zavislosti, funguje vsade |
-| **Video.js** | hls.js integrovany | Lazy-load z vendor/ alebo CDN |
-| **ArtPlayer** | hls.js cez customType | Lazy-load z vendor/ alebo CDN |
+| Player | Platforma | HLS | Poznamka |
+|--------|-----------|-----|----------|
+| **Nativny** | Android | System player | Predvoleny na Androide — Intent do VLC/system |
+| **HTML5** | Vsetky | hls.js auto-fallback | Bez zavislosti, funguje vsade |
+| **Video.js** | Web/Windows | hls.js integrovany | Lazy-load z vendor/ alebo CDN |
+| **ArtPlayer** | Web/Windows | hls.js cez customType | Lazy-load z vendor/ alebo CDN |
+| **VLC/mpv** | Android/Windows | Externe | Volitelne externe playery |
 
 ---
 
@@ -155,7 +161,7 @@ npm run web
 ```
 TCLVPlayer/
 ├── index.html                  # Jediny HTML vstupny bod
-├── app.js                      # Cela aplikacna logika (~390 riadkov)
+├── app.js                      # Cela aplikacna logika (~940 riadkov)
 ├── styles.css                  # Vsetky styly (responsive, dark theme)
 ├── favicon.svg                 # App ikona (SVG)
 ├── package.json                # Electron + Capacitor zavislosti
@@ -169,8 +175,11 @@ TCLVPlayer/
 ├── assets/
 │   ├── icon.png                # App ikona 512px
 │   └── icon.svg                # App ikona vektorova
+├── api/
+│   └── proxy.js                # Vercel serverless CORS proxy (streaming, SSRF ochrana)
 ├── scripts/
 │   ├── copy-web.mjs            # Build: kopirovanie web bundlu + vendor libs
+│   ├── local-proxy.mjs         # Lokalny HTTP proxy pre Vercel HTTPS bridge
 │   └── apply-android-template.mjs
 ├── tests/
 │   └── parsers.test.js         # Unit testy (vitest)
@@ -189,7 +198,11 @@ TCLVPlayer/
 - `contextIsolation: true` — renderer nema pristup k Node.js API
 - `nodeIntegration: false` — ziadne require() v renderer procese
 - `sandbox: true` — renderer bezi v sandboxe OS
-- HTML escaping — vsetky uzivatelske data su escapovane pred vlozenim do DOM
+- **Content-Security-Policy** — CSP hlavicky na Verceli (script-src, img-src, connect-src)
+- **XSS ochrana** — DOM API namiesto innerHTML pre uzivatelske data, `escapeHtml()` pre vsetky texty
+- **SSRF blokovanie** — proxy odmieta IPv6, octal, decimal IP, privatne siete
+- **Electron exec whitelist** — externy player len `mpv` alebo `vlc`
+- **Import validacia** — JSON import sanitizuje vsetky polia s type checks a allowlists
 - Logo URL sanitizacia — povolene iba `https?://` a `data:image/` protokoly
 - EPG text sa neuklada do localStorage (len metadata) — prevencia 5MB limitu
 

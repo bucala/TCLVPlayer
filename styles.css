@@ -847,6 +847,8 @@ input[type=search] { -webkit-appearance: none; }
 }
 
 .art-player-host { display: none; }
+.art-player-host[style*="block"] ~ .pip-button,
+.art-player-host[style*="block"] ~ .quality-control { display: none !important; }
 
 /* Video.js creates a wrapper div — force it to fill the stage */
 .player-stage .video-js {

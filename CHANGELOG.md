@@ -7,6 +7,41 @@ Všetky významné zmeny v projekte sú dokumentované v tomto súbore.
 
 ---
 
+## [1.0.0] — 2026-06-04
+
+### Release 1.0 — Tri platformy, bezpecnostny audit, stabilizacia
+
+#### Added
+- **Nativny Android player** — predvoleny systemovy prehravac cez Intent (ACTION_VIEW video/*), volitelne VLC/mpv
+- **Lokálny proxy bridge** — `npm run proxy` spusti HTTP proxy na porte 3939, Vercel HTTPS stranka ho auto-deteguje
+- **TV-logos integrácia** — automaticke nacitanie 10 000+ log kanalov z tv-logo/tv-logos GitHub repo
+- **CDN-first loading** — na HTTPS sa player kniznice nacitavaju najprv z CDN, potom z vendor/
+- **Geo-block hint** — pri chybe streamu na Verceli sa zobrazi tip o `npm run proxy`
+- **CSP hlavicky** — Content-Security-Policy, X-Content-Type-Options, Referrer-Policy v vercel.json
+- **Import validacia** — JSON import sanitizuje vsetky polia (type checks, allowlists, max dlzky)
+- **Rate limiting** — tlacidla "Pridat URL" blokovane pocas nacitavania
+- **Mobile FAB toggle** — floating tlacidlo na skrytie/zobrazenie zoznamu kanalov na mobile
+
+#### Changed
+- **HLS buffer tuning** — ExoPlayer-inspirovana konfiguracia (maxBufferLength=30s, retry=6x) na vsetkych platformach
+- **ArtPlayer** — `muted: false` pri prepnuti kanala, rychlejsie auto-hide ovladacich prvkov
+- **Proxy streaming** — api/proxy.js pouziva `pipeTo()` namiesto bufferingu, Content-Length passthrough
+- **SSRF ochrana** — proxy blokuje IPv6, octal, decimal IP, fc00:/fe80: adresy
+- **Electron exec whitelist** — `execFile()` akceptuje len `mpv` a `vlc`
+- **Video reset** — `stopInternalPlayers()` cisti video src pre cistejsie prepnutie
+- **Verzia** — bump na 1.0.0
+
+#### Fixed
+- **XSS v EPG timeline** — inline `onerror` handlery nahradene bezpecnym DOM API (`safeLogoImg()`)
+- **Playlist reload** — sietove playlisty sa automaticky znovu stiahnu po reload stranky
+- **ArtPlayer mute** — zvuk sa uz nestlmuje pri prepnuti kanala
+- **ArtPlayer overlap** — PiP a quality tlacidla sa skryvaju ked je ArtPlayer aktivny
+- **Spinner pri chybe** — ArtPlayer loading spinner sa zastavi pri chybe streamu
+- **Mobile portrait layout** — sidebar sa da skryt, video sa roztiahne na celu obrazovku
+- **HTML5 audio-only** — cistejsi video element reset medzi kanalmi
+
+---
+
 ## [0.8.0] — 2026-06-02
 
 ### Faza 8 — Stabilizácia, EPG navigácia, CORS bypass
