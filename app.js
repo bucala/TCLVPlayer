@@ -36,7 +36,9 @@ function migrateStoredSources(key, fallback) {
 }
 
 function detectCorsProxy() {
-  if (typeof location !== 'undefined' && location.protocol === 'https:') {
+  var platform = getPlatform();
+  if (platform === 'electron' || platform === 'android' || platform === 'web-http') return '';
+  if (platform === 'web-https') {
     return location.origin + '/api/proxy?url=';
   }
   return safeGet("tclv.corsProxy", "");
@@ -494,8 +496,7 @@ async function ensureMpegts() { if (window.mpegts) return; await ensureScript('m
 function showMessage(message) { dom.playerMessage.textContent = message; dom.playerMessage.style.display = 'block'; }
 function hideMessage() { dom.playerMessage.style.display = 'none'; dom.playerMessage.textContent = ''; }
 function streamUrl(url) {
-  if (isNativePlatform()) return url;
-  if (state.corsProxy && isMixedContent(url)) return proxyUrl(url);
+  if (needsProxy(url)) return proxyUrl(url);
   return url;
 }
 function hlsConfig(url) {
@@ -516,7 +517,7 @@ function hlsConfig(url) {
     levelLoadingTimeOut: 15000,
     levelLoadingMaxRetry: 4,
   };
-  if (state.corsProxy && isMixedContent(url)) {
+  if (needsProxy(url)) {
     cfg.xhrSetup = function(xhr, u) {
       xhr.open('GET', proxyUrl(u), true);
       Object.defineProperty(xhr, 'responseURL', { get: function() { return u; } });
@@ -600,6 +601,18 @@ function safeAutoplay(videoEl) {
     document.addEventListener('touchstart', onGesture, { once: true });
   });
 }
+async function playExternalAndroid(channel) {
+  if (!window.Capacitor?.Plugins?.TCLVPlayer) { showMessage(t('optionalMissing')); return; }
+  try {
+    await window.Capacitor.Plugins.TCLVPlayer.openExternalPlayer({ player: state.player, url: channel.url });
+  } catch (e) { showMessage(e.message || t('streamUnavailable')); }
+}
+function playExternalDesktop(channel) {
+  if (!window.TCLVNative?.openExternal) { showMessage(t('optionalMissing')); return; }
+  try {
+    window.TCLVNative.openExternal(state.player, channel.url);
+  } catch (e) { showMessage(e.message || t('streamUnavailable')); }
+}
 async function playHtml5(channel) {
   stopInternalPlayers(); showHtmlVideo(); dom.video.removeAttribute('src'); dom.video.load();
   var type = getStreamType(channel.url);
@@ -610,7 +623,7 @@ async function playHtml5(channel) {
       if (window.mpegts?.isSupported()) { tryMpegtsPlayback(channel.url); return; }
     }
     if (type === 'hls') {
-      if (dom.video.canPlayType('application/vnd.apple.mpegurl') && !isMixedContent(channel.url)) {
+      if (dom.video.canPlayType('application/vnd.apple.mpegurl') && !needsProxy(channel.url)) {
         dom.video.src = channel.url; safeAutoplay(dom.video); return;
       }
       await ensureHls();
@@ -675,7 +688,11 @@ function playChannel(channel) {
   var expectedId = channel.id;
   dom.video.addEventListener('playing', function() { if (state.selectedChannelId === expectedId) setStreamStatus(expectedId, 'ok'); }, { once: true });
   dom.video.addEventListener('error', function() { if (state.selectedChannelId === expectedId) setStreamStatus(expectedId, 'error'); }, { once: true });
-  if (state.player === 'mpv' || state.player === 'vlc') { state.player = 'html5'; safeSet('tclv.player', 'html5'); dom.playerSelect.value = 'html5'; }
+  if (state.player === 'mpv' || state.player === 'vlc') {
+    if (getPlatform() === 'android') return playExternalAndroid(channel);
+    if (getPlatform() === 'electron') return playExternalDesktop(channel);
+    state.player = 'html5'; safeSet('tclv.player', 'html5'); dom.playerSelect.value = 'html5';
+  }
   if (state.player === 'videojs') return playVideoJs(channel);
   if (state.player === 'artplayer') return playArtPlayer(channel);
   return playHtml5(channel);
@@ -683,6 +700,17 @@ function playChannel(channel) {
 function showSwitchOverlay(channel) { const now = currentProgram(channel); const next = nextProgram(channel); dom.switchOverlay.innerHTML = `<img src="${getChannelLogo(channel)}" alt="" onerror="this.onerror=null;this.src='${placeholderLogo(channel.name).replace(/'/g, "\\'")}';"><div><h2>${escapeHtml(channel.name)}</h2><p><strong>${t('now')}:</strong> ${escapeHtml(now?.title || t('noProgram'))}</p><p><strong>${t('next')}:</strong> ${escapeHtml(next?.title || t('noProgram'))}</p></div>`; dom.switchOverlay.classList.add('show'); clearTimeout(state.overlayTimer); state.overlayTimer = setTimeout(() => dom.switchOverlay.classList.remove('show'), 5200); }
 function selectChannel(id) { const channel = state.channels.find((item) => item.id === id); if (!channel) return; if (state.multiview && state.mvSlot === 1) { state.mvChannel1 = channel; playInSlot1(channel); renderChannels(); return; } state.selectedChannelId = id; playChannel(channel); showSwitchOverlay(channel); renderChannels(); requestAnimationFrame(() => { const active = dom.channelGrid.querySelector('.channel-card.active'); active?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }); }
 function isNativePlatform() { return !!(window.TCLVNative || window.Capacitor); }
+function getPlatform() {
+  if (window.TCLVNative) return 'electron';
+  if (window.Capacitor) return 'android';
+  if (location.protocol === 'https:') return 'web-https';
+  return 'web-http';
+}
+function needsProxy(url) {
+  var platform = getPlatform();
+  if (platform === 'electron' || platform === 'android' || platform === 'web-http') return false;
+  return state.corsProxy && isMixedContent(url);
+}
 function isMixedContent(url) { return location.protocol === 'https:' && String(url || '').startsWith('http://'); }
 function proxyUrl(url) { if (isNativePlatform() || !state.corsProxy) return url; return state.corsProxy + encodeURIComponent(url); }
 async function loadTextFromUrl(url) {
@@ -867,5 +895,5 @@ async function reloadEpgSources() {
   }
   if (sources.some(function(s) { return s.text; })) rebuildMergedEpg();
 }
-function init() { initTvLogoCache(); bindEvents(); state.player = dom.playerSelect.value = state.player; state.language = translations[state.language] ? state.language : 'sk'; state.corsProxy = detectCorsProxy(); if (dom.corsProxyInput) dom.corsProxyInput.value = state.corsProxy; if (isNativePlatform()) { var netSection = dom.corsProxyInput?.closest('.settings-section'); if (netSection) netSection.style.display = 'none'; } if (document.pictureInPictureEnabled && dom.pipButton) dom.pipButton.removeAttribute('hidden'); setPlayerActive(false); renderSourceLists(); if (state.playlists.length && state.activePlaylistId) activatePlaylist(state.activePlaylistId); else renderAll(); if (state.epgSources.length && !state.epgSources.some(function(s) { return s.text; })) reloadEpgSources(); if (!state.sidebarVisible) { document.querySelector('.workspace')?.classList.add('sidebar-hidden'); if (dom.sidebarToggle) dom.sidebarToggle.innerHTML = '&#x203a;'; } setInterval(() => { if (state.epgVisible) renderGuide(); document.querySelectorAll('.channel-card').forEach((card) => { const ch = state.channels.find((c) => c.id === card.dataset.channelId); if (!ch) return; const prog = currentProgram(ch); const bar = card.querySelector('.progress-track span'); if (bar) bar.style.width = progress(prog) + '%'; const txt = card.querySelector('.channel-text p'); if (txt) txt.textContent = prog?.title || ''; }); }, 60 * 1000); }
+function init() { initTvLogoCache(); bindEvents(); state.player = dom.playerSelect.value = state.player; state.language = translations[state.language] ? state.language : 'sk'; state.corsProxy = detectCorsProxy(); if (dom.corsProxyInput) dom.corsProxyInput.value = state.corsProxy; var platform = getPlatform(); if (platform === 'electron' || platform === 'android') { var netSection = dom.corsProxyInput?.closest('.settings-section'); if (netSection) netSection.style.display = 'none'; } else if (platform === 'web-http') { var corsHintEl = dom.corsProxyInput?.closest('.settings-section')?.querySelector('.settings-hint'); if (corsHintEl) corsHintEl.textContent = 'HTTP — priame prehrávanie bez proxy.'; } if (!isNativePlatform()) { dom.playerSelect.querySelectorAll('.native-only').forEach(function(opt) { opt.disabled = true; opt.hidden = true; }); } if (document.pictureInPictureEnabled && dom.pipButton) dom.pipButton.removeAttribute('hidden'); setPlayerActive(false); renderSourceLists(); if (state.playlists.length && state.activePlaylistId) activatePlaylist(state.activePlaylistId); else renderAll(); if (state.epgSources.length && !state.epgSources.some(function(s) { return s.text; })) reloadEpgSources(); if (!state.sidebarVisible) { document.querySelector('.workspace')?.classList.add('sidebar-hidden'); if (dom.sidebarToggle) dom.sidebarToggle.innerHTML = '&#x203a;'; } setInterval(() => { if (state.epgVisible) renderGuide(); document.querySelectorAll('.channel-card').forEach((card) => { const ch = state.channels.find((c) => c.id === card.dataset.channelId); if (!ch) return; const prog = currentProgram(ch); const bar = card.querySelector('.progress-track span'); if (bar) bar.style.width = progress(prog) + '%'; const txt = card.querySelector('.channel-text p'); if (txt) txt.textContent = prog?.title || ''; }); }, 60 * 1000); }
 init();
