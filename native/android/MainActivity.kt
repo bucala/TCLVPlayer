@@ -8,10 +8,6 @@ class MainActivity : BridgeActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         registerPlugin(TCLVPlayerPlugin::class.java)
         super.onCreate(savedInstanceState)
-    }
-
-    override fun onStart() {
-        super.onStart()
         bridge?.webView?.settings?.apply {
             mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
             mediaPlaybackRequiresUserGesture = false

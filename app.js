@@ -762,7 +762,15 @@ async function playArtPlayer(channel) {
       }
     } : undefined;
     if (state.artPlayer) { try { state.artPlayer.destroy(); } catch {} state.artPlayer = null; }
-    state.artPlayer = new window.Artplayer({ container: dom.artPlayerHost, url: streamUrl(channel.url), type: type === 'hls' ? 'm3u8' : '', customType: customType, autoplay: true, isLive: true, muted: true, setting: true, fullscreen: true, fullscreenWeb: true });
+    state.artPlayer = new window.Artplayer({ container: dom.artPlayerHost, url: streamUrl(channel.url), type: type === 'hls' ? 'm3u8' : '', customType: customType, autoplay: true, isLive: true, muted: false, volume: 1, setting: true, fullscreen: true, fullscreenWeb: true });
+    if (state.artPlayer?.on) {
+      state.artPlayer.on('ready', function() {
+        if (state.artPlayer) {
+          state.artPlayer.muted = false;
+          state.artPlayer.volume = 1;
+        }
+      });
+    }
   } catch (error) { showMessage(`${t('optionalMissing')} ${error.message || ''}`.trim()); }
 }
 function setPlayerActive(active) {
