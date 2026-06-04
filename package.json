@@ -7,6 +7,7 @@
   "scripts": {
     "prepare:web": "node scripts/copy-web.mjs",
     "web": "npx http-server . -p 3000 -c-1",
+    "proxy": "node scripts/local-proxy.mjs",
     "windows": "npm run prepare:web && electron .",
     "windows:dist": "npm run prepare:web && electron-builder --win nsis portable",
     "android:init": "cap add android",
