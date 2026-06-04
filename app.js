@@ -530,7 +530,7 @@ function streamUrl(url) {
   if (needsProxy(url)) return proxyUrl(url);
   return url;
 }
-function hlsConfig(url) {
+function hlsConfig(url, forceProxy) {
   var cfg = {
     enableWorker: true,
     lowLatencyMode: true,
@@ -547,7 +547,7 @@ function hlsConfig(url) {
     levelLoadingTimeOut: 15000,
     levelLoadingMaxRetry: 4,
   };
-  if (needsProxy(url)) {
+  if (forceProxy || needsProxy(url)) {
     cfg.xhrSetup = function(xhr, u) {
       xhr.open('GET', proxyUrl(u), true);
       Object.defineProperty(xhr, 'responseURL', { get: function() { return u; } });
@@ -555,15 +555,25 @@ function hlsConfig(url) {
   }
   return cfg;
 }
-function tryHlsPlayback(url) {
+function canUseProxyFallback(url, forceProxy) {
+  return !forceProxy && getPlatform() === 'web-https' && state.corsProxy && /^https?:\/\//i.test(String(url || ''));
+}
+function tryHlsPlayback(url, forceProxy) {
   destroyHls();
-  var hls = new window.Hls(hlsConfig(url));
+  var hls = new window.Hls(hlsConfig(url, forceProxy));
   var reconnectTimer = null;
   var reconnects = 0;
   state.hls = hls;
   hls.on(window.Hls.Events.ERROR, function(_e, data) {
     if (!data.fatal) return;
     if (state.hls !== hls) return;
+    if (data.type === 'networkError' && canUseProxyFallback(url, forceProxy)) {
+      clearTimeout(reconnectTimer);
+      destroyHls();
+      showMessage(t('reconnecting'));
+      tryHlsPlayback(url, true);
+      return;
+    }
     if (data.type === 'networkError' && reconnects < 3) {
       reconnects++;
       showMessage(t('reconnecting'));
@@ -674,13 +684,21 @@ async function playVideoJs(channel) {
     if (type === 'hls' && !dom.video.canPlayType('application/vnd.apple.mpegurl')) await ensureHls();
     state.videoJsPlayer = state.videoJsPlayer || window.videojs(dom.video, { autoplay: true, controls: true, liveui: true, fluid: false });
     if (type === 'hls' && window.Hls?.isSupported() && !dom.video.canPlayType('application/vnd.apple.mpegurl')) {
-      destroyHls();
-      var hls = new window.Hls(hlsConfig(channel.url));
-      state.hls = hls;
-      hls.on(window.Hls.Events.ERROR, function(_e, data) { if (data.fatal) { if (state.hls === hls) destroyHls(); dom.video.removeAttribute('src'); dom.video.load(); setStreamStatus(channel.id, 'error'); showMessage(streamErrorMsg()); } });
-      hls.loadSource(channel.url);
-      hls.attachMedia(state.videoJsPlayer.tech({ IWillNotUseThisInPlugins: true }).el());
-      hls.on(window.Hls.Events.MANIFEST_PARSED, function() { state.videoJsPlayer.play()?.catch?.(function() {}); buildQualityMenu(); });
+      var startVideoJsHls = function(forceProxy) {
+        destroyHls();
+        var hls = new window.Hls(hlsConfig(channel.url, forceProxy));
+        state.hls = hls;
+        hls.on(window.Hls.Events.ERROR, function(_e, data) {
+          if (!data.fatal) return;
+          if (state.hls === hls) destroyHls();
+          if (data.type === 'networkError' && canUseProxyFallback(channel.url, forceProxy)) { showMessage(t('reconnecting')); startVideoJsHls(true); return; }
+          dom.video.removeAttribute('src'); dom.video.load(); setStreamStatus(channel.id, 'error'); showMessage(streamErrorMsg());
+        });
+        hls.loadSource(channel.url);
+        hls.attachMedia(state.videoJsPlayer.tech({ IWillNotUseThisInPlugins: true }).el());
+        hls.on(window.Hls.Events.MANIFEST_PARSED, function() { state.videoJsPlayer.play()?.catch?.(function() {}); buildQualityMenu(); });
+      };
+      startVideoJsHls(false);
     } else {
       state.videoJsPlayer.src({ src: streamUrl(channel.url), type: guessMimeType(channel.url) });
       state.videoJsPlayer.play()?.catch?.(() => showMessage(t('html5Notice')));
@@ -697,13 +715,21 @@ async function playArtPlayer(channel) {
     dom.video.style.display = 'none'; dom.artPlayerHost.style.display = 'block';
     var customType = (type === 'hls' && window.Hls?.isSupported()) ? {
       m3u8: function(videoEl) {
-        destroyHls();
-        var hls = new window.Hls(hlsConfig(channel.url));
-        state.hls = hls;
-        hls.on(window.Hls.Events.ERROR, function(_e, data) { if (data.fatal) { if (state.hls === hls) destroyHls(); stopArtPlayer(); showHtmlVideo(); setStreamStatus(channel.id, 'error'); showMessage(streamErrorMsg()); } });
-        hls.loadSource(channel.url);
-        hls.attachMedia(videoEl);
-        hls.on(window.Hls.Events.MANIFEST_PARSED, function() { buildQualityMenu(); });
+        var startArtHls = function(forceProxy) {
+          destroyHls();
+          var hls = new window.Hls(hlsConfig(channel.url, forceProxy));
+          state.hls = hls;
+          hls.on(window.Hls.Events.ERROR, function(_e, data) {
+            if (!data.fatal) return;
+            if (state.hls === hls) destroyHls();
+            if (data.type === 'networkError' && canUseProxyFallback(channel.url, forceProxy)) { showMessage(t('reconnecting')); startArtHls(true); return; }
+            stopArtPlayer(); showHtmlVideo(); setStreamStatus(channel.id, 'error'); showMessage(streamErrorMsg());
+          });
+          hls.loadSource(channel.url);
+          hls.attachMedia(videoEl);
+          hls.on(window.Hls.Events.MANIFEST_PARSED, function() { buildQualityMenu(); });
+        };
+        startArtHls(false);
       }
     } : undefined;
     if (state.artPlayer) { try { state.artPlayer.destroy(); } catch {} state.artPlayer = null; }
