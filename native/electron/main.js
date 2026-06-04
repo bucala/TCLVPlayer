@@ -2,7 +2,8 @@
 
 const path = require("node:path");
 const fs = require("node:fs");
-const { app, BrowserWindow, session, Menu } = require("electron");
+const { app, BrowserWindow, session, Menu, ipcMain } = require("electron");
+const { execFile } = require("node:child_process");
 
 const BROWSER_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
 
@@ -64,6 +65,18 @@ function createWindow() {
   const sourceWeb = path.join(__dirname, "..", "..", "index.html");
   mainWindow.loadFile(fs.existsSync(packagedWeb) ? packagedWeb : sourceWeb);
 }
+
+ipcMain.on("open-external-player", (_event, data) => {
+  const url = data.url;
+  const player = data.player;
+  if (!url || typeof url !== "string") return;
+  if (!/^https?:\/\//i.test(url) && !/^rtsp:/i.test(url) && !/^rtmp/i.test(url)) return;
+  const args = player === "mpv" ? [url, "--force-window"] : [url];
+  try {
+    const proc = execFile(player, args, { windowsHide: false });
+    proc.unref();
+  } catch {}
+});
 
 app.whenReady().then(() => {
   createWindow();
