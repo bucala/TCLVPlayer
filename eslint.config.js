@@ -29,6 +29,7 @@ export default [
         requestAnimationFrame: "readonly",
         location: "readonly",
         console: "readonly",
+        AbortController: "readonly",
         Blob: "readonly",
         Image: "readonly",
       },
@@ -61,6 +62,13 @@ export default [
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: "module",
+      globals: {
+        process: "readonly",
+        console: "readonly",
+        URL: "readonly",
+        setTimeout: "readonly",
+        clearTimeout: "readonly",
+      },
     },
   },
   {
