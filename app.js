@@ -66,8 +66,15 @@ async function detectLocalProxy() {
   safeSet('tclv.localProxy', '');
 }
 
+function defaultPlayer() {
+  var saved = safeGet("tclv.player", "");
+  if (saved) return saved;
+  if (window.Capacitor) return 'native';
+  if (window.TCLVNative) return 'html5';
+  return 'html5';
+}
 const state = {
-  language: safeGet("tclv.language", "sk"), channels: [], epg: new Map(), selectedChannelId: null, selectedLogoChannelId: null, player: safeGet("tclv.player", "html5"), overlayTimer: 0, videoJsPlayer: null, artPlayer: null, hls: null, mpegtsPlayer: null,
+  language: safeGet("tclv.language", "sk"), channels: [], epg: new Map(), selectedChannelId: null, selectedLogoChannelId: null, player: defaultPlayer(), overlayTimer: 0, videoJsPlayer: null, artPlayer: null, hls: null, mpegtsPlayer: null,
   corsProxy: "",
   epgOffsetHours: 0, epgZoom: 1,
   playlists: migrateStoredSources("tclv.playlists", []), activePlaylistId: safeGet("tclv.activePlaylistId", null),
@@ -523,7 +530,6 @@ function streamUrl(url) {
   return url;
 }
 function hlsConfig(url) {
-  if (isNativePlatform()) return {};
   var cfg = {
     enableWorker: true,
     lowLatencyMode: true,
@@ -627,8 +633,9 @@ function safeAutoplay(videoEl) {
 }
 async function playExternalAndroid(channel) {
   if (!window.Capacitor?.Plugins?.TCLVPlayer) { showMessage(t('optionalMissing')); return; }
+  var playerName = (state.player === 'native') ? 'system' : state.player;
   try {
-    await window.Capacitor.Plugins.TCLVPlayer.openExternalPlayer({ player: state.player, url: channel.url });
+    await window.Capacitor.Plugins.TCLVPlayer.openExternalPlayer({ player: playerName, url: channel.url });
   } catch (e) { showMessage(e.message || streamErrorMsg()); }
 }
 function playExternalDesktop(channel) {
@@ -712,6 +719,10 @@ function playChannel(channel) {
   var expectedId = channel.id;
   dom.video.addEventListener('playing', function() { if (state.selectedChannelId === expectedId) setStreamStatus(expectedId, 'ok'); }, { once: true });
   dom.video.addEventListener('error', function() { if (state.selectedChannelId === expectedId) setStreamStatus(expectedId, 'error'); }, { once: true });
+  if (state.player === 'native') {
+    if (getPlatform() === 'android') return playExternalAndroid(channel);
+    return playHtml5(channel);
+  }
   if (state.player === 'mpv' || state.player === 'vlc') {
     if (getPlatform() === 'android') return playExternalAndroid(channel);
     if (getPlatform() === 'electron') return playExternalDesktop(channel);
