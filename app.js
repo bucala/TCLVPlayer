@@ -39,8 +39,6 @@ var LOCAL_PROXY_PORTS = [3939, 3940, 3941];
 function detectCorsProxySync() {
   var platform = getPlatform();
   if (platform === 'electron' || platform === 'android' || platform === 'web-http') return '';
-  var saved = safeGet('tclv.localProxy', '');
-  if (saved) return saved;
   if (platform === 'web-https') return location.origin + '/api/proxy?url=';
   return safeGet("tclv.corsProxy", "");
 }
@@ -64,6 +62,9 @@ async function detectLocalProxy() {
     } catch {}
   }
   safeSet('tclv.localProxy', '');
+  var fallback = location.origin + '/api/proxy?url=';
+  state.corsProxy = fallback;
+  if (dom.corsProxyInput) dom.corsProxyInput.value = fallback;
 }
 
 function defaultPlayer() {
