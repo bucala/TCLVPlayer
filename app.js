@@ -51,6 +51,8 @@ const state = {
   sidebarVisible: safeGet("tclv.sidebarVisible", "true") !== "false",
   epgVisible: false,
   favorites: new Set(JSON.parse(safeGet("tclv.favorites", "[]") || "[]")),
+  tvLogoCache: {},
+  tvLogoMisses: new Set(),
   searchQuery: "",
   activeGroup: "all",
   streamStatus: {},
@@ -95,7 +97,60 @@ function hashCode(value) { let hash = 0; for (let i = 0; i < value.length; i += 
 function escapeXml(value) { return String(value).replace(/[<>&"']/g, (char) => ({"<":"&lt;",">":"&gt;","&":"&amp;","\"":"&quot;","'":"&apos;"})[char]); }
 function normalizeId(value) { return String(value || "").trim().toLowerCase().replace(/[^a-z0-9._-]+/g, "-").replace(/^-+|-+$/g, ""); }
 function placeholderLogo(name) { const initials = (name || "TV").split(/\s+/).map((part) => part[0]).join("").slice(0,3).toUpperCase(); const hue = Math.abs(hashCode(name || "TV")) % 360; const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160"><rect width="160" height="160" fill="hsl(${hue} 72% 46%)"/><text x="80" y="92" text-anchor="middle" font-family="Arial, sans-serif" font-size="42" font-weight="700" fill="white">${escapeXml(initials)}</text></svg>`; return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`; }
-function getChannelLogo(channel) { var url = safeGet(`tclv.logo.${channel.id}`) || sanitizeLogoUrl(channel.logo); if (url && location.protocol === 'https:' && url.startsWith('http://')) url = url.replace('http://', 'https://'); return url || placeholderLogo(channel.name); }
+var tvLogosBase = 'https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/';
+var tvLogosCountries = ['slovakia', 'czech-republic', 'international', 'hungary', 'poland', 'austria', 'germany', 'united-kingdom', 'france', 'italy', 'spain', 'united-states'];
+var tvLogosCountrySuffix = { 'slovakia': 'sk', 'czech-republic': 'cz', 'international': 'int', 'hungary': 'hu', 'poland': 'pl', 'austria': 'at', 'germany': 'de', 'united-kingdom': 'uk', 'france': 'fr', 'italy': 'it', 'spain': 'es', 'united-states': 'us' };
+function tvLogoSlug(name) {
+  return String(name || '').toLowerCase()
+    .replace(/&/g, '-and-')
+    .replace(/\+/g, '-plus')
+    .replace(/[()[\]{}'":;!?,.*#@]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+function tvLogoCandidates(name) {
+  var slug = tvLogoSlug(name);
+  if (!slug) return [];
+  var urls = [];
+  for (var i = 0; i < tvLogosCountries.length; i++) {
+    var country = tvLogosCountries[i];
+    var suffix = tvLogosCountrySuffix[country];
+    urls.push(tvLogosBase + country + '/' + slug + '-' + suffix + '.png');
+  }
+  return urls;
+}
+function resolveTvLogo(channel, imgEl) {
+  var key = channel.id;
+  if (state.tvLogoCache[key]) { if (imgEl) imgEl.src = state.tvLogoCache[key]; return; }
+  if (state.tvLogoMisses.has(key)) return;
+  var candidates = tvLogoCandidates(channel.name);
+  if (!candidates.length) { state.tvLogoMisses.add(key); return; }
+  var idx = 0;
+  function tryNext() {
+    if (idx >= candidates.length) { state.tvLogoMisses.add(key); return; }
+    var url = candidates[idx++];
+    var img = new Image();
+    img.onload = function() {
+      state.tvLogoCache[key] = url;
+      safeSet('tclv.tvlogo.' + key, url);
+      if (imgEl && !safeGet('tclv.logo.' + key)) { imgEl.src = url; }
+    };
+    img.onerror = function() { tryNext(); };
+    img.src = url;
+  }
+  tryNext();
+}
+function initTvLogoCache() {
+  try {
+    for (var i = 0; i < localStorage.length; i++) {
+      var k = localStorage.key(i);
+      if (k && k.startsWith('tclv.tvlogo.')) {
+        state.tvLogoCache[k.slice(12)] = localStorage.getItem(k);
+      }
+    }
+  } catch {}
+}
+function getChannelLogo(channel) { var url = safeGet(`tclv.logo.${channel.id}`) || sanitizeLogoUrl(channel.logo); if (url && location.protocol === 'https:' && url.startsWith('http://')) url = url.replace('http://', 'https://'); return url || state.tvLogoCache[channel.id] || placeholderLogo(channel.name); }
 function attr(text, name) { const pattern = new RegExp(`${name}\\s*=\\s*("([^"]*)"|'([^']*)'|([^\\s]+))`, "i"); const match = text.match(pattern); return match ? (match[2] || match[3] || match[4] || "").trim() : ""; }
 function uniqueId(seed, existing) { const base = normalizeId(seed) || "channel"; const ids = new Set(existing.map((item) => item.id)); let value = base; let counter = 2; while (ids.has(value)) { value = `${base}-${counter}`; counter += 1; } return value; }
 function parseXml(text) { const doc = new DOMParser().parseFromString(text, "application/xml"); const error = doc.querySelector("parsererror"); if (error) throw new Error(error.textContent || "XML parse error"); return doc; }
@@ -372,7 +427,7 @@ function translateUi() {
 function renderChannels() {
   const channels = filteredChannels(); dom.channelGrid.textContent = "";
   if (!channels.length) { const empty = document.createElement('div'); empty.className = 'empty-state'; empty.textContent = state.searchQuery || state.activeGroup !== 'all' ? (state.activeGroup === 'favorites' ? t('groupFavorites') + ': 0' : t('noChannels')) : t('noChannels'); dom.channelGrid.append(empty); return; }
-  const now = new Date(); channels.forEach((channel) => { const node = dom.channelTemplate.content.firstElementChild.cloneNode(true); const program = currentProgram(channel, now); node.dataset.id = channel.id; node.dataset.channelId = channel.id; node.tabIndex = 0; node.setAttribute('role', 'button'); node.setAttribute('aria-label', channel.name); node.classList.toggle('active', channel.id === state.selectedChannelId); var logoImg = node.querySelector('.channel-logo'); logoImg.src = getChannelLogo(channel); logoImg.alt = channel.name; logoImg.onerror = function() { this.onerror = null; this.src = placeholderLogo(channel.name); }; node.querySelector('h3').textContent = channel.name; node.querySelector('p').textContent = program?.title || t('noProgram'); node.querySelector('.progress-track span').style.width = `${progress(program, now)}%`; node.querySelector('.logo-action').title = t('logoTitle'); node.querySelector('.logo-action').addEventListener('click', (event) => { event.stopPropagation(); state.selectedLogoChannelId = channel.id; dom.logoFile.click(); }); var favBtn = node.querySelector('.fav-action'); if (favBtn) { favBtn.classList.toggle('active', isFavorite(channel.id)); favBtn.textContent = isFavorite(channel.id) ? '★' : '☆'; favBtn.title = isFavorite(channel.id) ? t('groupFavorites') : t('groupFavorites'); favBtn.addEventListener('click', function(event) { event.stopPropagation(); toggleFavorite(channel.id); }); } var dot = node.querySelector('.status-dot'); if (dot) { var s = state.streamStatus[channel.id]; dot.className = 'status-dot' + (s ? ' ' + s : ''); } if (channel.catchupDays > 0) { var catchupBtn = document.createElement('button'); catchupBtn.className = 'catchup-badge'; catchupBtn.title = t('catchupAvailable'); catchupBtn.textContent = '📅'; catchupBtn.addEventListener('click', function(ev) { ev.stopPropagation(); openCatchup(channel); }); node.querySelector('.channel-text').append(catchupBtn); } node.addEventListener('click', () => selectChannel(channel.id)); node.addEventListener('keydown', (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); selectChannel(channel.id); } }); dom.channelGrid.append(node); });
+  const now = new Date(); channels.forEach((channel) => { const node = dom.channelTemplate.content.firstElementChild.cloneNode(true); const program = currentProgram(channel, now); node.dataset.id = channel.id; node.dataset.channelId = channel.id; node.tabIndex = 0; node.setAttribute('role', 'button'); node.setAttribute('aria-label', channel.name); node.classList.toggle('active', channel.id === state.selectedChannelId); var logoImg = node.querySelector('.channel-logo'); logoImg.src = getChannelLogo(channel); logoImg.alt = channel.name; logoImg.onerror = function() { this.onerror = null; this.src = placeholderLogo(channel.name); }; if (!safeGet('tclv.logo.' + channel.id) && !sanitizeLogoUrl(channel.logo)) resolveTvLogo(channel, logoImg); node.querySelector('h3').textContent = channel.name; node.querySelector('p').textContent = program?.title || t('noProgram'); node.querySelector('.progress-track span').style.width = `${progress(program, now)}%`; node.querySelector('.logo-action').title = t('logoTitle'); node.querySelector('.logo-action').addEventListener('click', (event) => { event.stopPropagation(); state.selectedLogoChannelId = channel.id; dom.logoFile.click(); }); var favBtn = node.querySelector('.fav-action'); if (favBtn) { favBtn.classList.toggle('active', isFavorite(channel.id)); favBtn.textContent = isFavorite(channel.id) ? '★' : '☆'; favBtn.title = isFavorite(channel.id) ? t('groupFavorites') : t('groupFavorites'); favBtn.addEventListener('click', function(event) { event.stopPropagation(); toggleFavorite(channel.id); }); } var dot = node.querySelector('.status-dot'); if (dot) { var s = state.streamStatus[channel.id]; dot.className = 'status-dot' + (s ? ' ' + s : ''); } if (channel.catchupDays > 0) { var catchupBtn = document.createElement('button'); catchupBtn.className = 'catchup-badge'; catchupBtn.title = t('catchupAvailable'); catchupBtn.textContent = '📅'; catchupBtn.addEventListener('click', function(ev) { ev.stopPropagation(); openCatchup(channel); }); node.querySelector('.channel-text').append(catchupBtn); } node.addEventListener('click', () => selectChannel(channel.id)); node.addEventListener('keydown', (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); selectChannel(channel.id); } }); dom.channelGrid.append(node); });
 }
 function toggleSidebar() {
   state.sidebarVisible = !state.sidebarVisible;
@@ -812,5 +867,5 @@ async function reloadEpgSources() {
   }
   if (sources.some(function(s) { return s.text; })) rebuildMergedEpg();
 }
-function init() { bindEvents(); state.player = dom.playerSelect.value = state.player; state.language = translations[state.language] ? state.language : 'sk'; state.corsProxy = detectCorsProxy(); if (dom.corsProxyInput) dom.corsProxyInput.value = state.corsProxy; if (isNativePlatform()) { var netSection = dom.corsProxyInput?.closest('.settings-section'); if (netSection) netSection.style.display = 'none'; } if (document.pictureInPictureEnabled && dom.pipButton) dom.pipButton.removeAttribute('hidden'); setPlayerActive(false); renderSourceLists(); if (state.playlists.length && state.activePlaylistId) activatePlaylist(state.activePlaylistId); else renderAll(); if (state.epgSources.length && !state.epgSources.some(function(s) { return s.text; })) reloadEpgSources(); if (!state.sidebarVisible) { document.querySelector('.workspace')?.classList.add('sidebar-hidden'); if (dom.sidebarToggle) dom.sidebarToggle.innerHTML = '&#x203a;'; } setInterval(() => { if (state.epgVisible) renderGuide(); document.querySelectorAll('.channel-card').forEach((card) => { const ch = state.channels.find((c) => c.id === card.dataset.channelId); if (!ch) return; const prog = currentProgram(ch); const bar = card.querySelector('.progress-track span'); if (bar) bar.style.width = progress(prog) + '%'; const txt = card.querySelector('.channel-text p'); if (txt) txt.textContent = prog?.title || ''; }); }, 60 * 1000); }
+function init() { initTvLogoCache(); bindEvents(); state.player = dom.playerSelect.value = state.player; state.language = translations[state.language] ? state.language : 'sk'; state.corsProxy = detectCorsProxy(); if (dom.corsProxyInput) dom.corsProxyInput.value = state.corsProxy; if (isNativePlatform()) { var netSection = dom.corsProxyInput?.closest('.settings-section'); if (netSection) netSection.style.display = 'none'; } if (document.pictureInPictureEnabled && dom.pipButton) dom.pipButton.removeAttribute('hidden'); setPlayerActive(false); renderSourceLists(); if (state.playlists.length && state.activePlaylistId) activatePlaylist(state.activePlaylistId); else renderAll(); if (state.epgSources.length && !state.epgSources.some(function(s) { return s.text; })) reloadEpgSources(); if (!state.sidebarVisible) { document.querySelector('.workspace')?.classList.add('sidebar-hidden'); if (dom.sidebarToggle) dom.sidebarToggle.innerHTML = '&#x203a;'; } setInterval(() => { if (state.epgVisible) renderGuide(); document.querySelectorAll('.channel-card').forEach((card) => { const ch = state.channels.find((c) => c.id === card.dataset.channelId); if (!ch) return; const prog = currentProgram(ch); const bar = card.querySelector('.progress-track span'); if (bar) bar.style.width = progress(prog) + '%'; const txt = card.querySelector('.channel-text p'); if (txt) txt.textContent = prog?.title || ''; }); }, 60 * 1000); }
 init();
