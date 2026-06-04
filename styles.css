@@ -1312,7 +1312,26 @@ input[type=search] { -webkit-appearance: none; }
     flex-direction: column;
   }
 
-  .sidebar-toggle { display: none !important; }
+  .sidebar-toggle {
+    display: flex !important;
+    position: fixed;
+    left: auto;
+    right: 12px;
+    bottom: 12px;
+    top: auto;
+    transform: none;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--accent);
+    color: #fff;
+    font-size: 20px;
+    z-index: 50;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  }
+  .sidebar-toggle:hover { background: var(--accent); }
+  .workspace.sidebar-hidden .sidebar-toggle { left: auto; right: 12px; bottom: 12px; }
 
   .sidebar {
     width: 100% !important;
@@ -1323,6 +1342,10 @@ input[type=search] { -webkit-appearance: none; }
     overflow: hidden;
     order: 2;
   }
+
+  .workspace.sidebar-hidden .sidebar { display: none; }
+  .workspace.sidebar-hidden .content { flex: 1; }
+  .workspace.sidebar-hidden .player-stage { max-height: none; flex: 1; }
 
   .content { order: 1; flex-shrink: 1; flex-grow: 0; }
 
