@@ -567,6 +567,7 @@ function tryHlsPlayback(url) {
     }
     clearTimeout(reconnectTimer);
     destroyHls();
+    dom.video.removeAttribute('src'); dom.video.load();
     setStreamStatus(state.selectedChannelId, 'error');
     showMessage(data.type === 'networkError' ? streamErrorMsg() : t('html5Notice'));
   });
@@ -668,7 +669,7 @@ async function playVideoJs(channel) {
       destroyHls();
       var hls = new window.Hls(hlsConfig(channel.url));
       state.hls = hls;
-      hls.on(window.Hls.Events.ERROR, function(_e, data) { if (data.fatal) { if (state.hls === hls) destroyHls(); setStreamStatus(channel.id, 'error'); showMessage(streamErrorMsg()); } });
+      hls.on(window.Hls.Events.ERROR, function(_e, data) { if (data.fatal) { if (state.hls === hls) destroyHls(); dom.video.removeAttribute('src'); dom.video.load(); setStreamStatus(channel.id, 'error'); showMessage(streamErrorMsg()); } });
       hls.loadSource(channel.url);
       hls.attachMedia(state.videoJsPlayer.tech({ IWillNotUseThisInPlugins: true }).el());
       hls.on(window.Hls.Events.MANIFEST_PARSED, function() { state.videoJsPlayer.play()?.catch?.(function() {}); buildQualityMenu(); });
@@ -691,7 +692,7 @@ async function playArtPlayer(channel) {
         destroyHls();
         var hls = new window.Hls(hlsConfig(channel.url));
         state.hls = hls;
-        hls.on(window.Hls.Events.ERROR, function(_e, data) { if (data.fatal) { if (state.hls === hls) destroyHls(); setStreamStatus(channel.id, 'error'); showMessage(streamErrorMsg()); } });
+        hls.on(window.Hls.Events.ERROR, function(_e, data) { if (data.fatal) { if (state.hls === hls) destroyHls(); stopArtPlayer(); showHtmlVideo(); setStreamStatus(channel.id, 'error'); showMessage(streamErrorMsg()); } });
         hls.loadSource(channel.url);
         hls.attachMedia(videoEl);
         hls.on(window.Hls.Events.MANIFEST_PARSED, function() { buildQualityMenu(); });
