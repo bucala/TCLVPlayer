@@ -8,7 +8,7 @@ function sanitizeLogoUrl(url) {
   return null;
 }
 function safeGet(key, fallback = null) { try { return localStorage.getItem(key) !== null ? localStorage.getItem(key) : fallback; } catch { return fallback; } }
-function safeSet(key, value) { try { localStorage.setItem(key, value); } catch {} }
+function safeSet(key, value) { try { localStorage.setItem(key, value); } catch (e) { if (e.name === 'QuotaExceededError') console.warn('Storage quota exceeded for key:', key); } }
 
 function safeSetJson(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch {} }
 
@@ -187,6 +187,7 @@ function uniqueId(seed, existing) { const base = normalizeId(seed) || "channel";
 function parseXml(text) { const doc = new DOMParser().parseFromString(text, "application/xml"); const error = doc.querySelector("parsererror"); if (error) throw new Error(error.textContent || "XML parse error"); return doc; }
 function textOf(root, selector) { return root.querySelector(selector)?.textContent?.trim() || ""; }
 function escapeHtml(value) { const span = document.createElement("span"); span.textContent = String(value || ""); return span.innerHTML; }
+function safeLogoImg(channel) { var img = document.createElement('img'); img.src = getChannelLogo(channel); img.alt = ''; img.className = 'channel-logo'; img.onerror = function() { this.onerror = null; this.src = placeholderLogo(channel.name); }; return img; }
 function formatTime(date) { return new Intl.DateTimeFormat(state.language === "sk" ? "sk-SK" : "en-US", { hour: "2-digit", minute: "2-digit" }).format(date); }
 function floorToHalfHour(date) { const next = new Date(date); next.setMinutes(date.getMinutes() < 30 ? 0 : 30, 0, 0); return next; }
 
@@ -369,17 +370,20 @@ function exportSettings() {
   var blob = new Blob([json], { type: 'application/json' });
   var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'tclvplayer-settings.json'; a.click(); URL.revokeObjectURL(a.href);
 }
+function sanitizeImportString(val, maxLen) { return typeof val === 'string' ? val.slice(0, maxLen || 500) : ''; }
 async function importSettingsFromFile(file) {
   try {
     var text = await readFile(file);
     var data = JSON.parse(text);
     if (!data.version) throw new Error('Invalid file');
-    if (Array.isArray(data.favorites)) { state.favorites = new Set(data.favorites); safeSet('tclv.favorites', JSON.stringify(data.favorites)); }
-    if (Array.isArray(data.playlists)) { state.playlists = data.playlists; savePlaylistMeta(); }
-    if (Array.isArray(data.epgSources)) { state.epgSources = data.epgSources; saveEpgMeta(); }
-    if (data.language) { state.language = data.language; safeSet('tclv.language', state.language); }
-    if (data.player) { state.player = data.player; safeSet('tclv.player', state.player); }
-    if (data.corsProxy) { state.corsProxy = data.corsProxy; safeSet('tclv.corsProxy', state.corsProxy); if (dom.corsProxyInput) dom.corsProxyInput.value = state.corsProxy; }
+    if (Array.isArray(data.favorites)) { var safeFavs = data.favorites.filter(function(f) { return typeof f === 'string'; }).slice(0, 5000); state.favorites = new Set(safeFavs); safeSet('tclv.favorites', JSON.stringify(safeFavs)); }
+    if (Array.isArray(data.playlists)) { state.playlists = data.playlists.filter(function(p) { return p && typeof p.id === 'string' && typeof p.name === 'string'; }).map(function(p) { return { id: sanitizeImportString(p.id, 50), name: sanitizeImportString(p.name, 200), source: sanitizeImportString(p.source, 2000), type: p.type === 'xspf' ? 'xspf' : 'm3u', origin: p.origin === 'network' ? 'network' : 'local', text: typeof p.text === 'string' ? p.text : '' }; }); savePlaylistMeta(); }
+    if (Array.isArray(data.epgSources)) { state.epgSources = data.epgSources.filter(function(e) { return e && typeof e.id === 'string'; }).map(function(e) { return { id: sanitizeImportString(e.id, 50), name: sanitizeImportString(e.name, 200), source: sanitizeImportString(e.source, 2000), origin: e.origin === 'network' ? 'network' : 'local', active: e.active !== false, text: typeof e.text === 'string' ? e.text : '' }; }); saveEpgMeta(); }
+    var validLangs = ['sk', 'en'];
+    if (data.language && validLangs.includes(data.language)) { state.language = data.language; safeSet('tclv.language', state.language); }
+    var validPlayers = ['html5', 'videojs', 'artplayer', 'native', 'vlc', 'mpv'];
+    if (data.player && validPlayers.includes(data.player)) { state.player = data.player; safeSet('tclv.player', state.player); }
+    if (typeof data.corsProxy === 'string' && /^(https?:\/\/|\/api\/)/.test(data.corsProxy)) { state.corsProxy = data.corsProxy.slice(0, 500); safeSet('tclv.corsProxy', state.corsProxy); if (dom.corsProxyInput) dom.corsProxyInput.value = state.corsProxy; }
     renderAll();
     if (state.playlists.length && state.activePlaylistId) activatePlaylist(state.activePlaylistId);
     showMessage(t('settingsImported'));
@@ -489,7 +493,7 @@ function renderGuide() {
   const header = document.createElement('div'); header.className = 'timeline-header'; header.innerHTML = `<div class="timeline-corner"></div><div class="time-slots"></div>`; header.querySelector('.time-slots').style.width = `${width}px`;
   for (let cursor = new Date(start); cursor <= end; cursor = new Date(cursor.getTime() + 30 * 60 * 1000)) { const slot = document.createElement('div'); slot.className = 'time-slot'; slot.style.left = `${((cursor - start) / duration) * width}px`; slot.style.width = `${width / 16}px`; slot.textContent = formatTime(cursor); header.querySelector('.time-slots').append(slot); }
   timeline.append(header);
-  channels.forEach((channel) => { const row = document.createElement('div'); row.className = 'timeline-row'; row.innerHTML = `<div class="timeline-label"><img src="${getChannelLogo(channel)}" alt="" onerror="this.onerror=null;this.src='${placeholderLogo(channel.name).replace(/'/g, "\\'")}';"><span>${escapeHtml(channel.name)}</span></div><div class="program-track"></div>`; const track = row.querySelector('.program-track'); track.style.width = `${width}px`; const programs = findPrograms(channel).filter((program) => program.stop > start && program.start < end); if (!programs.length) { const empty = document.createElement('div'); empty.className = 'program'; empty.style.left = '8px'; empty.style.width = '160px'; empty.innerHTML = `<strong>${t('noEpg')}</strong>`; track.append(empty); } else { programs.forEach((program) => { const left = Math.max(0, ((program.start - start) / duration) * width); const right = Math.min(width, ((program.stop - start) / duration) * width); const node = document.createElement('div'); node.className = `program${program.start <= new Date() && program.stop > new Date() ? ' current' : ''}`; node.style.left = `${left}px`; node.style.width = `${Math.max(44, right - left - 4)}px`; node.title = `${program.title} ${formatTime(program.start)}-${formatTime(program.stop)}`; node.innerHTML = `<strong>${escapeHtml(program.title)}</strong><span>${formatTime(program.start)} - ${formatTime(program.stop)}</span>`; track.append(node); }); }
+  channels.forEach((channel) => { const row = document.createElement('div'); row.className = 'timeline-row'; var label = document.createElement('div'); label.className = 'timeline-label'; label.append(safeLogoImg(channel)); var nameSpan = document.createElement('span'); nameSpan.textContent = channel.name; label.append(nameSpan); row.append(label); row.insertAdjacentHTML('beforeend', '<div class="program-track"></div>'); const track = row.querySelector('.program-track'); track.style.width = `${width}px`; const programs = findPrograms(channel).filter((program) => program.stop > start && program.start < end); if (!programs.length) { const empty = document.createElement('div'); empty.className = 'program'; empty.style.left = '8px'; empty.style.width = '160px'; empty.innerHTML = `<strong>${t('noEpg')}</strong>`; track.append(empty); } else { programs.forEach((program) => { const left = Math.max(0, ((program.start - start) / duration) * width); const right = Math.min(width, ((program.stop - start) / duration) * width); const node = document.createElement('div'); node.className = `program${program.start <= new Date() && program.stop > new Date() ? ' current' : ''}`; node.style.left = `${left}px`; node.style.width = `${Math.max(44, right - left - 4)}px`; node.title = `${program.title} ${formatTime(program.start)}-${formatTime(program.stop)}`; node.innerHTML = `<strong>${escapeHtml(program.title)}</strong><span>${formatTime(program.start)} - ${formatTime(program.stop)}</span>`; track.append(node); }); }
     const nowLine = document.createElement('div'); nowLine.className = 'now-line'; nowLine.style.left = `${Math.max(0, Math.min(width, ((Date.now() - start.getTime()) / duration) * width))}px`; track.append(nowLine);
     timeline.append(row);
   });
@@ -500,7 +504,7 @@ function renderAll() { translateUi(); renderSourceLists(); renderGroupTabs(); re
 function stopVideoJs() { if (state.videoJsPlayer) { state.videoJsPlayer.pause(); try { state.videoJsPlayer.reset(); } catch {} } }
 function stopArtPlayer() { if (state.artPlayer) { try { state.artPlayer.destroy(); } catch {} state.artPlayer = null; } dom.artPlayerHost.style.display = 'none'; }
 function destroyHls() { if (state.hls) { try { state.hls.destroy(); } catch {} state.hls = null; } if (state.mpegtsPlayer) { try { state.mpegtsPlayer.destroy(); } catch {} state.mpegtsPlayer = null; } }
-function stopInternalPlayers() { stopVideoJs(); stopArtPlayer(); destroyHls(); dom.video.pause(); if (dom.qualityControl) dom.qualityControl.hidden = true; }
+function stopInternalPlayers() { stopVideoJs(); stopArtPlayer(); destroyHls(); dom.video.pause(); dom.video.removeAttribute('src'); dom.video.load(); if (dom.qualityControl) dom.qualityControl.hidden = true; }
 function showHtmlVideo() { dom.video.style.display = 'block'; dom.artPlayerHost.style.display = 'none'; }
 function getStreamType(url) {
   var raw = String(url || '');
@@ -706,7 +710,8 @@ async function playArtPlayer(channel) {
       }
     } : undefined;
     if (state.artPlayer) { try { state.artPlayer.destroy(); } catch {} state.artPlayer = null; }
-    state.artPlayer = new window.Artplayer({ container: dom.artPlayerHost, url: streamUrl(channel.url), type: type === 'hls' ? 'm3u8' : '', customType: customType, autoplay: true, isLive: true, muted: true, setting: true, fullscreen: true, fullscreenWeb: true });
+    state.artPlayer = new window.Artplayer({ container: dom.artPlayerHost, url: streamUrl(channel.url), type: type === 'hls' ? 'm3u8' : '', customType: customType, autoplay: true, isLive: true, muted: false, setting: true, fullscreen: true, fullscreenWeb: true, autoMini: false, mutex: true, hotkey: true, playbackRate: false, aspectRatio: false, lock: false });
+    state.artPlayer.on('video:playing', function() { state.artPlayer.autoHide = true; });
   } catch (error) { showMessage(`${t('optionalMissing')} ${error.message || ''}`.trim()); }
 }
 function setPlayerActive(active) {
@@ -732,7 +737,7 @@ function playChannel(channel) {
   if (state.player === 'artplayer') return playArtPlayer(channel);
   return playHtml5(channel);
 }
-function showSwitchOverlay(channel) { const now = currentProgram(channel); const next = nextProgram(channel); dom.switchOverlay.innerHTML = `<img src="${getChannelLogo(channel)}" alt="" onerror="this.onerror=null;this.src='${placeholderLogo(channel.name).replace(/'/g, "\\'")}';"><div><h2>${escapeHtml(channel.name)}</h2><p><strong>${t('now')}:</strong> ${escapeHtml(now?.title || t('noProgram'))}</p><p><strong>${t('next')}:</strong> ${escapeHtml(next?.title || t('noProgram'))}</p></div>`; dom.switchOverlay.classList.add('show'); clearTimeout(state.overlayTimer); state.overlayTimer = setTimeout(() => dom.switchOverlay.classList.remove('show'), 5200); }
+function showSwitchOverlay(channel) { const now = currentProgram(channel); const next = nextProgram(channel); dom.switchOverlay.innerHTML = ''; dom.switchOverlay.append(safeLogoImg(channel)); var info = document.createElement('div'); info.innerHTML = `<h2>${escapeHtml(channel.name)}</h2><p><strong>${t('now')}:</strong> ${escapeHtml(now?.title || t('noProgram'))}</p><p><strong>${t('next')}:</strong> ${escapeHtml(next?.title || t('noProgram'))}</p>`; dom.switchOverlay.append(info); dom.switchOverlay.classList.add('show'); clearTimeout(state.overlayTimer); state.overlayTimer = setTimeout(() => dom.switchOverlay.classList.remove('show'), 5200); }
 function selectChannel(id) { const channel = state.channels.find((item) => item.id === id); if (!channel) return; if (state.multiview && state.mvSlot === 1) { state.mvChannel1 = channel; playInSlot1(channel); renderChannels(); return; } state.selectedChannelId = id; playChannel(channel); showSwitchOverlay(channel); renderChannels(); requestAnimationFrame(() => { const active = dom.channelGrid.querySelector('.channel-card.active'); active?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }); }
 function isNativePlatform() { return !!(window.TCLVNative || window.Capacitor); }
 function getPlatform() {
@@ -793,10 +798,11 @@ async function activatePlaylist(id) {
   var item = state.playlists.find(function(p) { return p.id === id; });
   if (!item) return;
   state.activePlaylistId = id; safeSet('tclv.activePlaylistId', id);
-  if (!item.text && item.source && item.origin === 'network') {
+  if (!item.text && item.source && /^https?:\/\//i.test(item.source)) {
     try { item.text = await loadTextFromUrl(item.source); } catch {}
   }
   if (item.text) loadPlaylistText(item.text, item.name);
+  else { state.channels = []; renderAll(); }
   renderSourceLists();
 }
 function removePlaylist(id) { state.playlists = state.playlists.filter((p) => p.id !== id); savePlaylistMeta(); if (state.activePlaylistId === id) { state.activePlaylistId = state.playlists[0]?.id || null; safeSet('tclv.activePlaylistId', state.activePlaylistId || ''); if (state.playlists[0]) loadPlaylistText(state.playlists[0].text, state.playlists[0].name); else { state.channels = []; state.selectedChannelId = null; renderAll(); } } renderSourceLists(); }
@@ -875,8 +881,10 @@ function bindEvents() {
   dom.settingsClose?.addEventListener('click', closeSettings); dom.settingsOverlay?.addEventListener('click', closeSettings);
   dom.playlistFile.addEventListener('change', async () => { const file = dom.playlistFile.files?.[0]; if (!file) return; try { const text = await readFile(file); const record = { id: `pl-${Date.now()}`, name: file.name, source: file.name, type: file.name.toLowerCase().endsWith('.xspf') ? 'xspf' : 'm3u', origin: 'local', text }; addPlaylistRecord(record); await loadPlaylistText(text, file.name); } catch (error) { showMessage(`${t('loadError')} ${error.message}`); } });
   dom.epgFile.addEventListener('change', async () => { const file = dom.epgFile.files?.[0]; if (!file) return; try { const text = await readFile(file); addEpgRecord({ id: `epg-${Date.now()}`, name: file.name, source: file.name, origin: 'local', text }); } catch (error) { showMessage(`${t('loadError')} ${error.message}`); } });
-  dom.addPlaylistUrl?.addEventListener('click', async () => { try { const url = dom.playlistUrl.value.trim(); if (!url) return; const text = await loadTextFromUrl(url); const record = { id: `pl-${Date.now()}`, name: url.split('/').pop() || 'playlist', source: url, type: url.toLowerCase().includes('.xspf') ? 'xspf' : 'm3u', origin: 'network', text }; addPlaylistRecord(record); await loadPlaylistText(text, url); dom.playlistUrl.value = ''; } catch (error) { showMessage(`${t('loadError')} ${error.message}`); } });
-  dom.addEpgUrl?.addEventListener('click', async () => { try { const url = dom.epgUrl.value.trim(); if (!url) return; const text = await loadTextFromUrl(url); addEpgRecord({ id: `epg-${Date.now()}`, name: url.split('/').pop() || 'epg.xml', source: url, origin: 'network', text }); dom.epgUrl.value = ''; } catch (error) { showMessage(`${t('loadError')} ${error.message}`); } });
+  var loadingPlaylist = false;
+  dom.addPlaylistUrl?.addEventListener('click', async () => { if (loadingPlaylist) return; loadingPlaylist = true; try { const url = dom.playlistUrl.value.trim(); if (!url) return; const text = await loadTextFromUrl(url); const record = { id: `pl-${Date.now()}`, name: url.split('/').pop() || 'playlist', source: url, type: url.toLowerCase().includes('.xspf') ? 'xspf' : 'm3u', origin: 'network', text }; addPlaylistRecord(record); await loadPlaylistText(text, url); dom.playlistUrl.value = ''; } catch (error) { showMessage(`${t('loadError')} ${error.message}`); } finally { loadingPlaylist = false; } });
+  var loadingEpg = false;
+  dom.addEpgUrl?.addEventListener('click', async () => { if (loadingEpg) return; loadingEpg = true; try { const url = dom.epgUrl.value.trim(); if (!url) return; const text = await loadTextFromUrl(url); addEpgRecord({ id: `epg-${Date.now()}`, name: url.split('/').pop() || 'epg.xml', source: url, origin: 'network', text }); dom.epgUrl.value = ''; } catch (error) { showMessage(`${t('loadError')} ${error.message}`); } finally { loadingEpg = false; } });
   dom.corsProxyInput?.addEventListener('change', async () => {
     state.corsProxy = dom.corsProxyInput.value.trim(); safeSet('tclv.corsProxy', state.corsProxy);
     if (!state.corsProxy) return;

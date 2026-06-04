@@ -13,7 +13,7 @@
 [![Windows Build](https://github.com/bucala/TCLVPlayer/actions/workflows/windows.yml/badge.svg)](https://github.com/bucala/TCLVPlayer/actions/workflows/windows.yml)
 [![Android Build](https://github.com/bucala/TCLVPlayer/actions/workflows/android.yml/badge.svg)](https://github.com/bucala/TCLVPlayer/actions/workflows/android.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-orange.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.8.0-orange)](#)
+[![Version](https://img.shields.io/badge/version-1.0.0-orange)](#changelog)
 [![Vanilla JS](https://img.shields.io/badge/Vanilla-JS-yellow?logo=javascript)](app.js)
 [![No Framework](https://img.shields.io/badge/No%20Framework-zero%20build-lightgrey)](#)
 
@@ -33,16 +33,15 @@
 
 ## 💡 Prečo TCLVPlayer?
 
-> **Jedno jadro, štyri prostredia** — rovnaký web kód beží v Electron okne, Android WebView, na GoogleTV aj v prehliadači — bez frameworkov a bez build krokov.
-
-| | |
-|:---|:---|
-| 🧩 **Zero framework** | Čistý vanilla JS, žiadny bundler, žiadny transpiler |
-| 🎨 **Warm Orange UI** | Frosted glass dark téma, adaptívna pre TV / tablet / mobil |
-| 📺 **EPG s časovou osou** | XMLTV, `.gz` podpora, fuzzy matching, zoom + navigácia |
-| 🔒 **Plne súkromné** | Žiadny backend, žiadne účty — všetko lokálne v `localStorage` |
-| 🔄 **3 interné playery** | HTML5 + hls.js, Video.js, ArtPlayer + mpegts.js |
-| 🛡️ **Electron CORS bypass** | `onHeadersReceived` injekcia — streamé bez proxy |
+- **Jedno jadro, tri platformy** — rovnaky web kod bezi v Electron okne, Android WebView aj v prehliadaci
+- **Ziadny framework** — cisty vanilla JS, ziadny build step, ziadny bundler
+- **Platformove playery** — Android: nativny system player (Intent), Windows: in-app s CORS bypass, Web: HTML5/Video.js/ArtPlayer
+- **EPG s casovou osou** — XMLTV parsing, zoom a navigacia, fuzzy matching kanalov, live progress
+- **Kvalita videa** — vyber HLS kvality (360p / 720p / 1080p / nativna)
+- **Automaticke loga** — tv-logos repozitar s 10 000+ logami kanalov
+- **Lokálny proxy bridge** — `npm run proxy` pre priame streamovanie cez lokalnu siet z Vercel HTTPS
+- **Bezpecnostny audit** — CSP, XSS ochrana, SSRF blokovanie, import validacia
+- **Privatne a offline** — ziadny backend, ziadne ucty, vsetky data zostavaju lokalne
 
 ---
 
@@ -57,13 +56,14 @@ npm install
 | Platforma | Príkaz | Výstup |
 |:----------|:-------|:-------|
 | 🌐 **Web** | `npm run web` | `http://127.0.0.1:3000` |
+| 🌐 **Web + proxy** | `npm run proxy` | Lokálny proxy na porte 3939 |
 | 🖥️ **Windows** | `npm run windows` | Electron okno |
 | 📦 **Windows `.exe`** | `npm run windows:dist` | `dist/` — NSIS + portable |
 | 🤖 **Android setup** | `npm run android:setup` | Capacitor projekt |
 | 🔄 **Android sync** | `npm run android:sync` | Aktualizuje natívny projekt |
 | 📂 **Android Studio** | `npm run android:open` | Otvorí Android Studio |
 
-> 💡 **Tip pre vývoj:** `npm run web` — žiadna inštalácia navýac, okamžitý reload v prehliadači.
+> **Tip:** Pre Vercel/HTTPS: spustite `npm run proxy` na lokalnom PC — streamy pojdu priamo cez vasu siet.
 
 ---
 
@@ -224,13 +224,13 @@ https://api.allorigins.win/raw?url=
 
 ## ▶️ Playery
 
-| Player | Protokol | HLS | MPEG-TS | Poznámka |
-|:-------|:---------|:---:|:-------:|:---------|
-| **HTML5** | Interný | ✅ hls.js | — | Bez závislostí, funguje všade |
-| **Video.js** | Interný | ✅ hls.js | — | Lazy-load z `vendor/` alebo CDN |
-| **ArtPlayer** | Interný | ✅ hls.js | ✅ mpegts.js | Lazy-load, destroy+recreate pri zmene |
-
-> MPV a VLC boli odstránené v `v0.8.0` — Electron CORS bypass eliminoval potrebu externých playerov.
+| Player | Platforma | HLS | Poznamka |
+|--------|-----------|-----|----------|
+| **Nativny** | Android | System player | Predvoleny na Androide — Intent do VLC/system |
+| **HTML5** | Vsetky | hls.js auto-fallback | Bez zavislosti, funguje vsade |
+| **Video.js** | Web/Windows | hls.js integrovany | Lazy-load z vendor/ alebo CDN |
+| **ArtPlayer** | Web/Windows | hls.js cez customType | Lazy-load z vendor/ alebo CDN |
+| **VLC/mpv** | Android/Windows | Externe | Volitelne externe playery |
 
 ---
 
@@ -238,39 +238,30 @@ https://api.allorigins.win/raw?url=
 
 ```
 TCLVPlayer/
-├── 📄 index.html                    # Jediný HTML vstupný bod
-├── 📜 app.js                        # Celá aplikačná logika (vanilla JS)
-├── 🎨 styles.css                    # Všetky štýly (Warm Orange téma)
-├── 🖼️  favicon.svg                   # SVG ikona (oranžový gradient)
-├── 🖼️  assets/icon.png               # App ikona 512px (Electron + Builder)
-├── ⚙️  package.json                  # Skripty, závislosti, build config
-├── 📱 capacitor.config.json         # Capacitor konfigurácia
-│
-├── 📁 native/
+├── index.html                  # Jediny HTML vstupny bod
+├── app.js                      # Cela aplikacna logika (~940 riadkov)
+├── styles.css                  # Vsetky styly (responsive, dark theme)
+├── favicon.svg                 # App ikona (SVG)
+├── package.json                # Electron + Capacitor zavislosti
+├── capacitor.config.json       # Capacitor konfiguracia
+├── native/
 │   ├── electron/
 │   │   ├── main.js               # Electron hlavný proces (sandbox, CORS bypass)
 │   │   └── preload.js            # Zjednodušený IPC bridge → window.TCLVNative
 │   └── android/
-│       ├── TCLVPlayerPlugin.kt   # Capacitor plugin (Intent bridge)
-│       ├── MainActivity.kt       # Registrácia pluginu
-│       └── AndroidManifest.additions.xml
-│
-├── 📁 lib/
-│   └── parsers.js              # Čisté funkcie bez DOM (testovateľné)
-│
-├── 📁 scripts/
-│   ├── copy-web.mjs            # Build: web bundle + vendor libs
-│   ├── apply-android-template.mjs  # Build: patching Android manifestu
-│   ├── update-windows.ps1      # PowerShell: git pull + npm + build
-│   └── update-android.ps1      # PowerShell: git pull + npm + cap sync
-│
-├── 📁 tests/
-│   └── parsers.test.js         # 31 Vitest unit testov
-│
-└── 📁 .github/workflows/
-    ├── ci.yml                  # Lint + testy + web bundle
-    ├── windows.yml             # NSIS + portable .exe
-    └── android.yml             # Debug APK
+│       └── ...                 # Capacitor Android wrapper
+├── assets/
+│   ├── icon.png                # App ikona 512px
+│   └── icon.svg                # App ikona vektorova
+├── api/
+│   └── proxy.js                # Vercel serverless CORS proxy (streaming, SSRF ochrana)
+├── scripts/
+│   ├── copy-web.mjs            # Build: kopirovanie web bundlu + vendor libs
+│   ├── local-proxy.mjs         # Lokalny HTTP proxy pre Vercel HTTPS bridge
+│   └── apply-android-template.mjs
+├── tests/
+│   └── parsers.test.js         # Unit testy (vitest)
+└── eslint.config.js            # ESLint konfiguracia
 ```
 
 **Natívny most medzi platformami:**
@@ -285,11 +276,16 @@ TCLVPlayer/
 
 ## 🔄 CI/CD
 
-| Workflow | Spúšťač | Runner | Výstup |
-|:---------|:--------|:-------|:-------|
-| `ci.yml` | Push `main`, PR | Ubuntu + Windows | Lint ✅ · 31 testov ✅ · Web bundle |
-| `windows.yml` | Manuálne / tag `v*` | `windows-latest` | `.exe` NSIS + portable |
-| `android.yml` | Manuálne / tag `v*` | `ubuntu-latest` | Debug `.apk` |
+- `contextIsolation: true` — renderer nema pristup k Node.js API
+- `nodeIntegration: false` — ziadne require() v renderer procese
+- `sandbox: true` — renderer bezi v sandboxe OS
+- **Content-Security-Policy** — CSP hlavicky na Verceli (script-src, img-src, connect-src)
+- **XSS ochrana** — DOM API namiesto innerHTML pre uzivatelske data, `escapeHtml()` pre vsetky texty
+- **SSRF blokovanie** — proxy odmieta IPv6, octal, decimal IP, privatne siete
+- **Electron exec whitelist** — externy player len `mpv` alebo `vlc`
+- **Import validacia** — JSON import sanitizuje vsetky polia s type checks a allowlists
+- Logo URL sanitizacia — povolene iba `https?://` a `data:image/` protokoly
+- EPG text sa neuklada do localStorage (len metadata) — prevencia 5MB limitu
 
 ---
 

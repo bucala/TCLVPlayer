@@ -7,160 +7,42 @@ Všetky významné zmeny v projekte sú dokumentované v tomto súbore.
 
 ---
 
-## [0.8.0] — 2026-06-04
+## [1.0.0] — 2026-06-04
 
-### 🤖 Platformovo-špecifické playery
+### Release 1.0 — Tri platformy, bezpecnostny audit, stabilizacia
 
 #### Added
-- **Android — Natívny prehrávač** (nová predvolená možnosť): stream sa otvára cez systémový `Intent (ACTION_VIEW video/*)` — spustí VLC, MX Player alebo iný nainštalovaný prehrávač; WebView slúži len ako UI
-- **Electron (Windows)** — in-app prehrávanie predvolené; HLS buffer tuning teraz platí na **všetkých** platformách
-- Platform-specific CORS detekcia: web HTTP (bez proxy) vs. web HTTPS (s proxy)
+- **Nativny Android player** — predvoleny systemovy prehravac cez Intent (ACTION_VIEW video/*), volitelne VLC/mpv
+- **Lokálny proxy bridge** — `npm run proxy` spusti HTTP proxy na porte 3939, Vercel HTTPS stranka ho auto-deteguje
+- **TV-logos integrácia** — automaticke nacitanie 10 000+ log kanalov z tv-logo/tv-logos GitHub repo
+- **CDN-first loading** — na HTTPS sa player kniznice nacitavaju najprv z CDN, potom z vendor/
+- **Geo-block hint** — pri chybe streamu na Verceli sa zobrazi tip o `npm run proxy`
+- **CSP hlavicky** — Content-Security-Policy, X-Content-Type-Options, Referrer-Policy v vercel.json
+- **Import validacia** — JSON import sanitizuje vsetky polia (type checks, allowlists, max dlzky)
+- **Rate limiting** — tlacidla "Pridat URL" blokovane pocas nacitavania
+- **Mobile FAB toggle** — floating tlacidlo na skrytie/zobrazenie zoznamu kanalov na mobile
+
+#### Changed
+- **HLS buffer tuning** — ExoPlayer-inspirovana konfiguracia (maxBufferLength=30s, retry=6x) na vsetkych platformach
+- **ArtPlayer** — `muted: false` pri prepnuti kanala, rychlejsie auto-hide ovladacich prvkov
+- **Proxy streaming** — api/proxy.js pouziva `pipeTo()` namiesto bufferingu, Content-Length passthrough
+- **SSRF ochrana** — proxy blokuje IPv6, octal, decimal IP, fc00:/fe80: adresy
+- **Electron exec whitelist** — `execFile()` akceptuje len `mpv` a `vlc`
+- **Video reset** — `stopInternalPlayers()` cisti video src pre cistejsie prepnutie
+- **Verzia** — bump na 1.0.0
 
 #### Fixed
-- Spinner sa zastaví pri chybe ArtPlayera (destroy pri fatal HLS chybe)
+- **XSS v EPG timeline** — inline `onerror` handlery nahradene bezpecnym DOM API (`safeLogoImg()`)
+- **Playlist reload** — sietove playlisty sa automaticky znovu stiahnu po reload stranky
+- **ArtPlayer mute** — zvuk sa uz nestlmuje pri prepnuti kanala
+- **ArtPlayer overlap** — PiP a quality tlacidla sa skryvaju ked je ArtPlayer aktivny
+- **Spinner pri chybe** — ArtPlayer loading spinner sa zastavi pri chybe streamu
+- **Mobile portrait layout** — sidebar sa da skryt, video sa roztiahne na celu obrazovku
+- **HTML5 audio-only** — cistejsi video element reset medzi kanalmi
 
 ---
 
-### 📡 Lokálny proxy bridge
-
-#### Added
-- `npm run proxy` spustí lokálny HTTP proxy na porte 3939
-- Vercel HTTPS stránka automaticky detekuje lokálny proxy a zobrazí `"Lokálny proxy nájdený"`
-- Streamy idú priamo cez tvoju sieť bez geo-blokovania a bez Vercel latency
-- CDN-first asset loading: na Verceli sa player knižnice načítajú z CDN (žiadne 404 pre vendor súbory)
-
----
-
-### 🌐 Vstavaný Vercel proxy
-
-#### Added
-- `/api/proxy?url=` serverless funkcia — fetchuje HTTP streamy server-side
-- Streaming cez `pipeTo()`, `Content-Length` passthrough
-- SSRF ochrana (blokuje privátne IP adresy), 20 s timeout
-- Štruktúrované error hinty: geo-blocked, timeout
-- Zero-config na HTTPS — automatická detekcia bez nastavovania
-- `vercel.json` konfiguracia — zero-config HTTPS stream playback
-
----
-
-### 🖼️ Auto-načítanie TV lôg
-
-#### Added
-- Kanály bez `tvg-logo` v playliste automaticky hľadajú logo z `tv-logo/tv-logos` repozitára
-- Konverzia názvu na slug: `"Nova Sport 1"` → `nova-sport-1-sk.png`, `nova-sport-1-cz.png` …
-- Priorita krajín: SK → CZ → INT → HU → PL → AT → DE → UK → FR → IT → ES → US
-- Cache v `localStorage` (`tclv.tvlogo.*`) — nájdené logá sa zobrazujú okamžite pri ďalšom otvorení
-- Neúspešné hľadania sa pamätajú (session) — žiadne opakované 404 requesty
-
----
-
-### ⊞ Multi-view
-
-#### Added
-- Duálny prehrávač aktivovaný cez ⊞ tlačidlo v topbare
-- Kliknutie na slot ho aktivuje; ďalší kanál zo sidebare sa prehrá v aktívnom slote
-- Druhý slot hrá muted v pozadí s plným error handlingom
-- Oranžový okraj označuje aktívny slot
-- Vypnutie multi-view cleanly zastaví druhý player a resetuje focus
-
----
-
-### 📅 Catchup TV
-
-#### Added
-- M3U parser číta `catchup`, `catchup-source`, `catchup-days` atribúty
-- Kanály s catchupom zobrazujú 📅 badge
-- Kliknutie otvorí collapsible deň/hodina modal
-- Podpora template URL substitúcie (`{utc}`, `{utcend}`, `{start}`, `{duration}`, `{stream}`) aj Xtream timeshift formátu
-
----
-
-### 💾 Export / Import nastavení
-
-#### Added
-- **Export** — stiahne JSON s playlistami, EPG zdrojmi, obľúbenými, jazykom, playerom a CORS proxy
-- **Import** — obnoví všetko z JSON súboru; toast potvrdenie
-
----
-
-### 🔌 Xtream Codes API
-
-#### Added
-- Nová sekcia v nastaveniach: server URL + používateľské meno + heslo
-- Automaticky generuje `get.php?...&type=m3u_plus&output=ts` playlist URL
-- Ukladá ako playlist s `origin: 'xtream'`, automaticky pridá `xmltv.php` EPG zdroj
-- Funguje cez existujúci proxy-aware `loadTextFromUrl`
-
----
-
-### 📲 Picture-in-Picture
-
-#### Added
-- PiP tlačidlo v pravom rohu player stage (skryté ak prehliadač nepodporuje)
-- Funguje s HTML5 `<video>` aj ArtPlayerom (`artPlayer.video`)
-- Tlačidlo sa zvýrazní oranžovým `.active` počas aktívneho PiP
-
----
-
-### 🟢 Stream health indikátor
-
-#### Added
-- Farebná bodka na karte kanála (prekrýva pravý dolný roh loga):
-  - 🟢 Zelená — prehrávanie OK
-  - 🔴 Červená — chyba
-  - Neviditeľná — neznáma / nevyskúšaná
-- Bodka sa vymaže pri novom výbere kanála; aktualizuje sa cez `updateChannelStatusDot()`
-
----
-
-### 🔍 Hľadanie kanálov, skupiny a obľúbené
-
-#### Added
-- Real-time textový filter v sidebare s natívnym ✕ tlačidlom
-- Scrollovateľné pill tagy z `group-title` hodnôt M3U vrátane „Všetky"
-- Hviezdicové obľúbené (☆/★) na každej karte; záložka „★ Obľúbené" sa zobrazí automaticky
-- Kombinácia: group filter + vyhľadávanie pracujú spoločne
-
----
-
-### 🚀 HLS vylepšenia podľa ExoPlayer analýzy
-
-#### Added
-- `maxBufferLength=30s`, `maxMaxBufferLength=120s`, `enableWorker=true`, `lowLatencyMode=true`
-- Retry counts zvýšené: `fragLoadingMaxRetry=6`, `manifestLoadingMaxRetry=4`
-- **Auto-reconnect pre live streamy**: pri network errore až 3 pokusy s exponenciálnym backoffom (2s/4s/6s); zobrazí správu `"Opätovné pripájanie…"`
-- **RTMP/RTSP detekcia**: `rtmp://` a `rtsp://` URL sú zachytené skoro s jasnou správou o nepodporovanom protokole
-- `mpegts.js` podpora — `.ts` a bezpríponové URL → `mpegts.js` (MPEG-TS streaming)
-
----
-
-### 🐛 Opravy v0.8.0
-
-#### Fixed
-- **HLS segment URL resolution (kritický fix)**: `hls.loadSource()` dostávalo proxy URL, čo spôsobovalo rozkladanie relatívnych ciest segmentov voči proxy doméne namiesto originálneho servera. Fix: `hls.loadSource(originalUrl)` + `xhrSetup` interceptuje všetky XHR requesty vrátane segmentov
-- **Mixed Content**: `isMixedContent()` detekuje HTTPS stránku + HTTP URL; HTTP streamy sa okamžite smerujú cez proxy
-- **ArtPlayer double-proxy fix**: customType handler dostával already-proxied URL a proxoval ju znovu — opravené
-- **Video.js stale segment requests**: `player.reset()` v `stopVideoJs()` zabraňuje stale VHS segment requestom pri prepínaní kanálov
-- **Mixed content logos**: `http://` logo URL sa upgradujú na `https://` z HTTPS stránky; `onerror` fallback na SVG placeholder
-- **Electron Origin header** — nastavuje sa na origin streamu (nie mazaný)
-- **hls.js `enableWorker: false`** — workery obchádzali CORS hooky
-- **Race condition pri HLS retry** — opravená cez lokálnu premennú
-- **Autoplay policy** — 200ms delay pred unmute + user gesture fallback
-- **ArtPlayer resource leak** — `stopArtPlayer()` teraz volá `destroy()`
-- **Android HTTP** — `usesCleartextTraffic=true`, `mixedContentMode=ALWAYS_ALLOW`, `mediaPlaybackRequiresUserGesture=false`
-- **`extractM3UEpgUrls` crash** pri `undefined` vstupe
-
-#### Removed
-- **MPV / VLC externé playery** — Electron CORS bypass eliminoval potrebu externých procesov
-- Externý CORS proxy závislosť `cors.lol` — nahradený vstavaným Vercel proxy
-
-#### Technical
-- Spoločné `makeHlsConfig()` a `destroyHls()` helpery
-- `npm run proxy` príkaz pre lokálny proxy bridge
-
----
-
-## [0.7.0] — 2026-06-01
+## [0.8.0] — 2026-06-02
 
 ### Faza 8 — Stabilizácia, EPG navigácia, CORS bypass
 

@@ -26,14 +26,26 @@ export default async function handler(req, res) {
     return;
   }
 
-  const blocked = /^https?:\/\/(127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|0\.|localhost)/i;
-  if (blocked.test(url)) {
+  const parsed = new URL(url);
+  const host = parsed.hostname.toLowerCase();
+  if (
+    host === "localhost" ||
+    host === "[::1]" || host === "::1" ||
+    /^127\./.test(host) ||
+    /^10\./.test(host) ||
+    /^192\.168\./.test(host) ||
+    /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
+    /^0\./.test(host) ||
+    /^0+$/.test(host) ||
+    /^fc00:/i.test(host) || /^fe80:/i.test(host) ||
+    /^\[/.test(host) ||
+    /^\d+$/.test(host)
+  ) {
     res.status(403).json({ error: "Private networks not allowed" });
     return;
   }
 
   try {
-    const parsed = new URL(url);
     const headers = {
       "User-Agent":
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
