@@ -67,12 +67,31 @@ async function detectLocalProxy() {
   if (dom.corsProxyInput) dom.corsProxyInput.value = fallback;
 }
 
+function platformPlayerKey(platform) {
+  return 'tclv.player.' + (platform || getPlatform());
+}
+function fallbackPlayer(platform) {
+  if (platform === 'android') return 'native';
+  if (platform === 'electron') return 'html5';
+  return 'artplayer';
+}
+function saveCurrentPlayer() {
+  safeSet(platformPlayerKey(), state.player);
+}
+function platformPlayersSnapshot() {
+  return {
+    web: safeGet('tclv.player.web-https', safeGet('tclv.player.web-http', 'artplayer')),
+    webHttp: safeGet('tclv.player.web-http', ''),
+    webHttps: safeGet('tclv.player.web-https', ''),
+    windows: safeGet('tclv.player.electron', 'html5'),
+    android: safeGet('tclv.player.android', 'native')
+  };
+}
 function defaultPlayer() {
-  var saved = safeGet("tclv.player", "");
+  var platform = getPlatform();
+  var saved = safeGet(platformPlayerKey(platform), "");
   if (saved) return saved;
-  if (window.Capacitor) return 'native';
-  if (window.TCLVNative) return 'html5';
-  return 'html5';
+  return fallbackPlayer(platform);
 }
 const state = {
   language: safeGet("tclv.language", "sk"), channels: [], epg: new Map(), selectedChannelId: null, selectedLogoChannelId: null, player: defaultPlayer(), overlayTimer: 0, videoJsPlayer: null, artPlayer: null, hls: null, mpegtsPlayer: null,
@@ -364,7 +383,7 @@ function exportSettings() {
     playlists: state.playlists.map(function(p) { return { id: p.id, name: p.name, source: p.source, type: p.type, origin: p.origin }; }),
     epgSources: state.epgSources.map(function(s) { return { id: s.id, name: s.name, source: s.source, origin: s.origin, active: s.active }; }),
     favorites: [...state.favorites],
-    language: state.language, player: state.player, corsProxy: state.corsProxy
+    language: state.language, player: state.player, players: platformPlayersSnapshot(), corsProxy: state.corsProxy
   };
   var json = JSON.stringify(data, null, 2);
   var blob = new Blob([json], { type: 'application/json' });
@@ -379,7 +398,17 @@ async function importSettingsFromFile(file) {
     if (Array.isArray(data.playlists)) { state.playlists = data.playlists; savePlaylistMeta(); }
     if (Array.isArray(data.epgSources)) { state.epgSources = data.epgSources; saveEpgMeta(); }
     if (data.language) { state.language = data.language; safeSet('tclv.language', state.language); }
-    if (data.player) { state.player = data.player; safeSet('tclv.player', state.player); }
+    if (data.players && typeof data.players === 'object') {
+      if (data.players.web) { safeSet('tclv.player.web-https', data.players.web); safeSet('tclv.player.web-http', data.players.web); }
+      if (data.players.webHttp) safeSet('tclv.player.web-http', data.players.webHttp);
+      if (data.players.webHttps) safeSet('tclv.player.web-https', data.players.webHttps);
+      if (data.players.windows) safeSet('tclv.player.electron', data.players.windows);
+      if (data.players.android) safeSet('tclv.player.android', data.players.android);
+      state.player = defaultPlayer();
+    } else if (data.player) {
+      state.player = data.player;
+      saveCurrentPlayer();
+    }
     if (data.corsProxy) { state.corsProxy = data.corsProxy; safeSet('tclv.corsProxy', state.corsProxy); if (dom.corsProxyInput) dom.corsProxyInput.value = state.corsProxy; }
     renderAll();
     if (state.playlists.length && state.activePlaylistId) activatePlaylist(state.activePlaylistId);
@@ -753,7 +782,7 @@ function playChannel(channel) {
   if (state.player === 'mpv' || state.player === 'vlc') {
     if (getPlatform() === 'android') return playExternalAndroid(channel);
     if (getPlatform() === 'electron') return playExternalDesktop(channel);
-    state.player = 'html5'; safeSet('tclv.player', 'html5'); dom.playerSelect.value = 'html5';
+    state.player = fallbackPlayer(getPlatform()); saveCurrentPlayer(); dom.playerSelect.value = state.player;
   }
   if (state.player === 'videojs') return playVideoJs(channel);
   if (state.player === 'artplayer') return playArtPlayer(channel);
@@ -945,7 +974,7 @@ function bindEvents() {
     if ((event.key === 'PageUp' || event.key === 'ChannelUp') && channels.length) { event.preventDefault(); const idx = channels.findIndex((ch) => ch.id === state.selectedChannelId); const prev = idx > 0 ? idx - 1 : channels.length - 1; selectChannel(channels[prev].id); const card = dom.channelGrid.querySelector(`[data-id="${channels[prev].id}"]`); card?.focus(); card?.scrollIntoView({ block: 'nearest' }); }
     if ((event.key === 'PageDown' || event.key === 'ChannelDown') && channels.length) { event.preventDefault(); const idx = channels.findIndex((ch) => ch.id === state.selectedChannelId); const next = idx < channels.length - 1 ? idx + 1 : 0; selectChannel(channels[next].id); const card = dom.channelGrid.querySelector(`[data-id="${channels[next].id}"]`); card?.focus(); card?.scrollIntoView({ block: 'nearest' }); }
   });
-  dom.playerSelect.addEventListener('change', () => { state.player = dom.playerSelect.value; safeSet('tclv.player', state.player); const channel = selectedChannel(); if (channel) playChannel(channel); });
+  dom.playerSelect.addEventListener('change', () => { state.player = dom.playerSelect.value; saveCurrentPlayer(); const channel = selectedChannel(); if (channel) playChannel(channel); });
   dom.languageSelect.addEventListener('change', () => { state.language = dom.languageSelect.value; safeSet('tclv.language', state.language); renderAll(); });
   dom.logoFile.addEventListener('change', async () => { const file = dom.logoFile.files?.[0]; if (!file || !state.selectedLogoChannelId) return; const dataUrl = await readFileAsDataUrl(file); safeSet(`tclv.logo.${state.selectedLogoChannelId}`, dataUrl); dom.logoFile.value = ''; renderAll(); });
 }
