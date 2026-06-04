@@ -504,7 +504,7 @@ function renderAll() { translateUi(); renderSourceLists(); renderGroupTabs(); re
 function stopVideoJs() { if (state.videoJsPlayer) { state.videoJsPlayer.pause(); try { state.videoJsPlayer.reset(); } catch {} } }
 function stopArtPlayer() { if (state.artPlayer) { try { state.artPlayer.destroy(); } catch {} state.artPlayer = null; } dom.artPlayerHost.style.display = 'none'; }
 function destroyHls() { if (state.hls) { try { state.hls.destroy(); } catch {} state.hls = null; } if (state.mpegtsPlayer) { try { state.mpegtsPlayer.destroy(); } catch {} state.mpegtsPlayer = null; } }
-function stopInternalPlayers() { stopVideoJs(); stopArtPlayer(); destroyHls(); dom.video.pause(); if (dom.qualityControl) dom.qualityControl.hidden = true; }
+function stopInternalPlayers() { stopVideoJs(); stopArtPlayer(); destroyHls(); dom.video.pause(); dom.video.removeAttribute('src'); if (dom.qualityControl) dom.qualityControl.hidden = true; }
 function showHtmlVideo() { dom.video.style.display = 'block'; dom.artPlayerHost.style.display = 'none'; }
 function getStreamType(url) {
   var raw = String(url || '');
@@ -710,7 +710,8 @@ async function playArtPlayer(channel) {
       }
     } : undefined;
     if (state.artPlayer) { try { state.artPlayer.destroy(); } catch {} state.artPlayer = null; }
-    state.artPlayer = new window.Artplayer({ container: dom.artPlayerHost, url: streamUrl(channel.url), type: type === 'hls' ? 'm3u8' : '', customType: customType, autoplay: true, isLive: true, muted: true, setting: true, fullscreen: true, fullscreenWeb: true });
+    state.artPlayer = new window.Artplayer({ container: dom.artPlayerHost, url: streamUrl(channel.url), type: type === 'hls' ? 'm3u8' : '', customType: customType, autoplay: true, isLive: true, muted: true, setting: true, fullscreen: true, fullscreenWeb: true, autoMini: false, mutex: true, hotkey: true, playbackRate: false, aspectRatio: false, lock: false });
+    state.artPlayer.on('video:playing', function() { state.artPlayer.muted = false; state.artPlayer.autoHide = true; });
   } catch (error) { showMessage(`${t('optionalMissing')} ${error.message || ''}`.trim()); }
 }
 function setPlayerActive(active) {
@@ -797,10 +798,11 @@ async function activatePlaylist(id) {
   var item = state.playlists.find(function(p) { return p.id === id; });
   if (!item) return;
   state.activePlaylistId = id; safeSet('tclv.activePlaylistId', id);
-  if (!item.text && item.source && item.origin === 'network') {
+  if (!item.text && item.source && /^https?:\/\//i.test(item.source)) {
     try { item.text = await loadTextFromUrl(item.source); } catch {}
   }
   if (item.text) loadPlaylistText(item.text, item.name);
+  else { state.channels = []; renderAll(); }
   renderSourceLists();
 }
 function removePlaylist(id) { state.playlists = state.playlists.filter((p) => p.id !== id); savePlaylistMeta(); if (state.activePlaylistId === id) { state.activePlaylistId = state.playlists[0]?.id || null; safeSet('tclv.activePlaylistId', state.activePlaylistId || ''); if (state.playlists[0]) loadPlaylistText(state.playlists[0].text, state.playlists[0].name); else { state.channels = []; state.selectedChannelId = null; renderAll(); } } renderSourceLists(); }
