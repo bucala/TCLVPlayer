@@ -7,7 +7,160 @@ Všetky významné zmeny v projekte sú dokumentované v tomto súbore.
 
 ---
 
-## [0.8.0] — 2026-06-02
+## [0.8.0] — 2026-06-04
+
+### 🤖 Platformovo-špecifické playery
+
+#### Added
+- **Android — Natívny prehrávač** (nová predvolená možnosť): stream sa otvára cez systémový `Intent (ACTION_VIEW video/*)` — spustí VLC, MX Player alebo iný nainštalovaný prehrávač; WebView slúži len ako UI
+- **Electron (Windows)** — in-app prehrávanie predvolené; HLS buffer tuning teraz platí na **všetkých** platformách
+- Platform-specific CORS detekcia: web HTTP (bez proxy) vs. web HTTPS (s proxy)
+
+#### Fixed
+- Spinner sa zastaví pri chybe ArtPlayera (destroy pri fatal HLS chybe)
+
+---
+
+### 📡 Lokálny proxy bridge
+
+#### Added
+- `npm run proxy` spustí lokálny HTTP proxy na porte 3939
+- Vercel HTTPS stránka automaticky detekuje lokálny proxy a zobrazí `"Lokálny proxy nájdený"`
+- Streamy idú priamo cez tvoju sieť bez geo-blokovania a bez Vercel latency
+- CDN-first asset loading: na Verceli sa player knižnice načítajú z CDN (žiadne 404 pre vendor súbory)
+
+---
+
+### 🌐 Vstavaný Vercel proxy
+
+#### Added
+- `/api/proxy?url=` serverless funkcia — fetchuje HTTP streamy server-side
+- Streaming cez `pipeTo()`, `Content-Length` passthrough
+- SSRF ochrana (blokuje privátne IP adresy), 20 s timeout
+- Štruktúrované error hinty: geo-blocked, timeout
+- Zero-config na HTTPS — automatická detekcia bez nastavovania
+- `vercel.json` konfiguracia — zero-config HTTPS stream playback
+
+---
+
+### 🖼️ Auto-načítanie TV lôg
+
+#### Added
+- Kanály bez `tvg-logo` v playliste automaticky hľadajú logo z `tv-logo/tv-logos` repozitára
+- Konverzia názvu na slug: `"Nova Sport 1"` → `nova-sport-1-sk.png`, `nova-sport-1-cz.png` …
+- Priorita krajín: SK → CZ → INT → HU → PL → AT → DE → UK → FR → IT → ES → US
+- Cache v `localStorage` (`tclv.tvlogo.*`) — nájdené logá sa zobrazujú okamžite pri ďalšom otvorení
+- Neúspešné hľadania sa pamätajú (session) — žiadne opakované 404 requesty
+
+---
+
+### ⊞ Multi-view
+
+#### Added
+- Duálny prehrávač aktivovaný cez ⊞ tlačidlo v topbare
+- Kliknutie na slot ho aktivuje; ďalší kanál zo sidebare sa prehrá v aktívnom slote
+- Druhý slot hrá muted v pozadí s plným error handlingom
+- Oranžový okraj označuje aktívny slot
+- Vypnutie multi-view cleanly zastaví druhý player a resetuje focus
+
+---
+
+### 📅 Catchup TV
+
+#### Added
+- M3U parser číta `catchup`, `catchup-source`, `catchup-days` atribúty
+- Kanály s catchupom zobrazujú 📅 badge
+- Kliknutie otvorí collapsible deň/hodina modal
+- Podpora template URL substitúcie (`{utc}`, `{utcend}`, `{start}`, `{duration}`, `{stream}`) aj Xtream timeshift formátu
+
+---
+
+### 💾 Export / Import nastavení
+
+#### Added
+- **Export** — stiahne JSON s playlistami, EPG zdrojmi, obľúbenými, jazykom, playerom a CORS proxy
+- **Import** — obnoví všetko z JSON súboru; toast potvrdenie
+
+---
+
+### 🔌 Xtream Codes API
+
+#### Added
+- Nová sekcia v nastaveniach: server URL + používateľské meno + heslo
+- Automaticky generuje `get.php?...&type=m3u_plus&output=ts` playlist URL
+- Ukladá ako playlist s `origin: 'xtream'`, automaticky pridá `xmltv.php` EPG zdroj
+- Funguje cez existujúci proxy-aware `loadTextFromUrl`
+
+---
+
+### 📲 Picture-in-Picture
+
+#### Added
+- PiP tlačidlo v pravom rohu player stage (skryté ak prehliadač nepodporuje)
+- Funguje s HTML5 `<video>` aj ArtPlayerom (`artPlayer.video`)
+- Tlačidlo sa zvýrazní oranžovým `.active` počas aktívneho PiP
+
+---
+
+### 🟢 Stream health indikátor
+
+#### Added
+- Farebná bodka na karte kanála (prekrýva pravý dolný roh loga):
+  - 🟢 Zelená — prehrávanie OK
+  - 🔴 Červená — chyba
+  - Neviditeľná — neznáma / nevyskúšaná
+- Bodka sa vymaže pri novom výbere kanála; aktualizuje sa cez `updateChannelStatusDot()`
+
+---
+
+### 🔍 Hľadanie kanálov, skupiny a obľúbené
+
+#### Added
+- Real-time textový filter v sidebare s natívnym ✕ tlačidlom
+- Scrollovateľné pill tagy z `group-title` hodnôt M3U vrátane „Všetky"
+- Hviezdicové obľúbené (☆/★) na každej karte; záložka „★ Obľúbené" sa zobrazí automaticky
+- Kombinácia: group filter + vyhľadávanie pracujú spoločne
+
+---
+
+### 🚀 HLS vylepšenia podľa ExoPlayer analýzy
+
+#### Added
+- `maxBufferLength=30s`, `maxMaxBufferLength=120s`, `enableWorker=true`, `lowLatencyMode=true`
+- Retry counts zvýšené: `fragLoadingMaxRetry=6`, `manifestLoadingMaxRetry=4`
+- **Auto-reconnect pre live streamy**: pri network errore až 3 pokusy s exponenciálnym backoffom (2s/4s/6s); zobrazí správu `"Opätovné pripájanie…"`
+- **RTMP/RTSP detekcia**: `rtmp://` a `rtsp://` URL sú zachytené skoro s jasnou správou o nepodporovanom protokole
+- `mpegts.js` podpora — `.ts` a bezpríponové URL → `mpegts.js` (MPEG-TS streaming)
+
+---
+
+### 🐛 Opravy v0.8.0
+
+#### Fixed
+- **HLS segment URL resolution (kritický fix)**: `hls.loadSource()` dostávalo proxy URL, čo spôsobovalo rozkladanie relatívnych ciest segmentov voči proxy doméne namiesto originálneho servera. Fix: `hls.loadSource(originalUrl)` + `xhrSetup` interceptuje všetky XHR requesty vrátane segmentov
+- **Mixed Content**: `isMixedContent()` detekuje HTTPS stránku + HTTP URL; HTTP streamy sa okamžite smerujú cez proxy
+- **ArtPlayer double-proxy fix**: customType handler dostával already-proxied URL a proxoval ju znovu — opravené
+- **Video.js stale segment requests**: `player.reset()` v `stopVideoJs()` zabraňuje stale VHS segment requestom pri prepínaní kanálov
+- **Mixed content logos**: `http://` logo URL sa upgradujú na `https://` z HTTPS stránky; `onerror` fallback na SVG placeholder
+- **Electron Origin header** — nastavuje sa na origin streamu (nie mazaný)
+- **hls.js `enableWorker: false`** — workery obchádzali CORS hooky
+- **Race condition pri HLS retry** — opravená cez lokálnu premennú
+- **Autoplay policy** — 200ms delay pred unmute + user gesture fallback
+- **ArtPlayer resource leak** — `stopArtPlayer()` teraz volá `destroy()`
+- **Android HTTP** — `usesCleartextTraffic=true`, `mixedContentMode=ALWAYS_ALLOW`, `mediaPlaybackRequiresUserGesture=false`
+- **`extractM3UEpgUrls` crash** pri `undefined` vstupe
+
+#### Removed
+- **MPV / VLC externé playery** — Electron CORS bypass eliminoval potrebu externých procesov
+- Externý CORS proxy závislosť `cors.lol` — nahradený vstavaným Vercel proxy
+
+#### Technical
+- Spoločné `makeHlsConfig()` a `destroyHls()` helpery
+- `npm run proxy` príkaz pre lokálny proxy bridge
+
+---
+
+## [0.7.0] — 2026-06-01
 
 ### Faza 8 — Stabilizácia, EPG navigácia, CORS bypass
 
@@ -32,43 +185,23 @@ Všetky významné zmeny v projekte sú dokumentované v tomto súbore.
 
 ---
 
-## [0.7.0] — 2026-06-01
-
-### Faza 7 — Layout redesign, Electron opravy, Windows/Android build
-
-#### Added
-- **Sidebar toggle** — tlačidlo na skrytie/zobrazenie zoznamu kanálov
-- **EPG toggle** — prepínanie EPG panelu z topbaru
-- **Electron User-Agent** — Chrome UA override pre kompatibilitu so streamami
-- **Electron Referer** — automatický Referer header pre všetky requesty
-- **App ikona** — vlastná oranžová TV ikona (512px PNG + SVG)
-- **Muted autoplay** — video sa spustí stlmené, po úspechu odtlmí
-
-#### Changed
-- **Layout** — z grid na flex, sidebar 280px s transition
-- **Mobile** — flex-direction: column, player hore, kanály dole
-- **Electron menu** — odstránený default menu bar
-- **Electron CORS sekcia** — skrytá v nastaveniach (nepotrebná)
-
----
-
 ## [0.6.1] — 2026-06-01
 
 ### 🔧 Fáza 6.1 — Robustný CORS proxy a EPG retry
 
-#### ➕ Added
+#### Added
 - **Proxy fallback (encoded → raw)** — `loadTextFromUrl()` skúsi proxy s `encodeURIComponent(url)`, ak vráti chybu, skúsi s raw URL. Pokrýva rôzne formáty CORS proxy služieb.
 - **HLS proxy fallback** — `tryHlsPlayback()` pri fatálnej chybe automaticky reštartuje s raw proxy URL formátom.
 - **Auto EPG retry pri zmene proxy** — keď používateľ nastaví/zmení CORS proxy, automaticky sa znovu načítajú EPG zdroje z playlistu.
 - **`proxyUrlRaw()`** — helper pre raw (nekódovaný) proxy URL formát.
 
-#### 🔀 Changed
+#### Changed
 - **Proxy placeholder** — zmenený z `corsproxy.io` na `api.allorigins.win/raw?url=` (spoľahlivejší).
 - **`loadTextFromUrl()`** — úplne prepísaná s dual-proxy stratégiou (encoded + raw fallback).
 - **`tryHlsPlayback()`** — pridaný `useRawProxy` parameter s automatickým retry.
 - **CORS proxy change handler** — pri zmene proxy sa znovu spustí `autoLoadEpgFromPlaylist()` a reštartuje prehrávanie.
 
-#### 🐛 Fixed
+#### Fixed
 - **Auto EPG bez proxy** — auto-detegované EPG sa pokúšalo načítať pred nastavením CORS proxy. Teraz sa retry spustí automaticky po uložení proxy.
 - **Proxy 403** — `corsproxy.io` vracal 403 pre niektoré URL. Fallback na raw URL formát pokrýva alternatívne proxy služby.
 
@@ -78,25 +211,25 @@ Všetky významné zmeny v projekte sú dokumentované v tomto súbore.
 
 ### 🔍 Fáza 6 — Opravy prehrávania, EPG a CORS (audit)
 
-#### ➕ Added
-- **Try-direct-first stratégia** — `loadTextFromUrl()` najprv skúsi priame pripojenie, až pri CORS chybe použije proxy. Eliminuje zbytočné proxy requesty pre servery s CORS hlavičkami.
+#### Added
+- **Try-direct-first stratégia** — `loadTextFromUrl()` najprv skúsi priame pripojenie, až pri CORS chybe použije proxy.
 - **HLS retry s proxy** — `tryHlsPlayback()` funkcia: hls.js najprv hrá priamo, pri fatálnej chybe automaticky reštartuje s CORS proxy (`xhrSetup`).
-- **EPG active/inactive** — EPG zdroje majú `active` field s "Use" toggle tlačidlom. Neaktívne zdroje sa vynechajú z `rebuildMergedEpg()`.
+- **EPG active/inactive** — EPG zdroje majú `active` field s „Use" toggle tlačidlom. Neaktívne zdroje sa vynechajú z `rebuildMergedEpg()`.
 - **EPG `.xml` fallback** — `autoLoadEpgFromPlaylist()` ak `.xml.gz` zlyhá, skúsi `.xml` verziu bez kompresie.
-- **Auto-detekcia EPG z M3U** — `x-tvg-url` hlavička v M3U playlistoch je parsovaná. Relevantné EPG zdroje (podľa `tvg-id` krajiny) sa načítajú automaticky.
+- **Auto-detekcia EPG z M3U** — `x-tvg-url` hlavička v M3U playlistoch je parsovaná. Relevantné EPG zdroje sa načítajú automaticky.
 - **Podpora `.gz` EPG** — gzipované EPG súbory dekompresované cez `DecompressionStream` API.
 - **Indikátor lokálny/sieťový** — zdroje playlistov aj EPG zobrazujú typ (lokálny súbor / sieťový URL).
 - **SVG favicon** — oranžová ikona aplikácie (`favicon.svg`) s gradientom zhodným s brand-mark logom.
 - **Oranžový `accent-color`** — formulárové prvky a `::selection` používajú `accent-color: var(--accent)`.
 
-#### 🔀 Changed
+#### Changed
 - **`loadTextFromUrl()`** — prepísaná s try-direct-first logikou a `.gz` dekompresnou podporou.
 - **`playHtml5()`** — deleguje na `tryHlsPlayback()` s automatickým retry cez proxy.
 - **`rebuildMergedEpg()`** — filtruje len aktívne (`active !== false`) EPG zdroje.
 - **`autoLoadEpgFromPlaylist()`** — robustnejšia s `.xml` fallbackom a viditeľnými chybovými hláškami.
 
-#### 🐛 Fixed
-- **HLS prehrávanie** — priame pripojenie pre servery s CORS → proxy retry pre ostatné. Predtým sa vždy proxovalo, čo zlyhávalo s rate-limitovanými verejnými proxy.
+#### Fixed
+- **HLS prehrávanie** — priame pripojenie pre servery s CORS → proxy retry pre ostatné.
 - **EPG načítanie** — chyby sa už ticho nezahlcujú, zobrazujú sa v UI. Fallback z `.gz` na `.xml`.
 
 ---
@@ -105,36 +238,28 @@ Všetky významné zmeny v projekte sú dokumentované v tomto súbore.
 
 ### 🎨 Fáza 5 — Vizuálny redizajn a opravy UX
 
-#### ➕ Added
-- **Warm Orange téma** — kompletne prepísaný `styles.css` s novým vizuálom. Čierne pozadie (`#000`) s teplým oranžovým akcentom (`#e87442`), iOS-style dark povrchy (`#1c1c1e`, `#2c2c2e`), `backdrop-filter: blur` frosted glass efekty, veľké zaoblenia (16px default).
-- **DM Sans font** — Google Fonts import s fallbackom na Inter/system-ui. Lepšie kerning a čitateľnosť.
-- **Frosted glass efekty** — topbar, settings panel header a switch overlay používajú `backdrop-filter: blur(18px)` s polopriehľadným pozadím.
-- **Adaptívny layout** — breakpointy pre TV (>1400px), tablet (701–1024px), mobil portrait (<700px), mobil landscape (<900px landscape), malý telefón (<400px). Optimalizované pre Smart TV, mobilné zariadenia aj webový prehliadač.
-- **Animované EPG** — programy v timeline majú hover efekty (`scaleY`, `border-color` transition), `current` programy majú accent glow. Now-line má `box-shadow` žiarenie.
-- **Animovaný switch overlay** — `@keyframes switchSlideUp` animácia pri zobrazení notifikácie.
-- **HLS error handling** — `Hls.Events.ERROR` listener pre fatálne chyby. Non-HLS obsah používa `canplay` + `error` eventy namiesto okamžitého `play()`.
+#### Added
+- **Warm Orange téma** — kompletne prepísaný `styles.css`. Čierne pozadie (`#000`) s teplým oranžovým akcentom (`#e87442`), iOS-style dark povrchy, `backdrop-filter: blur` frosted glass efekty.
+- **DM Sans font** — Google Fonts import s fallbackom na Inter/system-ui.
+- **Frosted glass efekty** — topbar, settings panel header a switch overlay.
+- **Adaptívny layout** — breakpointy pre TV (>1400px), tablet (701–1024px), mobil portrait (<700px), mobil landscape (<900px landscape), malý telefón (<400px).
+- **Animované EPG** — hover efekty, `current` programy majú accent glow.
+- **HLS error handling** — `Hls.Events.ERROR` listener pre fatálne chyby.
 
-#### 🔀 Changed
-- **Switch overlay** — presunutá z `position:absolute;inset:0` (celá plocha) na kompaktnú notifikáciu v spodnej časti playera s `border-radius`, `backdrop-filter` a slide-up animáciou.
-- **Farebná paleta** — `--accent` zmenený na `#e87442` (warm orange), `--bg` na `#000000`, `--surface` na `#1c1c1e`. Aktívny kanál s ľavým orange accent barom. Pill-shaped prvky, väčšie zaoblenia.
-- **Channel karty** — väčšie logo (52px), lepšie medzery, gradient progress bar, `color-mix` active state s inset glow. Podtitulok zobrazuje len názov programu (bez skupiny).
-- **Ikony a spacing** — brand mark 42px s gradient pozadím a `box-shadow`, väčšie `icon-button` (42px).
-- **Settings panel** — `<details>/<summary>` nahradené plochými `<div>/<h3>` sekciami (TV ovládač friendly). Sticky glass header, väčšie padding.
-- **Scrollbar** — jemnejší scrollbar s hover stavom.
-- **Player message** — presunutá na `bottom: 54px` aby neprekrývala ovládacie prvky videa.
+#### Changed
+- **Switch overlay** — kompaktná notifikácia v spodnej časti playera so slide-up animáciou.
+- **Farebná paleta** — `--accent: #e87442`, `--bg: #000000`, `--surface: #1c1c1e`.
+- **Channel karty** — väčšie logo (52px), gradient progress bar, `color-mix` active state.
+- **Settings panel** — `<details>/<summary>` nahradené plochými `<div>/<h3>` sekciami (TV ovládač friendly).
 
-#### ❌ Removed
-- **Demo funkcionalita** — `loadDemo()` funkcia, `#sampleButton`, demo sekcia v nastaveniach a príslušné preklady (`sample`, `settingsDemo`) boli kompletne odstránené.
-- **Sidebar search & group filter** — `#searchInput`, `#groupFilter`, `getGroups()`, `renderGroupFilter()`, `state.selectedGroup` odstránené. Sidebar teraz zobrazuje priamo zoznam kanálov.
-- **Skupinový text v kartách** — kanál ukazuje len názov programu, nie názov skupiny.
-- **Nepotrebné preklady** — `search`, `allGroups` odstránené.
+#### Removed
+- **Demo funkcionalita** — `loadDemo()` funkcia, `#sampleButton`, demo sekcia v nastaveniach.
+- **Sidebar search & group filter** — presunuté do v0.8.0 v rozšírenej forme.
 
-#### 🐛 Fixed
-- **Nastavenia sa nedali zatvoriť** — CSS `display: flex` na `.settings-panel` prepisoval `hidden` atribút. Opravené pridaním `.settings-panel[hidden] { display: none !important; }`.
-- **Text selection** — pridaný `user-select: none` na `body` (s výnimkou `input`, `textarea`, `select`).
-- **HTML5 prehrávanie** — pridaný `canplay` event listener pre non-HLS obsah, `error` listener pre chyby, HLS fatal error handling.
-- **Select dropdown farby** — `color-scheme: dark` na `html/body` opravuje biely dropdown s nečitateľným textom.
-- **EPG CORS chyba** — pri zlyhaní fetch bez CORS proxy sa zobrazí hláška s navedením na Nastavenia › Sieť (`corsNeeded` preklad).
+#### Fixed
+- **Nastavenia sa nedali zatvoriť** — CSS `display: flex` prepisoval `hidden` atribút.
+- **Select dropdown farby** — `color-scheme: dark` na `html/body`.
+- **EPG CORS chyba** — zobrazí hláška s navedením na Nastavenia › Sieť.
 
 ---
 
@@ -142,17 +267,17 @@ Všetky významné zmeny v projekte sú dokumentované v tomto súbore.
 
 ### 🧪 Fáza 4 — CI/CD a kvalita kódu
 
-#### ➕ Added
-- **ESLint konfigurácia** — `eslint.config.js` s flat config formátom. Separátne nastavenia pre `app.js` (script/browser globals), `native/electron/` (CommonJS/Node globals), `scripts/` (ESM) a `tests/` (ESM). Prázdne catch bloky povolené (`allowEmptyCatch`).
-- **Unit testy** — 31 testov v `tests/parsers.test.js` cez Vitest. Pokryté funkcie: `normalizeId`, `uniqueId`, `attr`, `parseM3U` (7 testov vrátane BOM, CRLF, bare URLs, komentárov), `parseXmlTvDate` (UTC offsety), `sanitizeLogoUrl` (XSS prevencia), `hashCode`.
-- **Testovateľný modul** — `lib/parsers.js` exportuje čisté funkcie bez DOM závislostí, zrkadliace logiku z `app.js`.
-- **Dependabot** — `.github/dependabot.yml` pre npm (týždenne, zoskupené podľa capacitor/electron/players) a GitHub Actions (mesačne).
+#### Added
+- **ESLint konfigurácia** — `eslint.config.js` s flat config formátom.
+- **Unit testy** — 31 testov v `tests/parsers.test.js` cez Vitest. Pokryté funkcie: `normalizeId`, `uniqueId`, `attr`, `parseM3U`, `parseXmlTvDate`, `sanitizeLogoUrl`, `hashCode`.
+- **Testovateľný modul** — `lib/parsers.js` exportuje čisté funkcie bez DOM závislostí.
+- **Dependabot** — `.github/dependabot.yml` pre npm (týždenne) a GitHub Actions (mesačne).
 - **npm skripty** — `npm run lint` a `npm test` pridané do `package.json`.
 
-#### 🔀 Changed
-- **CI workflow** — rozdelený na dva joby: `lint-and-test` (Ubuntu) a `validate` (Windows). Lint a testy bežia na Ubuntu, syntax check a web bundle build na Windows.
+#### Changed
+- **CI workflow** — rozdelený na dva joby: `lint-and-test` (Ubuntu) a `validate` (Windows).
 
-#### 📦 Dependencies
+#### Dependencies
 - `eslint` a `@eslint/js` pridané ako devDependencies
 - `vitest` pridaný ako devDependency
 
@@ -162,19 +287,15 @@ Všetky významné zmeny v projekte sú dokumentované v tomto súbore.
 
 ### 📱 Fáza 3 — Platform UX
 
-#### ➕ Added
-- **TV / Leanback layout** (>1400px) — väčšie karty kanálov (56px/64px logo), väčšie fonty, zväčšený EPG timeline, širšie channel labels. Pre `pointer:coarse` zariadenia (dotykové TV) ešte väčší padding a ovládacie prvky.
-- **Tablet breakpoint** (701–1024px) — užší sidebar (240px), kompaktnejšie EPG labely pre stredne veľké obrazovky.
-- **Mobile portrait** (<700px) — vertikálny layout, sidebar hore (max 45vh), skrytý brand tagline, kompaktnejší topbar, EPG search na plnú šírku.
-- **Mobile landscape** (<700px, landscape) — 2-stĺpcový layout zachovaný (sidebar vľavo 200px), player s fixnou výškou, skrytý now-panel text a EPG guide pre maximalizovanie video priestoru.
-- **Malý telefón** (<420px) — ešte kompaktnejšie karty (40px logo), menší group filter, sidebar max 35vh.
-- **D-pad navigácia** — ArrowLeft/ArrowRight prepína fokus medzi sidebar a content oblasťou. PageUp/PageDown (aj ChannelUp/ChannelDown) prepína kanály s auto-scroll a wrap-around.
+#### Added
+- **TV / Leanback layout** (>1400px) — väčšie karty kanálov, väčšie fonty, zväčšený EPG timeline.
+- **Tablet breakpoint** (701–1024px) — užší sidebar (240px), kompaktnejšie EPG labely.
+- **Mobile portrait** (<700px) — vertikálny layout, sidebar hore (max 45vh).
+- **Mobile landscape** (<700px, landscape) — 2-stĺpcový layout zachovaný (sidebar vľavo 200px).
+- **D-pad navigácia** — ArrowLeft/ArrowRight prepína fokus; PageUp/PageDown prepína kanály s auto-scroll a wrap-around.
 - **Home/End klávesy** — skok na prvý/posledný kanál v zozname.
 - **Escape klávesa** — zatvorí nastavenia alebo switch overlay.
-- **Auto-scroll** — pri prepnutí kanála sa aktívna karta automaticky scrollne do viditeľnosti (smooth behavior).
-
-#### 🔀 Changed
-- **Existujúci 700px breakpoint** — kompletne prepísaný s detailnejšími úpravami pre topbar, brand, section-title, now-panel, timeline labels.
+- **Auto-scroll** — pri prepnutí kanála sa aktívna karta scrollne do viditeľnosti.
 
 ---
 
@@ -182,16 +303,15 @@ Všetky významné zmeny v projekte sú dokumentované v tomto súbore.
 
 ### ⚡ Fáza 2 — Kľúčové funkcie
 
-#### ➕ Added
-- **Skupinový filter kanálov** — dropdown v sidebari filtruje kanály podľa `group-title` z M3U playlistu. Filter sa aplikuje aj na EPG guide.
-- **CORS proxy pre web verziu** — konfigurovateľný URL prefix v Nastavenia › Sieť. Automaticky sa prepends iba vo web verzii (Electron a Android ho ignorujú). Uložený v localStorage.
-- **Vyhľadávanie v EPG** — search input v hlavičke EPG guide panelu. Filtruje kanály a programy podľa názvu.
+#### Added
+- **Skupinový filter kanálov** — dropdown v sidebari filtruje kanály podľa `group-title`.
+- **CORS proxy pre web verziu** — konfigurovateľný URL prefix v Nastavenia › Sieť.
+- **Vyhľadávanie v EPG** — search input filtruje kanály a programy podľa názvu.
 - **Klávesová navigácia** — ArrowUp/ArrowDown medzi channel kartami v sidebari.
-- **Focus-visible ring** — vizuálny focus indikátor pre keyboard používateľov na channel kartách.
-- **Preklady** — nové SK/EN preklady pre všetky pridané UI prvky (`allGroups`, `settingsNetwork`, `labelCorsProxy`, `corsHint`, `searchEpg`).
+- **Focus-visible ring** — vizuálny focus indikátor pre keyboard používateľov.
 
-#### 🔀 Changed
-- **EPG guide** — odstránený hardcoded limit 80 kanálov. Zobrazujú sa všetky kanály, filtrované podľa skupiny a EPG vyhľadávania.
+#### Changed
+- **EPG guide** — odstránený hardcoded limit 80 kanálov. Zobrazujú sa všetky kanály.
 - **`renderChannels()`** — refaktorovaný na použitie zdieľanej `filteredChannels()` funkcie.
 
 ---
@@ -200,20 +320,20 @@ Všetky významné zmeny v projekte sú dokumentované v tomto súbore.
 
 ### 🔨 Fáza 1.2 — Okamžité opravy (audit)
 
-#### ➕ Added
-- **MIT LICENSE súbor** — projekt je teraz oficiálny open-source pod MIT licenciou.
-- **hls.js bundlovaný do `vendor/`** — `copy-web.mjs` teraz kopíruje `hls.min.js` do `dist/web/vendor/hls.js/` pre offline fallback.
-- **HLS podpora pre Video.js** — priama integrácia cez hls.js keď VHS plugin nie je dostupný. Pripája sa na Video.js tech element.
-- **HLS podpora pre ArtPlayer** — `customType.m3u8` handler vytvára hls.js inštanciu pre každý HLS stream. ArtPlayer sa teraz pri zmene kanálu destroyuje a rekonštruuje.
-- **Error handling pre parsing** — `loadPlaylistText()` a `loadEpgText()` sú teraz obalené v try/catch. Poškodený XML/M3U už nespôsobí pád aplikácie.
-- **localStorage varovanie** — pri ukladaní playlistov alebo EPG textov väčších ako 4 MB sa vypíše warning do konzoly.
+#### Added
+- **MIT LICENSE súbor** — projekt je teraz officiálny open-source pod MIT licenciou.
+- **hls.js bundlovaný do `vendor/`** — `copy-web.mjs` teraz kopíruje `hls.min.js` do `dist/web/vendor/hls.js/`.
+- **HLS podpora pre Video.js** — priama integrácia cez hls.js keď VHS plugin nie je dostupný.
+- **HLS podpora pre ArtPlayer** — `customType.m3u8` handler vytvára hls.js inštanciu pre každý HLS stream.
+- **Error handling pre parsing** — `loadPlaylistText()` a `loadEpgText()` obalené v try/catch.
+- **localStorage varovanie** — pri ukladaní > 4 MB sa vypíše warning do konzoly.
 
-#### 🔀 Changed
+#### Changed
 - **`ensureHls()`** — teraz skúša najprv lokálny `./vendor/hls.js/hls.min.js`, potom CDN fallback.
-- **ArtPlayer** — pri prepínaní kanálov sa inštancia destroyuje a vytvára nová (nutné kvôli `customType`).
+- **ArtPlayer** — pri prepínaní kanálov sa inštancia destroyuje a vytvára nová.
 
-#### 🐛 Fixed
-- **`.gitignore`** — pridaný `android/` adresár (generovaný Capacitorom, nepatrí do repa).
+#### Fixed
+- **`.gitignore`** — pridaný `android/` adresár (generovaný Capacitorom).
 
 ---
 
@@ -221,16 +341,16 @@ Všetky významné zmeny v projekte sú dokumentované v tomto súbore.
 
 ### 🔨 Fáza 1.1 — Predauditové opravy
 
-#### ➕ Added
+#### Added
 - **`sanitizeLogoUrl()`** — validácia logo URL (XSS prevencia), povolené iba `https?://` a `data:image/`.
 - **`safeGet` / `safeSet` / `safeGetJson` / `safeSetJson`** — localStorage operácie obalené v try/catch pre sandboxované prostredia.
 - **Správa playlistov** — drawer s pridávaním, odoberaním a prepínaním viacerých playlistov.
 - **Správa EPG zdrojov** — zlučovanie viacerých EPG zdrojov s deduplikáciou.
 - **Android intent bridge** — `TCLVPlayerPlugin.kt` plne implementovaný s `Intent.ACTION_VIEW`, URL schema validáciou a fallbackom na generického playera.
 
-#### 🐛 Fixed
-- **Demo URL** — nahradené nefunkčné `example.com` URL skutočnými HLS testovacími streamami (mux.dev, unified-streaming, bitdash, akamaihd).
-- **`setInterval`** — partial refresh namiesto plného `renderAll()` — aktualizuje iba EPG, progress barky a texty kanálov.
+#### Fixed
+- **Demo URL** — nahradené nefunkčné `example.com` URL skutočnými HLS testovacími streamami.
+- **`setInterval`** — partial refresh namiesto plného `renderAll()`.
 
 ---
 
@@ -238,7 +358,7 @@ Všetky významné zmeny v projekte sú dokumentované v tomto súbore.
 
 ### 🎉 Iniciálna verzia
 
-#### ➕ Added
+#### Added
 - Základná aplikácia s HTML5 video playerom
 - M3U/M3U8 a XSPF parsing
 - XMLTV EPG parsing s fuzzy matchingom kanálov
