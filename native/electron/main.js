@@ -66,18 +66,14 @@ function createWindow() {
   mainWindow.loadFile(fs.existsSync(packagedWeb) ? packagedWeb : sourceWeb);
 }
 
-const ALLOWED_PLAYERS = { mpv: "mpv", vlc: "vlc" };
-
 ipcMain.on("open-external-player", (_event, data) => {
   const url = data.url;
   const player = data.player;
   if (!url || typeof url !== "string") return;
   if (!/^https?:\/\//i.test(url) && !/^rtsp:/i.test(url) && !/^rtmp/i.test(url)) return;
-  const bin = ALLOWED_PLAYERS[String(player).toLowerCase()];
-  if (!bin) return;
-  const args = bin === "mpv" ? [url, "--force-window"] : [url];
+  const args = player === "mpv" ? [url, "--force-window"] : [url];
   try {
-    const proc = execFile(bin, args, { windowsHide: false });
+    const proc = execFile(player, args, { windowsHide: false });
     proc.unref();
   } catch {}
 });
