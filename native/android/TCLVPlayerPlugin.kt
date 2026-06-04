@@ -25,6 +25,7 @@ class TCLVPlayerPlugin : Plugin() {
             val packageName = when (player.lowercase()) {
                 "vlc" -> "org.videolan.vlc"
                 "mpv" -> "is.xyz.mpv"
+                "system", "native" -> null
                 else -> null
             }
             val intent = Intent(Intent.ACTION_VIEW).apply {
