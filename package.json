@@ -9,7 +9,7 @@
     "web": "npx http-server . -p 3000 -c-1",
     "proxy": "node scripts/local-proxy.mjs",
     "windows": "npm run prepare:web && electron .",
-    "windows:dist": "npm run prepare:web && electron-builder --win nsis portable",
+    "windows:dist": "npm run prepare:web && electron-builder --win nsis portable --publish never",
     "android:init": "cap add android",
     "android:apply-template": "node scripts/apply-android-template.mjs",
     "android:setup": "npm run prepare:web && cap add android && npm run android:apply-template && cap sync android",
