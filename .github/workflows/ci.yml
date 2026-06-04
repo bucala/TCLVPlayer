@@ -59,7 +59,7 @@ jobs:
         run: npm run prepare:web
 
       - name: Upload web bundle
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
           name: tclvplayer-web
           path: dist/web
