@@ -44,19 +44,45 @@ export default async function handler(req, res) {
     const upstream = await fetch(url, {
       headers,
       redirect: "follow",
-      signal: AbortSignal.timeout(15000),
+      signal: AbortSignal.timeout(20000),
     });
+
+    if (!upstream.ok) {
+      const isStream = /\.(ts|m3u8|m3u)(\?|$)/i.test(url) ||
+        (upstream.headers.get("content-type") || "").includes("mpegurl");
+      res.status(upstream.status).json({
+        error: `Upstream returned ${upstream.status}`,
+        hint: isStream ? "geo-blocked" : undefined,
+      });
+      return;
+    }
 
     res.setHeader("Cache-Control", "no-store");
 
     const ct = upstream.headers.get("content-type");
     if (ct) res.setHeader("Content-Type", ct);
 
+    const cl = upstream.headers.get("content-length");
+    if (cl) res.setHeader("Content-Length", cl);
+
     res.status(upstream.status);
 
-    const body = await upstream.arrayBuffer();
-    res.send(Buffer.from(body));
+    const body = upstream.body;
+    if (body && typeof body.pipeTo === "function") {
+      const { Writable } = await import("node:stream");
+      const writable = Writable.toWeb(res);
+      await body.pipeTo(writable);
+    } else {
+      const buf = await upstream.arrayBuffer();
+      res.send(Buffer.from(buf));
+    }
   } catch (err) {
-    res.status(502).json({ error: err.message || "Upstream fetch failed" });
+    const msg = err.message || "Upstream fetch failed";
+    const isTimeout = msg.includes("timeout") || msg.includes("abort");
+    const isNetwork = msg.includes("ECONNREFUSED") || msg.includes("ENOTFOUND") || msg.includes("ENETUNREACH");
+    res.status(502).json({
+      error: msg,
+      hint: isTimeout ? "timeout" : isNetwork ? "geo-blocked" : undefined,
+    });
   }
 }
