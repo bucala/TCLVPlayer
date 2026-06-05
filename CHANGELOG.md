@@ -7,6 +7,16 @@ Všetky významné zmeny v projekte sú dokumentované v tomto súbore.
 
 ---
 
+## [1.1.4] — 2026-06-05
+
+### Selection color correction
+
+#### Fixed
+- **Oranžový štýl aktívnych prvkov** — aktívne kanály, playlisty, EPG zdroje a aktuálny EPG program sú opäť v pôvodnom oranžovom štýle.
+- **Dropdown prehrávača** — natívny modrý highlight vo Windows/Chrome je nahradený vlastným sivým výberom iba v rozbaľovacej ponuke prehrávača.
+
+---
+
 ## [1.1.3] — 2026-06-05
 
 ### EPG program detail

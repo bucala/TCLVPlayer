@@ -729,6 +729,78 @@ function translateUi() {
   document.documentElement.lang = state.language; dom.languageSelect.value = state.language; dom.playerSelect.value = state.player;
   document.querySelectorAll('[data-i18n]').forEach((node)=>{ node.textContent = t(node.dataset.i18n); });
   document.querySelectorAll('[data-i18n-placeholder]').forEach((node)=>{ node.placeholder = t(node.dataset.i18nPlaceholder); });
+  syncCustomPlayerSelect();
+}
+function playerOptions() {
+  return Array.from(dom.playerSelect.options).filter(function(option) {
+    return !option.disabled && !option.hidden && option.style.display !== 'none';
+  });
+}
+function closeCustomPlayerSelect() {
+  var custom = document.querySelector('#playerSelectCustom');
+  if (!custom) return;
+  custom.classList.remove('open');
+  custom.querySelector('.custom-select-button')?.setAttribute('aria-expanded', 'false');
+  var menu = custom.querySelector('.custom-select-menu');
+  if (menu) menu.hidden = true;
+}
+function syncCustomPlayerSelect() {
+  var custom = document.querySelector('#playerSelectCustom');
+  if (!custom || !dom.playerSelect) return;
+  var button = custom.querySelector('.custom-select-button');
+  var menu = custom.querySelector('.custom-select-menu');
+  if (!button || !menu) return;
+  var selected = dom.playerSelect.selectedOptions[0] || playerOptions()[0];
+  button.textContent = selected?.textContent || '';
+  menu.querySelectorAll('.custom-select-option').forEach(function(option) {
+    option.setAttribute('aria-selected', String(option.dataset.value === dom.playerSelect.value));
+  });
+}
+function renderCustomPlayerOptions() {
+  var custom = document.querySelector('#playerSelectCustom');
+  if (!custom || !dom.playerSelect) return;
+  var menu = custom.querySelector('.custom-select-menu');
+  if (!menu) return;
+  menu.replaceChildren();
+  playerOptions().forEach(function(option) {
+    var item = document.createElement('button');
+    item.type = 'button';
+    item.className = 'custom-select-option';
+    item.dataset.value = option.value;
+    item.setAttribute('role', 'option');
+    item.textContent = option.textContent;
+    item.addEventListener('click', function() {
+      dom.playerSelect.value = option.value;
+      dom.playerSelect.dispatchEvent(new window.Event('change', { bubbles: true }));
+      closeCustomPlayerSelect();
+    });
+    menu.append(item);
+  });
+  syncCustomPlayerSelect();
+}
+function initCustomPlayerSelect() {
+  var custom = document.querySelector('#playerSelectCustom');
+  if (!custom || custom.dataset.ready === 'true') return;
+  var button = custom.querySelector('.custom-select-button');
+  var menu = custom.querySelector('.custom-select-menu');
+  if (!button || !menu) return;
+  button.addEventListener('click', function() {
+    var open = custom.classList.toggle('open');
+    button.setAttribute('aria-expanded', String(open));
+    menu.hidden = !open;
+    if (open) menu.querySelector('[aria-selected="true"]')?.focus();
+  });
+  custom.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+      closeCustomPlayerSelect();
+      button.focus();
+    }
+  });
+  document.addEventListener('click', function(event) {
+    if (!custom.contains(event.target)) closeCustomPlayerSelect();
+  });
+  custom.dataset.ready = 'true';
+  renderCustomPlayerOptions();
 }
 function renderChannels() {
   const channels = filteredChannels();
@@ -1188,7 +1260,7 @@ function playChannel(channel) {
   if (state.player === 'mpv' || state.player === 'vlc') {
     if (getPlatform() === 'android') return playExternalAndroid(channel);
     if (getPlatform() === 'electron') return playExternalDesktop(channel);
-    state.player = fallbackPlayer(getPlatform()); saveCurrentPlayer(); dom.playerSelect.value = state.player;
+    state.player = fallbackPlayer(getPlatform()); saveCurrentPlayer(); dom.playerSelect.value = state.player; syncCustomPlayerSelect();
   }
   if (state.player === 'videojs') return playVideoJs(channel);
   if (state.player === 'artplayer') return playArtPlayer(channel);
@@ -1455,7 +1527,7 @@ function bindEvents() {
     if ((event.key === 'PageUp' || event.key === 'ChannelUp') && channels.length) { event.preventDefault(); const idx = channels.findIndex((ch) => ch.id === state.selectedChannelId); const prev = idx > 0 ? idx - 1 : channels.length - 1; selectChannel(channels[prev].id); const card = dom.channelGrid.querySelector(`[data-id="${channels[prev].id}"]`); card?.focus(); card?.scrollIntoView({ block: 'nearest' }); }
     if ((event.key === 'PageDown' || event.key === 'ChannelDown') && channels.length) { event.preventDefault(); const idx = channels.findIndex((ch) => ch.id === state.selectedChannelId); const next = idx < channels.length - 1 ? idx + 1 : 0; selectChannel(channels[next].id); const card = dom.channelGrid.querySelector(`[data-id="${channels[next].id}"]`); card?.focus(); card?.scrollIntoView({ block: 'nearest' }); }
   });
-  dom.playerSelect.addEventListener('change', () => { state.player = dom.playerSelect.value; saveCurrentPlayer(); const channel = selectedChannel(); if (channel) playChannel(channel); });
+  dom.playerSelect.addEventListener('change', () => { state.player = dom.playerSelect.value; syncCustomPlayerSelect(); saveCurrentPlayer(); const channel = selectedChannel(); if (channel) playChannel(channel); });
   dom.languageSelect.addEventListener('change', () => { state.language = dom.languageSelect.value; safeSet('tclv.language', state.language); renderAll(); });
   dom.logoFile?.addEventListener('change', () => {});
 }
@@ -1469,5 +1541,5 @@ async function reloadEpgSources() {
   }
   if (sources.some(function(s) { return s.text; })) rebuildMergedEpg();
 }
-function init() { initLogoIndex(); bindEvents(); state.player = dom.playerSelect.value = state.player; state.language = translations[state.language] ? state.language : 'sk'; state.corsProxy = detectCorsProxySync(); if (dom.corsProxyInput) dom.corsProxyInput.value = state.corsProxy; detectLocalProxy(); var platform = getPlatform(); if (platform === 'electron' || platform === 'android') { var netSection = dom.corsProxyInput?.closest('.settings-section'); if (netSection) netSection.style.display = 'none'; } else if (platform === 'web-http') { var corsHintEl = dom.corsProxyInput?.closest('.settings-section')?.querySelector('.settings-hint'); if (corsHintEl) corsHintEl.textContent = 'HTTP — priame prehrávanie bez proxy.'; } if (!isNativePlatform()) { dom.playerSelect.querySelectorAll('.native-only').forEach(function(opt) { opt.disabled = true; opt.hidden = true; }); } if (document.pictureInPictureEnabled && dom.pipButton) dom.pipButton.removeAttribute('hidden'); setPlayerActive(false); renderSourceLists(); if (state.playlists.length && state.activePlaylistId) activatePlaylist(state.activePlaylistId); else renderAll(); if (state.epgSources.length && !state.epgSources.some(function(s) { return s.text; })) reloadEpgSources(); setSidebarMode(state.sidebarMode); setInterval(() => { if (state.epgVisible) renderGuide(); document.querySelectorAll('.channel-card').forEach((card) => { const ch = state.channels.find((c) => c.id === card.dataset.channelId); if (!ch) return; const prog = currentProgram(ch); const bar = card.querySelector('.progress-track span'); if (bar) bar.style.width = progress(prog) + '%'; const txt = card.querySelector('.channel-text p'); if (txt) txt.textContent = prog?.title || ''; }); }, 60 * 1000); }
+function init() { initLogoIndex(); bindEvents(); state.player = dom.playerSelect.value = state.player; state.language = translations[state.language] ? state.language : 'sk'; state.corsProxy = detectCorsProxySync(); if (dom.corsProxyInput) dom.corsProxyInput.value = state.corsProxy; detectLocalProxy(); var platform = getPlatform(); if (platform === 'electron' || platform === 'android') { var netSection = dom.corsProxyInput?.closest('.settings-section'); if (netSection) netSection.style.display = 'none'; } else if (platform === 'web-http') { var corsHintEl = dom.corsProxyInput?.closest('.settings-section')?.querySelector('.settings-hint'); if (corsHintEl) corsHintEl.textContent = 'HTTP — priame prehrávanie bez proxy.'; } if (!isNativePlatform()) { dom.playerSelect.querySelectorAll('.native-only').forEach(function(opt) { opt.disabled = true; opt.hidden = true; }); } initCustomPlayerSelect(); if (document.pictureInPictureEnabled && dom.pipButton) dom.pipButton.removeAttribute('hidden'); setPlayerActive(false); renderSourceLists(); if (state.playlists.length && state.activePlaylistId) activatePlaylist(state.activePlaylistId); else renderAll(); if (state.epgSources.length && !state.epgSources.some(function(s) { return s.text; })) reloadEpgSources(); setSidebarMode(state.sidebarMode); setInterval(() => { if (state.epgVisible) renderGuide(); document.querySelectorAll('.channel-card').forEach((card) => { const ch = state.channels.find((c) => c.id === card.dataset.channelId); if (!ch) return; const prog = currentProgram(ch); const bar = card.querySelector('.progress-track span'); if (bar) bar.style.width = progress(prog) + '%'; const txt = card.querySelector('.channel-text p'); if (txt) txt.textContent = prog?.title || ''; }); }, 60 * 1000); }
 init();
