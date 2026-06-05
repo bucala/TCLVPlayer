@@ -3,4 +3,8 @@ Thumbs.db
 node_modules/
 dist/
 android/
+!native/
+!native/android/
+!native/android/res/
+!native/android/res/**
 .env
