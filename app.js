@@ -87,6 +87,12 @@ function platformPlayersSnapshot() {
     android: safeGet('tclv.player.android', 'native')
   };
 }
+function safeGetJsonObject(key) {
+  try {
+    var value = JSON.parse(localStorage.getItem(key) || '{}');
+    return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+  } catch { return {}; }
+}
 function defaultPlayer() {
   var platform = getPlatform();
   var saved = safeGet(platformPlayerKey(platform), "");
@@ -108,6 +114,8 @@ const state = {
   epgVisible: false,
   favorites: new Set(JSON.parse(safeGet("tclv.favorites", "[]") || "[]")),
   logoIndexes: [],
+  logoResolved: safeGetJsonObject('tclv.logoResolved'),
+  logoFailures: new Set(),
   searchQuery: "",
   activeGroup: "all",
   streamStatus: {},
@@ -152,6 +160,8 @@ function hashCode(value) { let hash = 0; for (let i = 0; i < value.length; i += 
 function escapeXml(value) { return String(value).replace(/[<>&"']/g, (char) => ({"<":"&lt;",">":"&gt;","&":"&amp;","\"":"&quot;","'":"&apos;"})[char]); }
 function normalizeId(value) { return String(value || "").trim().toLowerCase().replace(/[^a-z0-9._-]+/g, "-").replace(/^-+|-+$/g, ""); }
 function placeholderLogo(name) { const initials = (name || "TV").split(/\s+/).map((part) => part[0]).join("").slice(0,3).toUpperCase(); const hue = Math.abs(hashCode(name || "TV")) % 360; const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160"><rect width="160" height="160" fill="hsl(${hue} 72% 46%)"/><text x="80" y="92" text-anchor="middle" font-family="Arial, sans-serif" font-size="42" font-weight="700" fill="white">${escapeXml(initials)}</text></svg>`; return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`; }
+const EPG_STEP_HOURS = 1.5;
+const EPG_ZOOM_FACTOR = 1.25;
 
 // ── Logo sources ─────────────────────────────────────────────────────────────
 // Ordered fallbacks requested by the project:
@@ -200,13 +210,50 @@ const TV_LOGO_BASE = 'https://raw.githubusercontent.com/tv-logo/tv-logos/main/co
 const TV_LOGO_COUNTRIES = ['slovakia', 'czech-republic', 'international', 'hungary', 'poland', 'austria', 'germany', 'united-kingdom', 'france', 'italy', 'spain', 'united-states'];
 const TV_LOGO_COUNTRY_SUFFIX = { 'slovakia': 'sk', 'czech-republic': 'cz', 'international': 'int', 'hungary': 'hu', 'poland': 'pl', 'austria': 'at', 'germany': 'de', 'united-kingdom': 'uk', 'france': 'fr', 'italy': 'it', 'spain': 'es', 'united-states': 'us' };
 
-function logoKey(value) { return normalizeId(value).replace(/-/g, ''); }
+function logoKey(value) {
+  return normalizeId(String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')).replace(/-/g, '');
+}
 function cleanLogoName(value) {
   return String(value || '')
     .replace(/<[^>]+>/g, '')
     .replace(/[ⒼⓈ]/g, '')
     .replace(/^:+/, '')
     .trim();
+}
+const LOGO_ALIASES = {
+  '1': ['Jednotka', 'Jednotka.sk'],
+  'jednotka': ['Jednotka.sk'],
+  '2': ['Dvojka', 'Dvojka.sk'],
+  'dvojka': ['Dvojka.sk'],
+  '24': ['RTVS 24', '24.sk'],
+  'rtvs24': ['RTVS 24', '24.sk'],
+  'markiza': ['Markíza', 'Markiza.sk'],
+  'markizakrimi': ['Markíza Krimi', 'MarkizaKrimi.sk'],
+  'markizaklasik': ['Markíza Klasik', 'MarkizaKlasik.sk'],
+  'doma': ['Doma.sk'],
+  'dajto': ['DajTO', 'Dajto.sk'],
+  'joj': ['TVJOJ.sk'],
+  'jojplus': ['JOJ Plus', 'JOJPlus.sk'],
+  'jojcinema': ['JOJ Cinema', 'JOJCinema.sk'],
+  'jojsvet': ['JOJ Svet', 'JOJSvet.sk'],
+  'wau': ['WAU', 'JOJWAU.sk'],
+  'jojko': ['Jojko.sk'],
+  'riktv': ['RiK TV', 'RiKTV.sk']
+};
+function channelLogoAliases(channel) {
+  var values = [channel.tvgId, channel.name, channel.id].filter(Boolean);
+  var out = [];
+  values.forEach(function(value) {
+    out.push(value);
+    var key = logoKey(value);
+    if (LOGO_ALIASES[key]) out.push(...LOGO_ALIASES[key]);
+    var noCountry = String(value).replace(/\.[a-z]{2}$/i, '');
+    if (noCountry !== value) out.push(noCountry);
+  });
+  return [...new Set(out.filter(Boolean))];
+}
+function channelLogoCacheKey(channel) {
+  return logoKey(channel.tvgId || channel.name || channel.id || '');
 }
 function registerLogo(map, key, url) {
   var cleanKey = logoKey(cleanLogoName(key));
@@ -320,7 +367,7 @@ async function initLogoIndex() {
   if (state.epgVisible) renderGuide();
 }
 function indexedLogoCandidates(channel, source) {
-  var keys = [channel.tvgId, channel.name, channel.id].filter(Boolean);
+  var keys = channelLogoAliases(channel);
   var hits = [];
   for (var i = 0; i < keys.length; i++) {
     var hit = source.map?.[logoKey(keys[i])];
@@ -354,6 +401,8 @@ function logoCandidates(channel) {
     url = normalizeLogoUrl(sanitizeLogoUrl(url));
     if (url && !urls.includes(url)) urls.push(url);
   }
+  var cached = state.logoResolved[channelLogoCacheKey(channel)];
+  add(cached);
   for (var i = 0; i < LOGO_SOURCES.length; i++) {
     var source = LOGO_SOURCES[i];
     if (source.type === 'candidate') {
@@ -364,15 +413,26 @@ function logoCandidates(channel) {
     if (loaded) indexedLogoCandidates(channel, loaded).forEach(add);
   }
   add(channel.logo);
+  urls = urls.filter(function(url) { return !state.logoFailures.has(url); });
   urls.push(placeholderLogo(channel.name));
   return urls;
 }
 function setLogoImage(imgEl, channel) {
   var candidates = logoCandidates(channel);
   var idx = 0;
+  var current = imgEl.getAttribute('src') || '';
+  if (current && !current.startsWith('data:image/') && candidates.includes(current)) return;
   imgEl.onerror = function() {
+    if (candidates[idx] && !candidates[idx].startsWith('data:image/')) state.logoFailures.add(candidates[idx]);
     idx += 1;
     imgEl.src = candidates[idx] || placeholderLogo(channel.name);
+  };
+  imgEl.onload = function() {
+    var src = imgEl.getAttribute('src') || '';
+    if (src && !src.startsWith('data:image/')) {
+      state.logoResolved[channelLogoCacheKey(channel)] = src;
+      safeSetJson('tclv.logoResolved', state.logoResolved);
+    }
   };
   imgEl.src = candidates[0] || placeholderLogo(channel.name);
   imgEl.alt = channel.name;
@@ -692,6 +752,11 @@ function renderChannels() {
       }
     });
     dom.channelGrid.append(node);
+  });
+}
+function updateChannelSelectionUi() {
+  dom.channelGrid.querySelectorAll('.channel-card').forEach(function(card) {
+    card.classList.toggle('active', card.dataset.channelId === state.selectedChannelId);
   });
 }
 function setSidebarMode(mode, persist) {
@@ -1029,7 +1094,7 @@ function showSwitchOverlay(channel) {
   clearTimeout(state.overlayTimer);
   state.overlayTimer = setTimeout(() => dom.switchOverlay.classList.remove('show'), 5200);
 }
-function selectChannel(id) { const channel = state.channels.find((item) => item.id === id); if (!channel) return; if (state.multiview && state.mvSlot === 1) { state.mvChannel1 = channel; playInSlot1(channel); renderChannels(); return; } state.selectedChannelId = id; playChannel(channel); showSwitchOverlay(channel); renderChannels(); requestAnimationFrame(() => { const active = dom.channelGrid.querySelector('.channel-card.active'); active?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }); }
+function selectChannel(id) { const channel = state.channels.find((item) => item.id === id); if (!channel) return; if (state.multiview && state.mvSlot === 1) { state.mvChannel1 = channel; playInSlot1(channel); updateChannelSelectionUi(); return; } state.selectedChannelId = id; playChannel(channel); showSwitchOverlay(channel); updateChannelSelectionUi(); requestAnimationFrame(() => { const active = dom.channelGrid.querySelector('.channel-card.active'); active?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }); }
 function isNativePlatform() { return !!(window.TCLVNative || window.Capacitor); }
 function getPlatform() {
   if (window.TCLVNative) return 'electron';
@@ -1210,10 +1275,10 @@ function bindEvents() {
   dom.epgToggle?.addEventListener('click', toggleEpg);
   dom.sidebarToggle?.addEventListener('click', toggleSidebar);
   dom.qualitySelect?.addEventListener('change', function() { if (!state.hls) return; var v = parseInt(this.value, 10); state.hls.currentLevel = isNaN(v) ? -1 : v; });
-  dom.epgBack?.addEventListener('click', function() { state.epgOffsetHours -= 3; renderGuide(); });
-  dom.epgFwd?.addEventListener('click', function() { state.epgOffsetHours += 3; renderGuide(); });
-  dom.epgZoomIn?.addEventListener('click', function() { if (state.epgZoom > 0.5) { state.epgZoom = Math.max(0.5, state.epgZoom / 1.5); renderGuide(); } });
-  dom.epgZoomOut?.addEventListener('click', function() { if (state.epgZoom < 4) { state.epgZoom = Math.min(4, state.epgZoom * 1.5); renderGuide(); } });
+  dom.epgBack?.addEventListener('click', function() { state.epgOffsetHours -= EPG_STEP_HOURS; renderGuide(); });
+  dom.epgFwd?.addEventListener('click', function() { state.epgOffsetHours += EPG_STEP_HOURS; renderGuide(); });
+  dom.epgZoomIn?.addEventListener('click', function() { if (state.epgZoom > 0.5) { state.epgZoom = Math.max(0.5, state.epgZoom / EPG_ZOOM_FACTOR); renderGuide(); } });
+  dom.epgZoomOut?.addEventListener('click', function() { if (state.epgZoom < 4) { state.epgZoom = Math.min(4, state.epgZoom * EPG_ZOOM_FACTOR); renderGuide(); } });
   dom.menuToggle?.addEventListener('click', ()=> dom.settingsPanel.hidden ? openSettings() : closeSettings());
   dom.settingsClose?.addEventListener('click', closeSettings); dom.settingsOverlay?.addEventListener('click', closeSettings);
   dom.playlistFile.addEventListener('change', async () => { const file = dom.playlistFile.files?.[0]; if (!file) return; try { const text = await readFile(file); const record = { id: `pl-${Date.now()}`, name: file.name, source: file.name, type: file.name.toLowerCase().endsWith('.xspf') ? 'xspf' : 'm3u', origin: 'local', text }; addPlaylistRecord(record); await loadPlaylistText(text, file.name); } catch (error) { showMessage(`${t('loadError')} ${error.message}`); } });

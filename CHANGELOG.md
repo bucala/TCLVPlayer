@@ -7,6 +7,20 @@ Všetky významné zmeny v projekte sú dokumentované v tomto súbore.
 
 ---
 
+## [1.1.2] — 2026-06-05
+
+### Selection color, logo stability, finer EPG controls
+
+#### Changed
+- **Výber v UI** — aktívne položky a select highlight používajú konzistentnú bledosivú farbu.
+- **EPG posun a zoom** — šípky posúvajú časovú os po 1.5 h a zoom používa jemnejší krok `1.25x`.
+
+#### Fixed
+- **Logo flicker pri prepínaní kanálov** — zoznam kanálov sa pri prepnutí už celý neprekresľuje.
+- **Logo cache** — úspešne načítané logo sa uloží podľa kanála a opakovane sa nepremieňa medzi zdrojmi.
+
+---
+
 ## [1.1.1] — 2026-06-05
 
 ### Logo source resolver and legal notes
