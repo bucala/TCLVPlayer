@@ -38,7 +38,9 @@
 - **Platformove playery** — Android: nativny system player (Intent), Windows: in-app s CORS bypass, Web: HTML5/Video.js/ArtPlayer
 - **EPG s casovou osou** — XMLTV parsing, zoom a navigacia, fuzzy matching kanalov, live progress
 - **Kvalita videa** — vyber HLS kvality (360p / 720p / 1080p / nativna)
-- **Automaticke loga** — tv-logos repozitar s 10 000+ logami kanalov
+- **Jednoduche UI** — kanalovy panel bez hladania/skupin, 2-krokovy sidebar `full -> logo -> hidden`
+- **Logo index** — centralny zoznam log v `lists/logos.md`, s fallbackom na `tvg-logo`
+- **Direct link import** — URL playlisty z Google Drive a Dropbox sa prevedu na download link
 - **Lokálny proxy bridge** — `npm run proxy` pre priame streamovanie cez lokalnu siet z Vercel HTTPS
 - **Bezpecnostny audit** — CSP, XSS ochrana, SSRF blokovanie, import validacia
 - **Privatne a offline** — ziadny backend, ziadne ucty, vsetky data zostavaju lokalne
@@ -166,8 +168,9 @@ https://api.allorigins.win/raw?url=
 
 - 📁 Import zo súboru alebo URL — `*.m3u`, `*.m3u8`, `*.xspf`
 - 🗂️ Správa viacerých playlistov — pridať, odstrániť, prepnúť v draweri
-- 🖼️ Vlastné logo kanála z lokálneho úložiska
-- 🔀 Sidebar toggle — skryť/zobraziť zoznam kanálov
+- 🖼️ Logá kanálov zo zdroja `lists/logos.md` alebo z `tvg-logo` v playliste
+- 🔀 Sidebar toggle — 1. krok zobrazí iba logá, 2. krok skryje panel kompletne
+- 🔗 Online import — `*.m3u`, `*.m3u8`, `*.xspf`, Google Drive file linky a Dropbox share linky
 
 ### 📺 EPG — Elektronický programový sprievodca
 
@@ -186,6 +189,7 @@ https://api.allorigins.win/raw?url=
 - 🎞️ **Video.js** — s HLS podporou, lazy-load
 - 🖥️ **ArtPlayer** — s HLS + MPEG-TS podporou cez `mpegts.js`, lazy-load
 - 🎥 **HLS kvalita** — floating dropdown pre výber kvality (Natívna / 360p / 720p / 1080p)
+- 🖼️ **Picture-in-Picture** — ovládanie v hornom menu nad videom
 - 🔄 **Try-direct-first** — proxy len keď je nutné (CORS chyba)
 - 🔇 **Muted autoplay** — video sa spustí stlmené, po úspechu odtlmí
 
@@ -195,12 +199,14 @@ https://api.allorigins.win/raw?url=
 - **Web** — konfigurovateľný CORS proxy s dual-stratégiou (encoded + raw fallback)
 - `contextIsolation: true`, `nodeIntegration: false`, `sandbox: true`
 - HTML escaping, logo URL sanitizácia (`https?://` a `data:image/` iba)
+- Lokálny logo index: [lists/logos.md](lists/logos.md)
 
 ### ♠️ Nastavenia
 
 - 🔀 Prepínanie playerov za behu
 - 🌍 Jazyky: **Slovenčina** (default) · **English**
 - 💾 Všetko lokálne v `localStorage` — žiadny účet, žiadny cloud
+- Xtream Codes panel je skrytý; aplikácia je zameraná na súbor/URL playlisty a EPG
 
 ### ♿ Prístupnosť
 

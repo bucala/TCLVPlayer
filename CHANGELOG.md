@@ -7,6 +7,31 @@ Všetky významné zmeny v projekte sú dokumentované v tomto súbore.
 
 ---
 
+## [1.1.0] — 2026-06-05
+
+### Release 1.1 — Android fullscreen, simple UI, direct link import
+
+#### Added
+- **Android immersive fullscreen** — aplikácia skrýva status/navigation bary a používa čierne systémové plochy.
+- **2-krokový sidebar** — šípka prepína `full -> logo rail -> hidden`.
+- **Direct link import** — Google Drive file linky a Dropbox share linky sa normalizujú na download URL.
+- **Lokálny logo index** — logá sa načítavajú z `lists/logos.md`.
+
+#### Changed
+- **PiP ovládanie** — Picture-in-Picture je v hornom menu nad prehrávaným videom.
+- **Interaktívne vrstvy** — menu, overlaye, quality select a sidebar toggle sú nad video vrstvou.
+- **Mobilný layout** — portrait aj landscape používajú rovnaký jednoduchý form factor pre web, Windows aj Android.
+- **Playlist/EPG Use** — opätovné zapnutie alebo klik na aktívny sieťový zdroj vie zdroj znovu načítať.
+- **README vizuál** — popis funkcií je zladený so zjednodušeným UI.
+
+#### Removed
+- **Xtream Codes panel v menu** — skrytý v používateľskom rozhraní.
+- **Vyhľadávanie kanálov** — odstránené zo sidebaru; EPG vyhľadávanie zostáva.
+- **Skupiny kanálov** — group taby nad zoznamom kanálov odstránené.
+- **Ručná zmena loga stanice** — nahradené centrálnym `lists/logos.md`.
+
+---
+
 ## [1.0.0] — 2026-06-04
 
 ### Release 1.0 — Tri platformy, bezpecnostny audit, stabilizacia

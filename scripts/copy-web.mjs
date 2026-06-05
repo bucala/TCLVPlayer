@@ -7,6 +7,7 @@ const files = [
   ["styles.css", "styles.css"],
   ["app.js", "app.js"],
   ["favicon.svg", "favicon.svg"],
+  ["lists/logos.md", "lists/logos.md"],
 ];
 
 await rm(outDir, { recursive: true, force: true });

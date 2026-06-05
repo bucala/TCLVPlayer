@@ -93,17 +93,21 @@ function defaultPlayer() {
   if (saved) return saved;
   return fallbackPlayer(platform);
 }
+function defaultSidebarMode() {
+  var mode = safeGet('tclv.sidebarMode', '');
+  if (['full', 'rail', 'hidden'].includes(mode)) return mode;
+  return safeGet("tclv.sidebarVisible", "true") === "false" ? "hidden" : "full";
+}
 const state = {
-  language: safeGet("tclv.language", "sk"), channels: [], epg: new Map(), selectedChannelId: null, selectedLogoChannelId: null, player: defaultPlayer(), overlayTimer: 0, videoJsPlayer: null, artPlayer: null, hls: null, mpegtsPlayer: null,
+  language: safeGet("tclv.language", "sk"), channels: [], epg: new Map(), selectedChannelId: null, player: defaultPlayer(), overlayTimer: 0, videoJsPlayer: null, artPlayer: null, hls: null, mpegtsPlayer: null,
   corsProxy: "",
   epgOffsetHours: 0, epgZoom: 1,
   playlists: migrateStoredSources("tclv.playlists", []), activePlaylistId: safeGet("tclv.activePlaylistId", null),
   epgSources: migrateStoredSources("tclv.epgSources", []),
-  sidebarVisible: safeGet("tclv.sidebarVisible", "true") !== "false",
+  sidebarMode: defaultSidebarMode(),
   epgVisible: false,
   favorites: new Set(JSON.parse(safeGet("tclv.favorites", "[]") || "[]")),
-  tvLogoCache: {},
-  tvLogoMisses: new Set(),
+  logoIndex: {},
   searchQuery: "",
   activeGroup: "all",
   streamStatus: {},
@@ -148,60 +152,63 @@ function hashCode(value) { let hash = 0; for (let i = 0; i < value.length; i += 
 function escapeXml(value) { return String(value).replace(/[<>&"']/g, (char) => ({"<":"&lt;",">":"&gt;","&":"&amp;","\"":"&quot;","'":"&apos;"})[char]); }
 function normalizeId(value) { return String(value || "").trim().toLowerCase().replace(/[^a-z0-9._-]+/g, "-").replace(/^-+|-+$/g, ""); }
 function placeholderLogo(name) { const initials = (name || "TV").split(/\s+/).map((part) => part[0]).join("").slice(0,3).toUpperCase(); const hue = Math.abs(hashCode(name || "TV")) % 360; const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160"><rect width="160" height="160" fill="hsl(${hue} 72% 46%)"/><text x="80" y="92" text-anchor="middle" font-family="Arial, sans-serif" font-size="42" font-weight="700" fill="white">${escapeXml(initials)}</text></svg>`; return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`; }
-var tvLogosBase = 'https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/';
-var tvLogosCountries = ['slovakia', 'czech-republic', 'international', 'hungary', 'poland', 'austria', 'germany', 'united-kingdom', 'france', 'italy', 'spain', 'united-states'];
-var tvLogosCountrySuffix = { 'slovakia': 'sk', 'czech-republic': 'cz', 'international': 'int', 'hungary': 'hu', 'poland': 'pl', 'austria': 'at', 'germany': 'de', 'united-kingdom': 'uk', 'france': 'fr', 'italy': 'it', 'spain': 'es', 'united-states': 'us' };
-function tvLogoSlug(name) {
-  return String(name || '').toLowerCase()
-    .replace(/&/g, '-and-')
-    .replace(/\+/g, '-plus')
-    .replace(/[()[\]{}'":;!?,.*#@]/g, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
+function logoKey(value) { return normalizeId(value).replace(/-/g, ''); }
+function cleanLogoName(value) {
+  return String(value || '')
+    .replace(/<[^>]+>/g, '')
+    .replace(/[ⒼⓈ]/g, '')
+    .replace(/^:+/, '')
+    .trim();
 }
-function tvLogoCandidates(name) {
-  var slug = tvLogoSlug(name);
-  if (!slug) return [];
-  var urls = [];
-  for (var i = 0; i < tvLogosCountries.length; i++) {
-    var country = tvLogosCountries[i];
-    var suffix = tvLogosCountrySuffix[country];
-    urls.push(tvLogosBase + country + '/' + slug + '-' + suffix + '.png');
-  }
-  return urls;
-}
-function resolveTvLogo(channel, imgEl) {
-  var key = channel.id;
-  if (state.tvLogoCache[key]) { if (imgEl) imgEl.src = state.tvLogoCache[key]; return; }
-  if (state.tvLogoMisses.has(key)) return;
-  var candidates = tvLogoCandidates(channel.name);
-  if (!candidates.length) { state.tvLogoMisses.add(key); return; }
-  var idx = 0;
-  function tryNext() {
-    if (idx >= candidates.length) { state.tvLogoMisses.add(key); return; }
-    var url = candidates[idx++];
-    var img = new Image();
-    img.onload = function() {
-      state.tvLogoCache[key] = url;
-      safeSet('tclv.tvlogo.' + key, url);
-      if (imgEl && !safeGet('tclv.logo.' + key)) { imgEl.src = url; }
-    };
-    img.onerror = function() { tryNext(); };
-    img.src = url;
-  }
-  tryNext();
-}
-function initTvLogoCache() {
-  try {
-    for (var i = 0; i < localStorage.length; i++) {
-      var k = localStorage.key(i);
-      if (k && k.startsWith('tclv.tvlogo.')) {
-        state.tvLogoCache[k.slice(12)] = localStorage.getItem(k);
-      }
+function parseLogoIndex(text) {
+  var map = {};
+  String(text || '').split(/\r?\n/).forEach(function(line) {
+    var row = line.trim();
+    if (!row || row.startsWith('#') || /^[-|:\s]+$/.test(row)) return;
+    var cells = row.startsWith('|') ? row.split('|').map(function(cell) { return cell.trim(); }).filter(Boolean) : [];
+    var imgMatch = row.match(/<img\b[^>]*\bsrc=["']([^"']+)["']/i);
+    var name = '';
+    var url = imgMatch?.[1] || '';
+    var epgId = '';
+    if (cells.length >= 4 && /^#$/i.test(cells[0])) return;
+    if (cells.length >= 4 && /^\d+$/.test(cells[0])) {
+      name = cells[1];
+      epgId = cells[3];
+    } else if (cells.length >= 2) {
+      name = cells[0];
+      url = url || cells[cells.length - 1];
     }
+    if (!name || /^channel$/i.test(name) || /^logo$/i.test(url)) {
+      var match = row.match(/^\s*[-*]\s*([^:|]+)\s*[:|]\s*(https?:\/\/\S+)/i);
+      if (match) { name = match[1].trim(); url = match[2].trim(); }
+    }
+    name = cleanLogoName(name);
+    epgId = cleanLogoName(epgId);
+    url = sanitizeLogoUrl(url);
+    if (!name || !url) return;
+    map[logoKey(name)] = url;
+    if (epgId) map[logoKey(epgId)] = url;
+  });
+  return map;
+}
+async function initLogoIndex() {
+  try {
+    var response = await fetch('./lists/logos.md', { cache: 'no-cache' });
+    if (!response.ok) return;
+    state.logoIndex = parseLogoIndex(await response.text());
+    renderChannels();
+    if (state.epgVisible) renderGuide();
   } catch {}
 }
-function getChannelLogo(channel) { var url = safeGet(`tclv.logo.${channel.id}`) || sanitizeLogoUrl(channel.logo); if (url && location.protocol === 'https:' && url.startsWith('http://')) url = url.replace('http://', 'https://'); return url || state.tvLogoCache[channel.id] || placeholderLogo(channel.name); }
+function indexedLogo(channel) {
+  var keys = [channel.tvgId, channel.name, channel.id].filter(Boolean);
+  for (var i = 0; i < keys.length; i++) {
+    var hit = state.logoIndex[logoKey(keys[i])];
+    if (hit) return hit;
+  }
+  return null;
+}
+function getChannelLogo(channel) { var url = sanitizeLogoUrl(channel.logo) || indexedLogo(channel); if (url && location.protocol === 'https:' && url.startsWith('http://')) url = url.replace('http://', 'https://'); return url || placeholderLogo(channel.name); }
 function attr(text, name) { const pattern = new RegExp(`${name}\\s*=\\s*("([^"]*)"|'([^']*)'|([^\\s]+))`, "i"); const match = text.match(pattern); return match ? (match[2] || match[3] || match[4] || "").trim() : ""; }
 function uniqueId(seed, existing) { const base = normalizeId(seed) || "channel"; const ids = new Set(existing.map((item) => item.id)); let value = base; let counter = 2; while (ids.has(value)) { value = `${base}-${counter}`; counter += 1; } return value; }
 function parseXml(text) { const doc = new DOMParser().parseFromString(text, "application/xml"); const error = doc.querySelector("parsererror"); if (error) throw new Error(error.textContent || "XML parse error"); return doc; }
@@ -229,11 +236,7 @@ function nextProgram(channel, now = new Date()) { return findPrograms(channel).f
 function progress(program, now = new Date()) { if (!program) return 0; const total = program.stop - program.start; if (total <= 0) return 0; return Math.max(0, Math.min(100, ((now - program.start) / total) * 100)); }
 function selectedChannel() { return state.channels.find((channel) => channel.id === state.selectedChannelId) || state.channels[0] || null; }
 function filteredChannels() {
-  var channels = state.channels;
-  if (state.activeGroup === 'favorites') channels = channels.filter(function(ch) { return state.favorites.has(ch.id); });
-  else if (state.activeGroup !== 'all') channels = channels.filter(function(ch) { return ch.group === state.activeGroup; });
-  if (state.searchQuery) { var q = state.searchQuery.toLowerCase(); channels = channels.filter(function(ch) { return ch.name.toLowerCase().includes(q); }); }
-  return channels;
+  return state.channels;
 }
 function isFavorite(id) { return state.favorites.has(id); }
 function toggleFavorite(id) {
@@ -241,24 +244,8 @@ function toggleFavorite(id) {
   safeSet('tclv.favorites', JSON.stringify([...state.favorites]));
   renderChannels(); renderGroupTabs();
 }
-function getGroups() {
-  var groups = []; var seen = new Set();
-  for (var i = 0; i < state.channels.length; i++) { var g = state.channels[i].group; if (g && !seen.has(g)) { seen.add(g); groups.push(g); } }
-  return groups;
-}
 function renderGroupTabs() {
-  var el = dom.groupTabs; if (!el) return;
-  el.innerHTML = '';
-  if (!state.channels.length) return;
-  var groups = getGroups();
-  function addTab(id, label) {
-    var btn = document.createElement('button'); btn.className = 'group-tab' + (state.activeGroup === id ? ' active' : ''); btn.dataset.group = id; btn.textContent = label;
-    btn.addEventListener('click', function() { state.activeGroup = id; renderGroupTabs(); renderChannels(); });
-    el.append(btn);
-  }
-  addTab('all', t('groupAll'));
-  if (state.favorites.size) addTab('favorites', '★ ' + t('groupFavorites'));
-  groups.forEach(function(g) { addTab(g, g); });
+  if (dom.groupTabs) dom.groupTabs.innerHTML = '';
 }
 function extractM3UEpgUrls(text) { if (!text) return []; const first = (text.split(/\r?\n/)[0] || '').trim(); if (!first.startsWith('#EXTM3U')) return []; const m = first.match(/x-tvg-url\s*=\s*"([^"]*)"/i); return m ? m[1].split(',').map(function(u) { return u.trim(); }).filter(Boolean) : []; }
 
@@ -462,7 +449,7 @@ function renderSourceLists() {
     state.playlists.forEach((item) => {
       const row = document.createElement("div"); row.className = `source-item${item.id === state.activePlaylistId ? " active" : ""}`;
       const plOrigin = t(item.origin || (item.source?.startsWith('http') ? 'network' : 'local')); row.innerHTML = `<div class="source-main"><strong>${escapeHtml(item.name)}</strong><span>${escapeHtml(plOrigin)}</span></div><span class="source-chip">${escapeHtml(item.type)}</span><div class="source-actions"><button data-action="use">Use</button><button data-action="remove">X</button></div>`;
-      row.querySelector('[data-action="use"]').addEventListener('click', ()=>activatePlaylist(item.id));
+      row.querySelector('[data-action="use"]').addEventListener('click', ()=>activatePlaylist(item.id, { forceReload: item.id === state.activePlaylistId && item.origin !== 'local' }));
       row.querySelector('[data-action="remove"]').addEventListener('click', ()=>removePlaylist(item.id));
       dom.playlistList.append(row);
     });
@@ -486,17 +473,80 @@ function translateUi() {
   document.querySelectorAll('[data-i18n-placeholder]').forEach((node)=>{ node.placeholder = t(node.dataset.i18nPlaceholder); });
 }
 function renderChannels() {
-  const channels = filteredChannels(); dom.channelGrid.textContent = "";
-  if (!channels.length) { const empty = document.createElement('div'); empty.className = 'empty-state'; empty.textContent = state.searchQuery || state.activeGroup !== 'all' ? (state.activeGroup === 'favorites' ? t('groupFavorites') + ': 0' : t('noChannels')) : t('noChannels'); dom.channelGrid.append(empty); return; }
-  const now = new Date(); channels.forEach((channel) => { const node = dom.channelTemplate.content.firstElementChild.cloneNode(true); const program = currentProgram(channel, now); node.dataset.id = channel.id; node.dataset.channelId = channel.id; node.tabIndex = 0; node.setAttribute('role', 'button'); node.setAttribute('aria-label', channel.name); node.classList.toggle('active', channel.id === state.selectedChannelId); var logoImg = node.querySelector('.channel-logo'); logoImg.src = getChannelLogo(channel); logoImg.alt = channel.name; logoImg.onerror = function() { this.onerror = null; this.src = placeholderLogo(channel.name); }; if (!safeGet('tclv.logo.' + channel.id) && !sanitizeLogoUrl(channel.logo)) resolveTvLogo(channel, logoImg); node.querySelector('h3').textContent = channel.name; node.querySelector('p').textContent = program?.title || t('noProgram'); node.querySelector('.progress-track span').style.width = `${progress(program, now)}%`; node.querySelector('.logo-action').title = t('logoTitle'); node.querySelector('.logo-action').addEventListener('click', (event) => { event.stopPropagation(); state.selectedLogoChannelId = channel.id; dom.logoFile.click(); }); var favBtn = node.querySelector('.fav-action'); if (favBtn) { favBtn.classList.toggle('active', isFavorite(channel.id)); favBtn.textContent = isFavorite(channel.id) ? '★' : '☆'; favBtn.title = isFavorite(channel.id) ? t('groupFavorites') : t('groupFavorites'); favBtn.addEventListener('click', function(event) { event.stopPropagation(); toggleFavorite(channel.id); }); } var dot = node.querySelector('.status-dot'); if (dot) { var s = state.streamStatus[channel.id]; dot.className = 'status-dot' + (s ? ' ' + s : ''); } if (channel.catchupDays > 0) { var catchupBtn = document.createElement('button'); catchupBtn.className = 'catchup-badge'; catchupBtn.title = t('catchupAvailable'); catchupBtn.textContent = '📅'; catchupBtn.addEventListener('click', function(ev) { ev.stopPropagation(); openCatchup(channel); }); node.querySelector('.channel-text').append(catchupBtn); } node.addEventListener('click', () => selectChannel(channel.id)); node.addEventListener('keydown', (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); selectChannel(channel.id); } }); dom.channelGrid.append(node); });
+  const channels = filteredChannels();
+  dom.channelGrid.textContent = "";
+  if (!channels.length) {
+    const empty = document.createElement('div');
+    empty.className = 'empty-state';
+    empty.textContent = t('noChannels');
+    dom.channelGrid.append(empty);
+    return;
+  }
+  const now = new Date();
+  channels.forEach((channel) => {
+    const node = dom.channelTemplate.content.firstElementChild.cloneNode(true);
+    const program = currentProgram(channel, now);
+    node.dataset.id = channel.id;
+    node.dataset.channelId = channel.id;
+    node.tabIndex = 0;
+    node.setAttribute('role', 'button');
+    node.setAttribute('aria-label', channel.name);
+    node.classList.toggle('active', channel.id === state.selectedChannelId);
+    var logoImg = node.querySelector('.channel-logo');
+    logoImg.src = getChannelLogo(channel);
+    logoImg.alt = channel.name;
+    logoImg.onerror = function() { this.onerror = null; this.src = placeholderLogo(channel.name); };
+    node.querySelector('h3').textContent = channel.name;
+    node.querySelector('p').textContent = program?.title || t('noProgram');
+    node.querySelector('.progress-track span').style.width = `${progress(program, now)}%`;
+    var favBtn = node.querySelector('.fav-action');
+    if (favBtn) {
+      favBtn.classList.toggle('active', isFavorite(channel.id));
+      favBtn.textContent = isFavorite(channel.id) ? '★' : '☆';
+      favBtn.title = t('groupFavorites');
+      favBtn.addEventListener('click', function(event) { event.stopPropagation(); toggleFavorite(channel.id); });
+    }
+    var dot = node.querySelector('.status-dot');
+    if (dot) {
+      var s = state.streamStatus[channel.id];
+      dot.className = 'status-dot' + (s ? ' ' + s : '');
+    }
+    if (channel.catchupDays > 0) {
+      var catchupBtn = document.createElement('button');
+      catchupBtn.className = 'catchup-badge';
+      catchupBtn.title = t('catchupAvailable');
+      catchupBtn.textContent = '📅';
+      catchupBtn.addEventListener('click', function(ev) { ev.stopPropagation(); openCatchup(channel); });
+      node.querySelector('.channel-text').append(catchupBtn);
+    }
+    node.addEventListener('click', () => selectChannel(channel.id));
+    node.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        selectChannel(channel.id);
+      }
+    });
+    dom.channelGrid.append(node);
+  });
+}
+function setSidebarMode(mode, persist) {
+  state.sidebarMode = ['full', 'rail', 'hidden'].includes(mode) ? mode : 'full';
+  if (persist) {
+    safeSet('tclv.sidebarMode', state.sidebarMode);
+    safeSet('tclv.sidebarVisible', state.sidebarMode === 'hidden' ? 'false' : 'true');
+  }
+  var workspace = document.querySelector('.workspace');
+  workspace?.classList.toggle('sidebar-rail', state.sidebarMode === 'rail');
+  workspace?.classList.toggle('sidebar-hidden', state.sidebarMode === 'hidden');
+  var btn = dom.sidebarToggle;
+  if (btn) {
+    btn.innerHTML = state.sidebarMode === 'hidden' ? '&#x203a;' : '&#x2039;';
+    btn.setAttribute('aria-label', state.sidebarMode === 'full' ? 'Collapse channel names' : state.sidebarMode === 'rail' ? 'Hide channels' : 'Show channels');
+  }
 }
 function toggleSidebar() {
-  state.sidebarVisible = !state.sidebarVisible;
-  safeSet('tclv.sidebarVisible', state.sidebarVisible);
-  var workspace = document.querySelector('.workspace');
-  workspace.classList.toggle('sidebar-hidden', !state.sidebarVisible);
-  var btn = dom.sidebarToggle;
-  if (btn) btn.innerHTML = state.sidebarVisible ? '&#x2039;' : '&#x203a;';
+  var next = state.sidebarMode === 'full' ? 'rail' : state.sidebarMode === 'rail' ? 'hidden' : 'full';
+  setSidebarMode(next, true);
 }
 function toggleEpg() {
   state.epgVisible = !state.epgVisible;
@@ -814,7 +864,42 @@ function isMixedContent(url) { return location.protocol === 'https:' && String(u
 function usingVercelProxy() { return getPlatform() === 'web-https' && state.corsProxy && state.corsProxy.includes('/api/proxy'); }
 function streamErrorMsg() { return t('streamUnavailable') + (usingVercelProxy() ? ' ' + t('localProxyHint') : ''); }
 function proxyUrl(url) { if (isNativePlatform() || !state.corsProxy) return url; return state.corsProxy + encodeURIComponent(url); }
+function normalizeDownloadUrl(url) {
+  var raw = String(url || '').trim();
+  try {
+    var parsed = new URL(raw);
+    var host = parsed.hostname.toLowerCase();
+    if (host === 'drive.google.com') {
+      var fileMatch = parsed.pathname.match(/\/file\/d\/([^/]+)/);
+      var id = fileMatch?.[1] || parsed.searchParams.get('id');
+      if (id) return 'https://drive.google.com/uc?export=download&id=' + encodeURIComponent(id);
+    }
+    if (host === 'www.dropbox.com' || host === 'dropbox.com') {
+      parsed.hostname = 'dl.dropboxusercontent.com';
+      parsed.searchParams.delete('dl');
+      parsed.searchParams.delete('raw');
+      return parsed.toString();
+    }
+  } catch {}
+  return raw;
+}
+function sourceNameFromUrl(url, fallback) {
+  try {
+    var parsed = new URL(url);
+    var driveId = parsed.pathname.match(/\/file\/d\/([^/]+)/)?.[1] || parsed.searchParams.get('id');
+    if (parsed.hostname.includes('drive.google.com') && driveId) return 'Google Drive ' + driveId.slice(0, 8);
+    var name = decodeURIComponent((parsed.pathname.split('/').pop() || '').trim());
+    return name || fallback;
+  } catch { return fallback; }
+}
+function playlistTypeFromSource(source, text) {
+  var lowered = String(source || '').toLowerCase();
+  if (lowered.includes('.xspf') || String(text || '').includes('<playlist')) return 'xspf';
+  return 'm3u';
+}
 async function loadTextFromUrl(url) {
+  var originalUrl = String(url || '').trim();
+  url = normalizeDownloadUrl(originalUrl);
   function decode(r, u) { if (u.endsWith('.gz') && typeof DecompressionStream !== 'undefined') return new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).text(); return r.text(); }
   if (isNativePlatform() || (!state.corsProxy && !isMixedContent(url))) {
     var response; try { response = await fetch(url); } catch (err) { if (!isNativePlatform()) throw new Error(t('corsNeeded'), { cause: err }); throw err; }
@@ -837,7 +922,6 @@ async function loadTextFromUrl(url) {
 async function loadPlaylistText(text, sourceName = '') { try { const isXspf = sourceName.toLowerCase().endsWith('.xspf') || text.includes('<playlist'); const channels = isXspf ? parseXspf(text) : parseM3U(text); state.channels = channels; state.selectedChannelId = safeGet('tclv.lastChannel') || channels[0]?.id || null; renderAll(); if (state.selectedChannelId) showSwitchOverlay(selectedChannel()); showMessage(`${t('playlistLoaded')}: ${channels.length}`); if (!state.epgSources.length) autoLoadEpgFromPlaylist(text); } catch (error) { showMessage(`${t('loadError')} ${error.message || ''}`); } }
 async function loadEpgText(text) { try { state.epg = parseXmlTv(text); renderAll(); showMessage(`${t('epgLoaded')}: ${state.epg.size}`); } catch (error) { showMessage(`${t('loadError')} ${error.message || ''}`); } }
 function readFile(file) { return new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result || '')); reader.onerror = () => reject(reader.error); reader.readAsText(file); }); }
-function readFileAsDataUrl(file) { return new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result || '')); reader.onerror = () => reject(reader.error); reader.readAsDataURL(file); }); }
 function xmlTvDate(date) { const pad = (value) => String(value).padStart(2, '0'); const offsetMinutes = -date.getTimezoneOffset(); const sign = offsetMinutes >= 0 ? '+' : '-'; const absolute = Math.abs(offsetMinutes); const offset = `${sign}${pad(Math.floor(absolute / 60))}${pad(absolute % 60)}`; return `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())} ${offset}`; }
 function estimateStorageSize(obj) { try { return JSON.stringify(obj).length; } catch { return 0; } }
 function savePlaylistMeta() {
@@ -853,12 +937,15 @@ function savePlaylistMeta() {
   safeSetJson('tclv.playlists', meta);
 }
 function addPlaylistRecord(record) { state.playlists.unshift(record); savePlaylistMeta(); state.activePlaylistId = record.id; safeSet('tclv.activePlaylistId', record.id); renderSourceLists(); }
-async function activatePlaylist(id) {
+async function activatePlaylist(id, options = {}) {
   var item = state.playlists.find(function(p) { return p.id === id; });
   if (!item) return;
   state.activePlaylistId = id; safeSet('tclv.activePlaylistId', id);
-  if (!item.text && item.source && item.origin === 'network') {
-    try { item.text = await loadTextFromUrl(item.source); } catch {}
+  if (item.source && item.origin !== 'local' && (!item.text || options.forceReload)) {
+    try {
+      item.text = await loadTextFromUrl(item.source);
+      item.type = playlistTypeFromSource(item.source, item.text);
+    } catch (err) { showMessage(t('loadError') + ' ' + (err.message || '')); }
   }
   if (item.text) loadPlaylistText(item.text, item.name);
   renderSourceLists();
@@ -869,7 +956,17 @@ function saveEpgMeta() {
   safeSetJson('tclv.epgSources', meta);
 }
 function removeEpgSource(id) { state.epgSources = state.epgSources.filter((e) => e.id !== id); saveEpgMeta(); rebuildMergedEpg(); }
-function toggleEpgSource(id) { const item = state.epgSources.find(function(e) { return e.id === id; }); if (!item) return; item.active = item.active === false ? true : false; saveEpgMeta(); rebuildMergedEpg(); }
+async function toggleEpgSource(id) {
+  const item = state.epgSources.find(function(e) { return e.id === id; });
+  if (!item) return;
+  item.active = item.active === false ? true : false;
+  if (item.active && item.source && !item.text) {
+    try { item.text = await loadTextFromUrl(item.source); }
+    catch (err) { showMessage(t('loadError') + ' ' + (err.message || '')); }
+  }
+  saveEpgMeta();
+  rebuildMergedEpg();
+}
 function addEpgRecord(record) { if (record.active === undefined) record.active = true; state.epgSources.unshift(record); saveEpgMeta(); renderSourceLists(); rebuildMergedEpg(); }
 function rebuildMergedEpg() { const maps = []; for (const source of state.epgSources) { if (source.active === false) continue; try { maps.push(parseXmlTv(source.text)); } catch {} } state.epg = mergeEpgMaps(maps); renderAll(); showMessage(`${t('epgLoaded')}: ${state.epg.size}`); }
 function epgMatchesChannels(epgText) {
@@ -939,8 +1036,8 @@ function bindEvents() {
   dom.settingsClose?.addEventListener('click', closeSettings); dom.settingsOverlay?.addEventListener('click', closeSettings);
   dom.playlistFile.addEventListener('change', async () => { const file = dom.playlistFile.files?.[0]; if (!file) return; try { const text = await readFile(file); const record = { id: `pl-${Date.now()}`, name: file.name, source: file.name, type: file.name.toLowerCase().endsWith('.xspf') ? 'xspf' : 'm3u', origin: 'local', text }; addPlaylistRecord(record); await loadPlaylistText(text, file.name); } catch (error) { showMessage(`${t('loadError')} ${error.message}`); } });
   dom.epgFile.addEventListener('change', async () => { const file = dom.epgFile.files?.[0]; if (!file) return; try { const text = await readFile(file); addEpgRecord({ id: `epg-${Date.now()}`, name: file.name, source: file.name, origin: 'local', text }); } catch (error) { showMessage(`${t('loadError')} ${error.message}`); } });
-  dom.addPlaylistUrl?.addEventListener('click', async () => { try { const url = dom.playlistUrl.value.trim(); if (!url) return; const text = await loadTextFromUrl(url); const record = { id: `pl-${Date.now()}`, name: url.split('/').pop() || 'playlist', source: url, type: url.toLowerCase().includes('.xspf') ? 'xspf' : 'm3u', origin: 'network', text }; addPlaylistRecord(record); await loadPlaylistText(text, url); dom.playlistUrl.value = ''; } catch (error) { showMessage(`${t('loadError')} ${error.message}`); } });
-  dom.addEpgUrl?.addEventListener('click', async () => { try { const url = dom.epgUrl.value.trim(); if (!url) return; const text = await loadTextFromUrl(url); addEpgRecord({ id: `epg-${Date.now()}`, name: url.split('/').pop() || 'epg.xml', source: url, origin: 'network', text }); dom.epgUrl.value = ''; } catch (error) { showMessage(`${t('loadError')} ${error.message}`); } });
+  dom.addPlaylistUrl?.addEventListener('click', async () => { try { const url = dom.playlistUrl.value.trim(); if (!url) return; const text = await loadTextFromUrl(url); const name = sourceNameFromUrl(url, 'playlist'); const record = { id: `pl-${Date.now()}`, name, source: url, type: playlistTypeFromSource(url, text), origin: 'network', text }; addPlaylistRecord(record); await loadPlaylistText(text, name); dom.playlistUrl.value = ''; } catch (error) { showMessage(`${t('loadError')} ${error.message}`); } });
+  dom.addEpgUrl?.addEventListener('click', async () => { try { const url = dom.epgUrl.value.trim(); if (!url) return; const text = await loadTextFromUrl(url); addEpgRecord({ id: `epg-${Date.now()}`, name: sourceNameFromUrl(url, 'epg.xml'), source: url, origin: 'network', text }); dom.epgUrl.value = ''; } catch (error) { showMessage(`${t('loadError')} ${error.message}`); } });
   dom.corsProxyInput?.addEventListener('change', async () => {
     state.corsProxy = dom.corsProxyInput.value.trim(); safeSet('tclv.corsProxy', state.corsProxy);
     if (!state.corsProxy) return;
@@ -984,7 +1081,7 @@ function bindEvents() {
   });
   dom.playerSelect.addEventListener('change', () => { state.player = dom.playerSelect.value; saveCurrentPlayer(); const channel = selectedChannel(); if (channel) playChannel(channel); });
   dom.languageSelect.addEventListener('change', () => { state.language = dom.languageSelect.value; safeSet('tclv.language', state.language); renderAll(); });
-  dom.logoFile.addEventListener('change', async () => { const file = dom.logoFile.files?.[0]; if (!file || !state.selectedLogoChannelId) return; const dataUrl = await readFileAsDataUrl(file); safeSet(`tclv.logo.${state.selectedLogoChannelId}`, dataUrl); dom.logoFile.value = ''; renderAll(); });
+  dom.logoFile?.addEventListener('change', () => {});
 }
 async function reloadEpgSources() {
   var sources = state.epgSources.filter(function(s) { return s.active !== false && s.source && !s.text; });
@@ -996,5 +1093,5 @@ async function reloadEpgSources() {
   }
   if (sources.some(function(s) { return s.text; })) rebuildMergedEpg();
 }
-function init() { initTvLogoCache(); bindEvents(); state.player = dom.playerSelect.value = state.player; state.language = translations[state.language] ? state.language : 'sk'; state.corsProxy = detectCorsProxySync(); if (dom.corsProxyInput) dom.corsProxyInput.value = state.corsProxy; detectLocalProxy(); var platform = getPlatform(); if (platform === 'electron' || platform === 'android') { var netSection = dom.corsProxyInput?.closest('.settings-section'); if (netSection) netSection.style.display = 'none'; } else if (platform === 'web-http') { var corsHintEl = dom.corsProxyInput?.closest('.settings-section')?.querySelector('.settings-hint'); if (corsHintEl) corsHintEl.textContent = 'HTTP — priame prehrávanie bez proxy.'; } if (!isNativePlatform()) { dom.playerSelect.querySelectorAll('.native-only').forEach(function(opt) { opt.disabled = true; opt.hidden = true; }); } if (document.pictureInPictureEnabled && dom.pipButton) dom.pipButton.removeAttribute('hidden'); setPlayerActive(false); renderSourceLists(); if (state.playlists.length && state.activePlaylistId) activatePlaylist(state.activePlaylistId); else renderAll(); if (state.epgSources.length && !state.epgSources.some(function(s) { return s.text; })) reloadEpgSources(); if (!state.sidebarVisible) { document.querySelector('.workspace')?.classList.add('sidebar-hidden'); if (dom.sidebarToggle) dom.sidebarToggle.innerHTML = '&#x203a;'; } setInterval(() => { if (state.epgVisible) renderGuide(); document.querySelectorAll('.channel-card').forEach((card) => { const ch = state.channels.find((c) => c.id === card.dataset.channelId); if (!ch) return; const prog = currentProgram(ch); const bar = card.querySelector('.progress-track span'); if (bar) bar.style.width = progress(prog) + '%'; const txt = card.querySelector('.channel-text p'); if (txt) txt.textContent = prog?.title || ''; }); }, 60 * 1000); }
+function init() { initLogoIndex(); bindEvents(); state.player = dom.playerSelect.value = state.player; state.language = translations[state.language] ? state.language : 'sk'; state.corsProxy = detectCorsProxySync(); if (dom.corsProxyInput) dom.corsProxyInput.value = state.corsProxy; detectLocalProxy(); var platform = getPlatform(); if (platform === 'electron' || platform === 'android') { var netSection = dom.corsProxyInput?.closest('.settings-section'); if (netSection) netSection.style.display = 'none'; } else if (platform === 'web-http') { var corsHintEl = dom.corsProxyInput?.closest('.settings-section')?.querySelector('.settings-hint'); if (corsHintEl) corsHintEl.textContent = 'HTTP — priame prehrávanie bez proxy.'; } if (!isNativePlatform()) { dom.playerSelect.querySelectorAll('.native-only').forEach(function(opt) { opt.disabled = true; opt.hidden = true; }); } if (document.pictureInPictureEnabled && dom.pipButton) dom.pipButton.removeAttribute('hidden'); setPlayerActive(false); renderSourceLists(); if (state.playlists.length && state.activePlaylistId) activatePlaylist(state.activePlaylistId); else renderAll(); if (state.epgSources.length && !state.epgSources.some(function(s) { return s.text; })) reloadEpgSources(); setSidebarMode(state.sidebarMode); setInterval(() => { if (state.epgVisible) renderGuide(); document.querySelectorAll('.channel-card').forEach((card) => { const ch = state.channels.find((c) => c.id === card.dataset.channelId); if (!ch) return; const prog = currentProgram(ch); const bar = card.querySelector('.progress-track span'); if (bar) bar.style.width = progress(prog) + '%'; const txt = card.querySelector('.channel-text p'); if (txt) txt.textContent = prog?.title || ''; }); }, 60 * 1000); }
 init();
