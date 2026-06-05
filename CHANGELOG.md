@@ -7,6 +7,20 @@ Všetky významné zmeny v projekte sú dokumentované v tomto súbore.
 
 ---
 
+## [1.1.3] — 2026-06-05
+
+### EPG program detail
+
+#### Added
+- **Detail programu z EPG** — kliknutie alebo Enter/Space na programe otvorí detail s časom, dátumom, stanicou, popisom a metadátami z XMLTV.
+- **Info ovládanie** — Android/GoogleTV tlačidlo Info otvorí detail aktuálneho alebo najbližšieho programu vybranej stanice.
+- **Info tlačidlo na infopanely** — aktuálny panel stanice má malé `i` tlačidlo na rýchle otvorenie detailu programu.
+
+#### Changed
+- **Detailné okno** — zobrazuje sa ako vlastná najvyššia vrstva nad videom a EPG, s rolovateľným textom vo vnútri okna.
+
+---
+
 ## [1.1.2] — 2026-06-05
 
 ### Selection color, logo stability, finer EPG controls

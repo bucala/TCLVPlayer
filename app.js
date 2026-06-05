@@ -152,7 +152,8 @@ const dom = {
   playerMessage2: document.querySelector("#playerMessage2"),
   catchupModal: document.querySelector("#catchupModal"),
   exportSettings: document.querySelector("#exportSettings"),
-  importFile: document.querySelector("#importFile")
+  importFile: document.querySelector("#importFile"),
+  programDetailModal: document.querySelector("#programDetailModal")
 };
 
 function t(key) { return translations[state.language]?.[key] || translations.en[key] || key; }
@@ -456,7 +457,36 @@ function parseM3U(text) {
 }
 function parseXspf(text) { const doc = parseXml(text); const tracks = [...doc.querySelectorAll("track")]; const channels = []; tracks.forEach((track, index) => { const name = textOf(track, "title") || textOf(track, "annotation") || `Channel ${index+1}`; const url = textOf(track, "location"); const tvgId = track.getAttribute("id") || ""; if (!url) return; channels.push({ id: uniqueId(tvgId || name || String(index), channels), tvgId, name, logo: textOf(track, "image"), group: textOf(track, "creator"), url }); }); return channels; }
 function parseXmlTvDate(value) { const match = String(value || "").match(/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})(?:\s*([+-])(\d{2})(\d{2}))?/); if (!match) return null; const [, year, month, day, hour, minute, second, sign, offsetHour, offsetMinute] = match; let timestamp = Date.UTC(+year, +month - 1, +day, +hour, +minute, +second); if (sign) { const offset = ((+offsetHour * 60) + +offsetMinute) * 60 * 1000; timestamp += sign === "+" ? -offset : offset; } return new Date(timestamp); }
-function parseXmlTv(text) { const doc = parseXml(text); const epg = new Map(); const displayNames = new Map(); for (const item of doc.querySelectorAll("channel")) { const id = item.getAttribute("id") || ""; const name = textOf(item, "display-name"); if (id && name) displayNames.set(id, name); } for (const item of doc.querySelectorAll("programme")) { const channelId = item.getAttribute("channel") || ""; const program = { channelId, channelName: displayNames.get(channelId) || "", start: parseXmlTvDate(item.getAttribute("start")), stop: parseXmlTvDate(item.getAttribute("stop")), title: textOf(item, "title") || t("noProgram"), desc: textOf(item, "desc") }; if (!program.start || !program.stop || program.stop <= program.start) continue; if (!epg.has(channelId)) epg.set(channelId, []); epg.get(channelId).push(program); } for (const entries of epg.values()) entries.sort((a,b)=>a.start-b.start); return epg; }
+function parseXmlTv(text) {
+  const doc = parseXml(text);
+  const epg = new Map();
+  const displayNames = new Map();
+  for (const item of doc.querySelectorAll("channel")) {
+    const id = item.getAttribute("id") || "";
+    const name = textOf(item, "display-name");
+    if (id && name) displayNames.set(id, name);
+  }
+  for (const item of doc.querySelectorAll("programme")) {
+    const channelId = item.getAttribute("channel") || "";
+    const program = {
+      channelId,
+      channelName: displayNames.get(channelId) || "",
+      start: parseXmlTvDate(item.getAttribute("start")),
+      stop: parseXmlTvDate(item.getAttribute("stop")),
+      title: textOf(item, "title") || t("noProgram"),
+      subTitle: textOf(item, "sub-title"),
+      desc: textOf(item, "desc"),
+      category: textOf(item, "category"),
+      episode: textOf(item, "episode-num"),
+      date: textOf(item, "date")
+    };
+    if (!program.start || !program.stop || program.stop <= program.start) continue;
+    if (!epg.has(channelId)) epg.set(channelId, []);
+    epg.get(channelId).push(program);
+  }
+  for (const entries of epg.values()) entries.sort((a,b)=>a.start-b.start);
+  return epg;
+}
 function mergeEpgMaps(maps) { const merged = new Map(); const seen = new Set(); for (const map of maps) { for (const [channelId, programs] of map.entries()) { if (!merged.has(channelId)) merged.set(channelId, []); for (const p of programs) { const key = `${channelId}|${+p.start}|${+p.stop}|${p.title}`; if (seen.has(key)) continue; seen.add(key); merged.get(channelId).push(p); } } } for (const entries of merged.values()) entries.sort((a,b)=>a.start-b.start); return merged; }
 function findPrograms(channel) { const keys = [channel.tvgId, channel.id, channel.name].filter(Boolean); for (const key of keys) if (state.epg.has(key)) return state.epg.get(key); const wanted = normalizeId(channel.name); for (const [epgId, programs] of state.epg.entries()) { const first = programs[0]; if (normalizeId(epgId) === wanted || normalizeId(first?.channelName) === wanted) return programs; } return []; }
 function currentProgram(channel, now = new Date()) { return findPrograms(channel).find((p) => p.start <= now && p.stop > now) || null; }
@@ -799,11 +829,99 @@ function renderGuide() {
   const header = document.createElement('div'); header.className = 'timeline-header'; header.innerHTML = `<div class="timeline-corner"></div><div class="time-slots"></div>`; header.querySelector('.time-slots').style.width = `${width}px`;
   for (let cursor = new Date(start); cursor <= end; cursor = new Date(cursor.getTime() + 30 * 60 * 1000)) { const slot = document.createElement('div'); slot.className = 'time-slot'; slot.style.left = `${((cursor - start) / duration) * width}px`; slot.style.width = `${width / 16}px`; slot.textContent = formatTime(cursor); header.querySelector('.time-slots').append(slot); }
   timeline.append(header);
-  channels.forEach((channel) => { const row = document.createElement('div'); row.className = 'timeline-row'; row.innerHTML = `<div class="timeline-label"><img alt=""><span>${escapeHtml(channel.name)}</span></div><div class="program-track"></div>`; setLogoImage(row.querySelector('.timeline-label img'), channel); const track = row.querySelector('.program-track'); track.style.width = `${width}px`; const programs = findPrograms(channel).filter((program) => program.stop > start && program.start < end); if (!programs.length) { const empty = document.createElement('div'); empty.className = 'program'; empty.style.left = '8px'; empty.style.width = '160px'; empty.innerHTML = `<strong>${t('noEpg')}</strong>`; track.append(empty); } else { programs.forEach((program) => { const left = Math.max(0, ((program.start - start) / duration) * width); const right = Math.min(width, ((program.stop - start) / duration) * width); const node = document.createElement('div'); node.className = `program${program.start <= new Date() && program.stop > new Date() ? ' current' : ''}`; node.style.left = `${left}px`; node.style.width = `${Math.max(44, right - left - 4)}px`; node.title = `${program.title} ${formatTime(program.start)}-${formatTime(program.stop)}`; node.innerHTML = `<strong>${escapeHtml(program.title)}</strong><span>${formatTime(program.start)} - ${formatTime(program.stop)}</span>`; track.append(node); }); }
+  channels.forEach((channel) => { const row = document.createElement('div'); row.className = 'timeline-row'; row.innerHTML = `<div class="timeline-label"><img alt=""><span>${escapeHtml(channel.name)}</span></div><div class="program-track"></div>`; setLogoImage(row.querySelector('.timeline-label img'), channel); const track = row.querySelector('.program-track'); track.style.width = `${width}px`; const programs = findPrograms(channel).filter((program) => program.stop > start && program.start < end); if (!programs.length) { const empty = document.createElement('div'); empty.className = 'program'; empty.style.left = '8px'; empty.style.width = '160px'; empty.innerHTML = `<strong>${t('noEpg')}</strong>`; track.append(empty); } else { programs.forEach((program) => { const left = Math.max(0, ((program.start - start) / duration) * width); const right = Math.min(width, ((program.stop - start) / duration) * width); const node = document.createElement('div'); node.className = `program${program.start <= new Date() && program.stop > new Date() ? ' current' : ''}`; node.style.left = `${left}px`; node.style.width = `${Math.max(44, right - left - 4)}px`; node.title = `${program.title} ${formatTime(program.start)}-${formatTime(program.stop)}`; node.tabIndex = 0; node.setAttribute('role', 'button'); node.setAttribute('aria-label', program.title); node.innerHTML = `<strong>${escapeHtml(program.title)}</strong><span>${formatTime(program.start)} - ${formatTime(program.stop)}</span>`; node.addEventListener('click', function() { openProgramDetail(program, channel); }); node.addEventListener('keydown', function(event) { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openProgramDetail(program, channel); } }); track.append(node); }); }
     const nowLine = document.createElement('div'); nowLine.className = 'now-line'; nowLine.style.left = `${Math.max(0, Math.min(width, ((Date.now() - start.getTime()) / duration) * width))}px`; track.append(nowLine);
     timeline.append(row);
   });
   dom.epgGuide.replaceChildren(timeline);
+}
+function programDurationLabel(program) {
+  var minutes = Math.max(1, Math.round((program.stop - program.start) / 60000));
+  if (minutes < 60) return minutes + ' min';
+  var hours = Math.floor(minutes / 60);
+  var rest = minutes % 60;
+  return rest ? hours + 'h ' + rest + 'm' : hours + 'h';
+}
+function programDateLabel(program) {
+  return new Intl.DateTimeFormat(state.language === 'sk' ? 'sk-SK' : 'en-US', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  }).format(program.start);
+}
+function programDetailText(key) {
+  const labels = {
+    sk: { close: 'Zatvoriť', duration: 'Trvanie', episode: 'Epizóda', category: 'Kategória', date: 'Dátum' },
+    en: { close: 'Close', duration: 'Duration', episode: 'Episode', category: 'Category', date: 'Date' }
+  };
+  return (labels[state.language] || labels.en)[key] || key;
+}
+function closeProgramDetail() {
+  if (!dom.programDetailModal) return;
+  dom.programDetailModal.hidden = true;
+  dom.programDetailModal.replaceChildren();
+  document.querySelector('.content')?.classList.remove('program-detail-active');
+}
+function openProgramDetail(program, channel) {
+  if (!dom.programDetailModal || !program) return;
+  var modal = dom.programDetailModal;
+  var card = document.createElement('article');
+  card.className = 'program-detail-card';
+  var header = document.createElement('header');
+  header.className = 'program-detail-header';
+  var time = document.createElement('div');
+  time.className = 'program-detail-time';
+  time.innerHTML = `<strong>${formatTime(program.start)}</strong><span>–</span><strong>${formatTime(program.stop)}</strong>`;
+  var closeBtn = document.createElement('button');
+  closeBtn.className = 'program-detail-close';
+  closeBtn.type = 'button';
+  closeBtn.textContent = '×';
+  closeBtn.setAttribute('aria-label', programDetailText('close'));
+  closeBtn.addEventListener('click', closeProgramDetail);
+  var date = document.createElement('p');
+  date.className = 'program-detail-date';
+  date.textContent = programDateLabel(program);
+  var title = document.createElement('h3');
+  title.textContent = program.title;
+  var channelLine = document.createElement('p');
+  channelLine.className = 'program-detail-channel';
+  channelLine.textContent = channel?.name || program.channelName || '';
+  header.append(time, closeBtn, date, title, channelLine);
+  var body = document.createElement('div');
+  body.className = 'program-detail-body';
+  var desc = document.createElement('p');
+  desc.textContent = program.desc || t('noProgram');
+  body.append(desc);
+  var meta = document.createElement('dl');
+  meta.className = 'program-detail-meta';
+  [
+    [programDetailText('duration'), programDurationLabel(program)],
+    [programDetailText('episode'), program.episode],
+    [programDetailText('category'), program.category],
+    [programDetailText('date'), program.date]
+  ].forEach(function(pair) {
+    if (!pair[1]) return;
+    var item = document.createElement('div');
+    var dt = document.createElement('dt');
+    var dd = document.createElement('dd');
+    dt.textContent = pair[0];
+    dd.textContent = pair[1];
+    item.append(dt, dd);
+    meta.append(item);
+  });
+  card.append(header, body);
+  if (meta.children.length) card.append(meta);
+  modal.replaceChildren(card);
+  modal.hidden = false;
+  document.querySelector('.content')?.classList.add('program-detail-active');
+  closeBtn.focus();
+}
+function openCurrentProgramDetail() {
+  var channel = selectedChannel();
+  if (!channel) return;
+  var program = currentProgram(channel) || nextProgram(channel);
+  if (program) openProgramDetail(program, channel);
 }
 function renderAll() { translateUi(); renderSourceLists(); renderGroupTabs(); renderChannels(); if (state.epgVisible) renderGuide(); }
 
@@ -1089,7 +1207,17 @@ function showSwitchOverlay(channel) {
   const nextLine = document.createElement('p');
   nextLine.innerHTML = `<strong>${t('next')}:</strong> ${escapeHtml(next?.title || t('noProgram'))}`;
   details.append(title, nowLine, nextLine);
-  dom.switchOverlay.replaceChildren(img, details);
+  const infoButton = document.createElement('button');
+  infoButton.className = 'program-info-button';
+  infoButton.type = 'button';
+  infoButton.textContent = 'i';
+  infoButton.title = 'Info';
+  infoButton.setAttribute('aria-label', 'Info');
+  infoButton.addEventListener('click', function(event) {
+    event.stopPropagation();
+    openCurrentProgramDetail();
+  });
+  dom.switchOverlay.replaceChildren(img, details, infoButton);
   dom.switchOverlay.classList.add('show');
   clearTimeout(state.overlayTimer);
   state.overlayTimer = setTimeout(() => dom.switchOverlay.classList.remove('show'), 5200);
@@ -1319,7 +1447,8 @@ function bindEvents() {
   });
   document.addEventListener('keydown', (event) => {
     if (event.target.tagName === 'INPUT' || event.target.tagName === 'SELECT' || event.target.tagName === 'TEXTAREA') return;
-    if (event.key === 'Escape') { if (!dom.settingsPanel.hidden) { closeSettings(); event.preventDefault(); return; } if (dom.switchOverlay.classList.contains('show')) { dom.switchOverlay.classList.remove('show'); clearTimeout(state.overlayTimer); event.preventDefault(); return; } }
+    if (event.key === 'Escape') { if (dom.programDetailModal && !dom.programDetailModal.hidden) { closeProgramDetail(); event.preventDefault(); return; } if (!dom.settingsPanel.hidden) { closeSettings(); event.preventDefault(); return; } if (dom.switchOverlay.classList.contains('show')) { dom.switchOverlay.classList.remove('show'); clearTimeout(state.overlayTimer); event.preventDefault(); return; } }
+    if (event.key === 'Info' || event.key === 'MediaInfo' || event.key === 'ContextMenu' || event.keyCode === 165) { event.preventDefault(); openCurrentProgramDetail(); return; }
     if (event.key === 'ArrowRight' && document.activeElement?.closest('.sidebar')) { event.preventDefault(); dom.epgSearch?.focus(); }
     if (event.key === 'ArrowLeft' && !document.activeElement?.closest('.sidebar')) { event.preventDefault(); const active = dom.channelGrid.querySelector('.channel-card.active') || dom.channelGrid.querySelector('.channel-card'); active?.focus(); }
     const channels = filteredChannels();
