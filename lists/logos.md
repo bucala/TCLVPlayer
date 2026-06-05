@@ -19,7 +19,7 @@
 |17|ČT sport Ⓖ| <img height="20" src="https://i.imgur.com/I2dltZW.png"/> | CTSport.cz |
 |18|ČT :D| <img height="20" src="https://i.imgur.com/Pa5rLpA.png"/> | CTDecko.cz |
 |19| ČT art| <img height="20" src="https://i.imgur.com/u8mfETB.png"/> | CTart.cz |
-|20|ČT sport Plus Ⓖ| <img height="20" src="https://i.imgur.com/5JiMynW.png"/> | |
+|20|ČT sport Plus Ⓖ| <img height="20" src="https://i.imgur.com/5JiMynW.png"/>| |
 |21|JOJ Family Ⓢ| <img height="20" src="https://i.imgur.com/IZHIAAj.png"/> | JojFamily.sk |
 |22|Šlágr Originál Ⓢ| <img height="20" src="https://i.imgur.com/fQcx9S2.png"/> | SlagrOriginal.cz |
 |12|Šlágr Muzika Ⓢ | <img height="20" src="https://i.imgur.com/J9YHDVS.png"/> | SlagrMuzika.cz |
