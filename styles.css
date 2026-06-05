@@ -18,7 +18,7 @@
   --selected: var(--accent);
   --selected-bg: var(--accent-subtle);
   --selected-border: var(--accent);
-  --native-selection: #d1d5db;
+  --native-selection: var(--accent);
   --text: #f5f5f7;
   --text-secondary: #c7c7cc;
   --muted: #8e8e93;
@@ -391,7 +391,7 @@ select option {
 select option:checked,
 select option:hover {
   background: var(--native-selection);
-  color: #111827;
+  color: #fff;
 }
 
 input[type=search] { -webkit-appearance: none; }
@@ -470,7 +470,7 @@ input[type=search] { -webkit-appearance: none; }
 .custom-select-option:focus-visible,
 .custom-select-option[aria-selected="true"] {
   background: var(--native-selection);
-  color: #111827;
+  color: #fff;
   outline: none;
 }
 

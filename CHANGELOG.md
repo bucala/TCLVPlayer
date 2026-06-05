@@ -7,6 +7,15 @@ Všetky významné zmeny v projekte sú dokumentované v tomto súbore.
 
 ---
 
+## [1.1.6] — 2026-06-06
+
+### Dropdown selection colors
+
+#### Fixed
+- **Prehrávač a jazyk** — oba výbery v nastaveniach používajú vlastný dropdown s oranžovým označením namiesto modrého natívneho highlightu.
+
+---
+
 ## [1.1.5] — 2026-06-06
 
 ### EPG detail color polish
