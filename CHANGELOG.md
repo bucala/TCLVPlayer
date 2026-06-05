@@ -7,6 +7,16 @@ Všetky významné zmeny v projekte sú dokumentované v tomto súbore.
 
 ---
 
+## [1.1.5] — 2026-06-06
+
+### EPG detail color polish
+
+#### Changed
+- **EPG detail** — azúrový akcent v hlavičke detailu programu je nahradený oranžovou farbou aplikácie.
+- **Info tlačidlo** — tlačidlo `i` na infopanely je menej nápadné sivé a otvára detail aktuálne bežiaceho programu.
+
+---
+
 ## [1.1.4] — 2026-06-05
 
 ### Selection color correction

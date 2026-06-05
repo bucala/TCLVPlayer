@@ -992,7 +992,7 @@ function openProgramDetail(program, channel) {
 function openCurrentProgramDetail() {
   var channel = selectedChannel();
   if (!channel) return;
-  var program = currentProgram(channel) || nextProgram(channel);
+  var program = currentProgram(channel);
   if (program) openProgramDetail(program, channel);
 }
 function renderAll() { translateUi(); renderSourceLists(); renderGroupTabs(); renderChannels(); if (state.epgVisible) renderGuide(); }
