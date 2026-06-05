@@ -7,6 +7,21 @@ Všetky významné zmeny v projekte sú dokumentované v tomto súbore.
 
 ---
 
+## [1.1.1] — 2026-06-05
+
+### Logo source resolver and legal notes
+
+#### Added
+- **Logo source chain** — samostatná sekcia v `app.js` drží poradie zdrojov: `iptv-org/api`, `tv-logo/tv-logos`, `Free-TV/IPTV`, `BKPepe/czech-channels-icons`, finálny `Free-TV/IPTV` retry.
+- **iptv-org API integrácia** — `channels.json` a `logos.json` sa spájajú do primárneho indexu log podľa channel ID, názvu a alternatívnych názvov.
+- **Logo fallback na úrovni obrázka** — ak logo URL zlyhá, UI automaticky skúsi ďalší zdroj v poradí.
+- **Slovenská Legal sekcia** — README vysvetľuje, že aplikácia nehostuje videá ani streamy.
+
+#### Changed
+- **README** — zdroje log už popisujú nové GitHub/API fallback poradie.
+
+---
+
 ## [1.1.0] — 2026-06-05
 
 ### Release 1.1 — Android fullscreen, simple UI, direct link import

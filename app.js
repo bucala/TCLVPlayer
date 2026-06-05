@@ -107,7 +107,7 @@ const state = {
   sidebarMode: defaultSidebarMode(),
   epgVisible: false,
   favorites: new Set(JSON.parse(safeGet("tclv.favorites", "[]") || "[]")),
-  logoIndex: {},
+  logoIndexes: [],
   searchQuery: "",
   activeGroup: "all",
   streamStatus: {},
@@ -152,6 +152,54 @@ function hashCode(value) { let hash = 0; for (let i = 0; i < value.length; i += 
 function escapeXml(value) { return String(value).replace(/[<>&"']/g, (char) => ({"<":"&lt;",">":"&gt;","&":"&amp;","\"":"&quot;","'":"&apos;"})[char]); }
 function normalizeId(value) { return String(value || "").trim().toLowerCase().replace(/[^a-z0-9._-]+/g, "-").replace(/^-+|-+$/g, ""); }
 function placeholderLogo(name) { const initials = (name || "TV").split(/\s+/).map((part) => part[0]).join("").slice(0,3).toUpperCase(); const hue = Math.abs(hashCode(name || "TV")) % 360; const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160"><rect width="160" height="160" fill="hsl(${hue} 72% 46%)"/><text x="80" y="92" text-anchor="middle" font-family="Arial, sans-serif" font-size="42" font-weight="700" fill="white">${escapeXml(initials)}</text></svg>`; return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`; }
+
+// ── Logo sources ─────────────────────────────────────────────────────────────
+// Ordered fallbacks requested by the project:
+// 1. iptv-org API, 2. tv-logo/tv-logos, 3. Free-TV/IPTV lists,
+// 4. BKPepe/czech-channels-icons, 5. Free-TV/IPTV lists as final retry.
+const LOGO_SOURCES = [
+  {
+    id: 'iptv-org-api',
+    label: 'iptv-org API',
+    type: 'iptv-org-api',
+    channelsUrl: 'https://iptv-org.github.io/api/channels.json',
+    logosUrl: 'https://iptv-org.github.io/api/logos.json'
+  },
+  {
+    id: 'tv-logo-tv-logos',
+    label: 'tv-logo/tv-logos',
+    type: 'candidate'
+  },
+  {
+    id: 'free-tv-iptv-lists',
+    label: 'Free-TV/IPTV lists',
+    type: 'markdown',
+    urls: [
+      'https://raw.githubusercontent.com/Free-TV/IPTV/master/lists/slovakia.md',
+      'https://raw.githubusercontent.com/Free-TV/IPTV/master/lists/czech_republic.md'
+    ]
+  },
+  {
+    id: 'bkpepe-czech-channels-icons',
+    label: 'BKPepe/czech-channels-icons',
+    type: 'github-directory',
+    apiUrl: 'https://api.github.com/repos/BKPepe/czech-channels-icons/contents/'
+  },
+  {
+    id: 'free-tv-iptv-lists-final',
+    label: 'Free-TV/IPTV lists final fallback',
+    type: 'markdown',
+    urls: [
+      'https://raw.githubusercontent.com/Free-TV/IPTV/master/lists/slovakia.md',
+      'https://raw.githubusercontent.com/Free-TV/IPTV/master/lists/czech_republic.md'
+    ]
+  }
+];
+
+const TV_LOGO_BASE = 'https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/';
+const TV_LOGO_COUNTRIES = ['slovakia', 'czech-republic', 'international', 'hungary', 'poland', 'austria', 'germany', 'united-kingdom', 'france', 'italy', 'spain', 'united-states'];
+const TV_LOGO_COUNTRY_SUFFIX = { 'slovakia': 'sk', 'czech-republic': 'cz', 'international': 'int', 'hungary': 'hu', 'poland': 'pl', 'austria': 'at', 'germany': 'de', 'united-kingdom': 'uk', 'france': 'fr', 'italy': 'it', 'spain': 'es', 'united-states': 'us' };
+
 function logoKey(value) { return normalizeId(value).replace(/-/g, ''); }
 function cleanLogoName(value) {
   return String(value || '')
@@ -160,15 +208,32 @@ function cleanLogoName(value) {
     .replace(/^:+/, '')
     .trim();
 }
-function parseLogoIndex(text) {
+function registerLogo(map, key, url) {
+  var cleanKey = logoKey(cleanLogoName(key));
+  var cleanUrl = sanitizeLogoUrl(url);
+  if (!cleanKey || !cleanUrl || map[cleanKey]) return;
+  map[cleanKey] = cleanUrl;
+}
+function registerLogoAliases(map, aliases, url) {
+  aliases.filter(Boolean).forEach(function(alias) { registerLogo(map, alias, url); });
+}
+function extractLogoUrl(value) {
+  var text = String(value || '');
+  var htmlImg = text.match(/<img\b[^>]*\bsrc=["']([^"']+)["']/i);
+  if (htmlImg) return htmlImg[1];
+  var markdown = text.match(/!?\[[^\]]*]\((https?:\/\/[^)\s]+)\)/i);
+  if (markdown) return markdown[1];
+  var bare = text.match(/https?:\/\/[^\s|"'<>)]*/i);
+  return bare ? bare[0] : text;
+}
+function parseMarkdownLogoIndex(text) {
   var map = {};
   String(text || '').split(/\r?\n/).forEach(function(line) {
     var row = line.trim();
     if (!row || row.startsWith('#') || /^[-|:\s]+$/.test(row)) return;
     var cells = row.startsWith('|') ? row.split('|').map(function(cell) { return cell.trim(); }).filter(Boolean) : [];
-    var imgMatch = row.match(/<img\b[^>]*\bsrc=["']([^"']+)["']/i);
     var name = '';
-    var url = imgMatch?.[1] || '';
+    var url = extractLogoUrl(row);
     var epgId = '';
     if (cells.length >= 4 && /^#$/i.test(cells[0])) return;
     if (cells.length >= 4 && /^\d+$/.test(cells[0])) {
@@ -176,7 +241,7 @@ function parseLogoIndex(text) {
       epgId = cells[3];
     } else if (cells.length >= 2) {
       name = cells[0];
-      url = url || cells[cells.length - 1];
+      url = extractLogoUrl(cells[cells.length - 1]) || url;
     }
     if (!name || /^channel$/i.test(name) || /^logo$/i.test(url)) {
       var match = row.match(/^\s*[-*]\s*([^:|]+)\s*[:|]\s*(https?:\/\/\S+)/i);
@@ -186,29 +251,132 @@ function parseLogoIndex(text) {
     epgId = cleanLogoName(epgId);
     url = sanitizeLogoUrl(url);
     if (!name || !url) return;
-    map[logoKey(name)] = url;
-    if (epgId) map[logoKey(epgId)] = url;
+    registerLogo(map, name, url);
+    if (epgId) registerLogo(map, epgId, url);
   });
   return map;
 }
-async function initLogoIndex() {
-  try {
-    var response = await fetch('./lists/logos.md', { cache: 'no-cache' });
-    if (!response.ok) return;
-    state.logoIndex = parseLogoIndex(await response.text());
-    renderChannels();
-    if (state.epgVisible) renderGuide();
-  } catch {}
+function parseIptvOrgLogoIndex(channels, logos) {
+  var map = {};
+  var channelById = {};
+  (Array.isArray(channels) ? channels : []).forEach(function(channel) {
+    if (channel?.id) channelById[channel.id] = channel;
+  });
+  (Array.isArray(logos) ? logos : [])
+    .filter(function(logo) { return logo?.url && logo?.channel; })
+    .sort(function(a, b) { return Number(b.in_use === true) - Number(a.in_use === true); })
+    .forEach(function(logo) {
+      var channel = channelById[logo.channel] || {};
+      registerLogoAliases(map, [
+        logo.channel,
+        logo.channel?.replace(/\.[a-z]{2}$/i, ''),
+        channel.name,
+        ...(Array.isArray(channel.alt_names) ? channel.alt_names : [])
+      ], logo.url);
+    });
+  return map;
 }
-function indexedLogo(channel) {
-  var keys = [channel.tvgId, channel.name, channel.id].filter(Boolean);
-  for (var i = 0; i < keys.length; i++) {
-    var hit = state.logoIndex[logoKey(keys[i])];
-    if (hit) return hit;
+function parseGitHubDirectoryLogoIndex(items) {
+  var map = {};
+  (Array.isArray(items) ? items : []).forEach(function(item) {
+    if (item?.type !== 'file' || !/\.(png|jpe?g|svg|webp)$/i.test(item.name || '')) return;
+    var name = String(item.name).replace(/\.(png|jpe?g|svg|webp)$/i, '');
+    registerLogo(map, name, item.download_url || item.html_url);
+  });
+  return map;
+}
+async function fetchJson(url) {
+  var response = await fetch(url, { cache: 'force-cache' });
+  if (!response.ok) throw new Error(response.status + ' ' + response.statusText);
+  return response.json();
+}
+async function fetchTextSource(url) {
+  var response = await fetch(url, { cache: 'force-cache' });
+  if (!response.ok) throw new Error(response.status + ' ' + response.statusText);
+  return response.text();
+}
+async function loadLogoSource(source) {
+  if (source.type === 'candidate') return { id: source.id, label: source.label, map: {}, candidate: true };
+  if (source.type === 'iptv-org-api') {
+    var data = await Promise.all([fetchJson(source.channelsUrl), fetchJson(source.logosUrl)]);
+    return { id: source.id, label: source.label, map: parseIptvOrgLogoIndex(data[0], data[1]) };
   }
-  return null;
+  if (source.type === 'markdown') {
+    var text = await Promise.all(source.urls.map(fetchTextSource));
+    return { id: source.id, label: source.label, map: parseMarkdownLogoIndex(text.join('\n')) };
+  }
+  if (source.type === 'github-directory') {
+    return { id: source.id, label: source.label, map: parseGitHubDirectoryLogoIndex(await fetchJson(source.apiUrl)) };
+  }
+  return { id: source.id, label: source.label, map: {} };
 }
-function getChannelLogo(channel) { var url = sanitizeLogoUrl(channel.logo) || indexedLogo(channel); if (url && location.protocol === 'https:' && url.startsWith('http://')) url = url.replace('http://', 'https://'); return url || placeholderLogo(channel.name); }
+async function initLogoIndex() {
+  var indexes = [];
+  for (var i = 0; i < LOGO_SOURCES.length; i++) {
+    try { indexes.push(await loadLogoSource(LOGO_SOURCES[i])); } catch {}
+  }
+  state.logoIndexes = indexes;
+  renderChannels();
+  if (state.epgVisible) renderGuide();
+}
+function indexedLogoCandidates(channel, source) {
+  var keys = [channel.tvgId, channel.name, channel.id].filter(Boolean);
+  var hits = [];
+  for (var i = 0; i < keys.length; i++) {
+    var hit = source.map?.[logoKey(keys[i])];
+    if (hit && !hits.includes(hit)) hits.push(hit);
+  }
+  return hits;
+}
+function tvLogoSlug(name) {
+  return String(name || '').toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/&/g, '-and-')
+    .replace(/\+/g, '-plus')
+    .replace(/[()[\]{}'":;!?,.*#@]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+function tvLogoCandidates(channel) {
+  var slug = tvLogoSlug(channel.name);
+  if (!slug) return [];
+  return TV_LOGO_COUNTRIES.map(function(country) {
+    return TV_LOGO_BASE + country + '/' + slug + '-' + TV_LOGO_COUNTRY_SUFFIX[country] + '.png';
+  });
+}
+function normalizeLogoUrl(url) {
+  if (url && location.protocol === 'https:' && url.startsWith('http://')) return url.replace('http://', 'https://');
+  return url;
+}
+function logoCandidates(channel) {
+  var urls = [];
+  function add(url) {
+    url = normalizeLogoUrl(sanitizeLogoUrl(url));
+    if (url && !urls.includes(url)) urls.push(url);
+  }
+  for (var i = 0; i < LOGO_SOURCES.length; i++) {
+    var source = LOGO_SOURCES[i];
+    if (source.type === 'candidate') {
+      tvLogoCandidates(channel).forEach(add);
+      continue;
+    }
+    var loaded = state.logoIndexes.find(function(item) { return item.id === source.id; });
+    if (loaded) indexedLogoCandidates(channel, loaded).forEach(add);
+  }
+  add(channel.logo);
+  urls.push(placeholderLogo(channel.name));
+  return urls;
+}
+function setLogoImage(imgEl, channel) {
+  var candidates = logoCandidates(channel);
+  var idx = 0;
+  imgEl.onerror = function() {
+    idx += 1;
+    imgEl.src = candidates[idx] || placeholderLogo(channel.name);
+  };
+  imgEl.src = candidates[0] || placeholderLogo(channel.name);
+  imgEl.alt = channel.name;
+}
 function attr(text, name) { const pattern = new RegExp(`${name}\\s*=\\s*("([^"]*)"|'([^']*)'|([^\\s]+))`, "i"); const match = text.match(pattern); return match ? (match[2] || match[3] || match[4] || "").trim() : ""; }
 function uniqueId(seed, existing) { const base = normalizeId(seed) || "channel"; const ids = new Set(existing.map((item) => item.id)); let value = base; let counter = 2; while (ids.has(value)) { value = `${base}-${counter}`; counter += 1; } return value; }
 function parseXml(text) { const doc = new DOMParser().parseFromString(text, "application/xml"); const error = doc.querySelector("parsererror"); if (error) throw new Error(error.textContent || "XML parse error"); return doc; }
@@ -492,10 +660,7 @@ function renderChannels() {
     node.setAttribute('role', 'button');
     node.setAttribute('aria-label', channel.name);
     node.classList.toggle('active', channel.id === state.selectedChannelId);
-    var logoImg = node.querySelector('.channel-logo');
-    logoImg.src = getChannelLogo(channel);
-    logoImg.alt = channel.name;
-    logoImg.onerror = function() { this.onerror = null; this.src = placeholderLogo(channel.name); };
+    setLogoImage(node.querySelector('.channel-logo'), channel);
     node.querySelector('h3').textContent = channel.name;
     node.querySelector('p').textContent = program?.title || t('noProgram');
     node.querySelector('.progress-track span').style.width = `${progress(program, now)}%`;
@@ -569,7 +734,7 @@ function renderGuide() {
   const header = document.createElement('div'); header.className = 'timeline-header'; header.innerHTML = `<div class="timeline-corner"></div><div class="time-slots"></div>`; header.querySelector('.time-slots').style.width = `${width}px`;
   for (let cursor = new Date(start); cursor <= end; cursor = new Date(cursor.getTime() + 30 * 60 * 1000)) { const slot = document.createElement('div'); slot.className = 'time-slot'; slot.style.left = `${((cursor - start) / duration) * width}px`; slot.style.width = `${width / 16}px`; slot.textContent = formatTime(cursor); header.querySelector('.time-slots').append(slot); }
   timeline.append(header);
-  channels.forEach((channel) => { const row = document.createElement('div'); row.className = 'timeline-row'; row.innerHTML = `<div class="timeline-label"><img src="${getChannelLogo(channel)}" alt="" onerror="this.onerror=null;this.src='${placeholderLogo(channel.name).replace(/'/g, "\\'")}';"><span>${escapeHtml(channel.name)}</span></div><div class="program-track"></div>`; const track = row.querySelector('.program-track'); track.style.width = `${width}px`; const programs = findPrograms(channel).filter((program) => program.stop > start && program.start < end); if (!programs.length) { const empty = document.createElement('div'); empty.className = 'program'; empty.style.left = '8px'; empty.style.width = '160px'; empty.innerHTML = `<strong>${t('noEpg')}</strong>`; track.append(empty); } else { programs.forEach((program) => { const left = Math.max(0, ((program.start - start) / duration) * width); const right = Math.min(width, ((program.stop - start) / duration) * width); const node = document.createElement('div'); node.className = `program${program.start <= new Date() && program.stop > new Date() ? ' current' : ''}`; node.style.left = `${left}px`; node.style.width = `${Math.max(44, right - left - 4)}px`; node.title = `${program.title} ${formatTime(program.start)}-${formatTime(program.stop)}`; node.innerHTML = `<strong>${escapeHtml(program.title)}</strong><span>${formatTime(program.start)} - ${formatTime(program.stop)}</span>`; track.append(node); }); }
+  channels.forEach((channel) => { const row = document.createElement('div'); row.className = 'timeline-row'; row.innerHTML = `<div class="timeline-label"><img alt=""><span>${escapeHtml(channel.name)}</span></div><div class="program-track"></div>`; setLogoImage(row.querySelector('.timeline-label img'), channel); const track = row.querySelector('.program-track'); track.style.width = `${width}px`; const programs = findPrograms(channel).filter((program) => program.stop > start && program.start < end); if (!programs.length) { const empty = document.createElement('div'); empty.className = 'program'; empty.style.left = '8px'; empty.style.width = '160px'; empty.innerHTML = `<strong>${t('noEpg')}</strong>`; track.append(empty); } else { programs.forEach((program) => { const left = Math.max(0, ((program.start - start) / duration) * width); const right = Math.min(width, ((program.stop - start) / duration) * width); const node = document.createElement('div'); node.className = `program${program.start <= new Date() && program.stop > new Date() ? ' current' : ''}`; node.style.left = `${left}px`; node.style.width = `${Math.max(44, right - left - 4)}px`; node.title = `${program.title} ${formatTime(program.start)}-${formatTime(program.stop)}`; node.innerHTML = `<strong>${escapeHtml(program.title)}</strong><span>${formatTime(program.start)} - ${formatTime(program.stop)}</span>`; track.append(node); }); }
     const nowLine = document.createElement('div'); nowLine.className = 'now-line'; nowLine.style.left = `${Math.max(0, Math.min(width, ((Date.now() - start.getTime()) / duration) * width))}px`; track.append(nowLine);
     timeline.append(row);
   });
@@ -846,7 +1011,24 @@ function playChannel(channel) {
   if (state.player === 'artplayer') return playArtPlayer(channel);
   return playHtml5(channel);
 }
-function showSwitchOverlay(channel) { const now = currentProgram(channel); const next = nextProgram(channel); dom.switchOverlay.innerHTML = `<img src="${getChannelLogo(channel)}" alt="" onerror="this.onerror=null;this.src='${placeholderLogo(channel.name).replace(/'/g, "\\'")}';"><div><h2>${escapeHtml(channel.name)}</h2><p><strong>${t('now')}:</strong> ${escapeHtml(now?.title || t('noProgram'))}</p><p><strong>${t('next')}:</strong> ${escapeHtml(next?.title || t('noProgram'))}</p></div>`; dom.switchOverlay.classList.add('show'); clearTimeout(state.overlayTimer); state.overlayTimer = setTimeout(() => dom.switchOverlay.classList.remove('show'), 5200); }
+function showSwitchOverlay(channel) {
+  const now = currentProgram(channel);
+  const next = nextProgram(channel);
+  const img = document.createElement('img');
+  setLogoImage(img, channel);
+  const details = document.createElement('div');
+  const title = document.createElement('h2');
+  title.textContent = channel.name;
+  const nowLine = document.createElement('p');
+  nowLine.innerHTML = `<strong>${t('now')}:</strong> ${escapeHtml(now?.title || t('noProgram'))}`;
+  const nextLine = document.createElement('p');
+  nextLine.innerHTML = `<strong>${t('next')}:</strong> ${escapeHtml(next?.title || t('noProgram'))}`;
+  details.append(title, nowLine, nextLine);
+  dom.switchOverlay.replaceChildren(img, details);
+  dom.switchOverlay.classList.add('show');
+  clearTimeout(state.overlayTimer);
+  state.overlayTimer = setTimeout(() => dom.switchOverlay.classList.remove('show'), 5200);
+}
 function selectChannel(id) { const channel = state.channels.find((item) => item.id === id); if (!channel) return; if (state.multiview && state.mvSlot === 1) { state.mvChannel1 = channel; playInSlot1(channel); renderChannels(); return; } state.selectedChannelId = id; playChannel(channel); showSwitchOverlay(channel); renderChannels(); requestAnimationFrame(() => { const active = dom.channelGrid.querySelector('.channel-card.active'); active?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }); }
 function isNativePlatform() { return !!(window.TCLVNative || window.Capacitor); }
 function getPlatform() {

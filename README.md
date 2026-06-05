@@ -39,7 +39,7 @@
 - **EPG s casovou osou** — XMLTV parsing, zoom a navigacia, fuzzy matching kanalov, live progress
 - **Kvalita videa** — vyber HLS kvality (360p / 720p / 1080p / nativna)
 - **Jednoduche UI** — kanalovy panel bez hladania/skupin, 2-krokovy sidebar `full -> logo -> hidden`
-- **Logo index** — centralny zoznam log v `lists/logos.md`, s fallbackom na `tvg-logo`
+- **Logo zdroje** — fallback poradie: iptv-org API, tv-logo/tv-logos, Free-TV/IPTV, BKPepe icons, final Free-TV retry
 - **Direct link import** — URL playlisty z Google Drive a Dropbox sa prevedu na download link
 - **Lokálny proxy bridge** — `npm run proxy` pre priame streamovanie cez lokalnu siet z Vercel HTTPS
 - **Bezpecnostny audit** — CSP, XSS ochrana, SSRF blokovanie, import validacia
@@ -168,7 +168,7 @@ https://api.allorigins.win/raw?url=
 
 - 📁 Import zo súboru alebo URL — `*.m3u`, `*.m3u8`, `*.xspf`
 - 🗂️ Správa viacerých playlistov — pridať, odstrániť, prepnúť v draweri
-- 🖼️ Logá kanálov zo zdroja `lists/logos.md` alebo z `tvg-logo` v playliste
+- 🖼️ Logá kanálov z GitHub zdrojov v poradí: `iptv-org/api` → `tv-logo/tv-logos` → `Free-TV/IPTV` → `BKPepe/czech-channels-icons` → `Free-TV/IPTV`
 - 🔀 Sidebar toggle — 1. krok zobrazí iba logá, 2. krok skryje panel kompletne
 - 🔗 Online import — `*.m3u`, `*.m3u8`, `*.xspf`, Google Drive file linky a Dropbox share linky
 
@@ -199,7 +199,7 @@ https://api.allorigins.win/raw?url=
 - **Web** — konfigurovateľný CORS proxy s dual-stratégiou (encoded + raw fallback)
 - `contextIsolation: true`, `nodeIntegration: false`, `sandbox: true`
 - HTML escaping, logo URL sanitizácia (`https?://` a `data:image/` iba)
-- Lokálny logo index: [lists/logos.md](lists/logos.md)
+- Logo metadata cez `iptv-org/api` endpointy `channels.json` a `logos.json`, plus GitHub fallback indexy
 
 ### ♠️ Nastavenia
 
@@ -332,6 +332,16 @@ git push origin feature/moja-zmena
 ```
 
 > Pull requesty sú vítané! Pre väčšie zmeny prosím najprv otvor **Issue**.
+
+---
+
+## ⚖️ Legal
+
+TCLVPlayer neukladá žiadne video súbory a nehostuje televízne streamy. Aplikácia iba načítava používateľom zadané playlisty, EPG zdroje a verejne dostupné metadata/logá z otvorených repozitárov.
+
+Ak playlist alebo externý zdroj obsahuje odkaz na obsah, ktorý porušuje vaše autorské práva, je potrebné kontaktovať prevádzkovateľa daného zdroja alebo webhostingu, kde sa obsah skutočne nachádza. Odstránenie odkazu z playlistu alebo z tejto aplikácie neodstráni samotný obsah z internetu.
+
+Samotné odkazovanie na verejne dostupné URL nevytvára kópiu diela v tejto aplikácii. TCLVPlayer preto nenahrádza právny kontakt na prevádzkovateľov pôvodných streamov, playlistov alebo hostingových služieb.
 
 ---
 
