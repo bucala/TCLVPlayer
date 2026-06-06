@@ -1578,8 +1578,9 @@ input[type=search] { -webkit-appearance: none; }
     width: 100% !important;
     border-right: none;
     border-top: 1px solid var(--border);
-    flex: 1;
+    flex: 1 1 0;
     min-height: 0;
+    max-height: 45vh;
     overflow: hidden;
     order: 2;
   }
@@ -1802,20 +1803,21 @@ input[type=search] { -webkit-appearance: none; }
   }
 
   .workspace.epg-active {
-    flex-direction: column;
+    flex-direction: row;
   }
 
   .workspace.epg-active .content {
     order: 1;
     flex: 1 1 auto;
-    height: calc(100dvh - var(--topbar-h));
-    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
   }
 
   .workspace.epg-active .player-stage {
-    flex: 0 0 42vh;
-    aspect-ratio: auto;
-    max-height: 42vh;
+    flex: 0 0 auto;
+    aspect-ratio: 16/9;
+    max-height: 35vh;
     min-height: 0;
   }
 
@@ -1835,8 +1837,7 @@ input[type=search] { -webkit-appearance: none; }
   }
 
   .workspace.epg-active .sidebar-toggle {
-    left: 0;
-    top: calc(var(--topbar-h) + 42vh);
+    display: none !important;
   }
 
   .now-panel { padding: 4px 10px; }
