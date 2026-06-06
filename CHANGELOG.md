@@ -7,6 +7,17 @@ Všetky významné zmeny v projekte sú dokumentované v tomto súbore.
 
 ---
 
+## [1.1.7] — 2026-06-06
+
+### Android playback and layout
+
+#### Fixed
+- **Android prehrávanie** — predvolený/fallback prehrávač na Androide je `HTML5`, aby video ostalo v aplikácii namiesto prázdnej plochy po natívnom externom prehrávači.
+- **Android EPG rozloženie** — v mobilnom EPG režime obsah vyplní dostupnú výšku, video ostáva hore a EPG panel dostane vlastnú scrollovateľnú plochu.
+- **Android sidebar toggle** — tlačidlo skrytia panela je v EPG režime pripnuté k ľavej hrane pod video plochou aj v landscape.
+
+---
+
 ## [1.1.6] — 2026-06-06
 
 ### Dropdown selection colors

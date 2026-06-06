@@ -71,7 +71,7 @@ function platformPlayerKey(platform) {
   return 'tclv.player.' + (platform || getPlatform());
 }
 function fallbackPlayer(platform) {
-  if (platform === 'android') return 'native';
+  if (platform === 'android') return 'html5';
   if (platform === 'electron') return 'html5';
   return 'artplayer';
 }
@@ -84,7 +84,7 @@ function platformPlayersSnapshot() {
     webHttp: safeGet('tclv.player.web-http', ''),
     webHttps: safeGet('tclv.player.web-https', ''),
     windows: safeGet('tclv.player.electron', 'html5'),
-    android: safeGet('tclv.player.android', 'native')
+    android: safeGet('tclv.player.android', 'html5')
   };
 }
 function safeGetJsonObject(key) {

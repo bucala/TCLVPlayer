@@ -1614,10 +1614,33 @@ input[type=search] { -webkit-appearance: none; }
     border-top: none;
   }
 
-  .content { order: 1; flex-shrink: 1; flex-grow: 0; }
+  .content {
+    order: 1;
+    flex: 0 0 auto;
+    min-height: 0;
+  }
+
+  .workspace.epg-active .content {
+    flex: 1 1 auto;
+    height: calc(100dvh - var(--topbar-h));
+  }
 
   .workspace.epg-active .sidebar { display: none; }
-  .workspace.epg-active .guide-panel { display: flex !important; }
+  .workspace.epg-active .guide-panel {
+    display: flex !important;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .workspace.epg-active .epg-guide {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .workspace.epg-active .sidebar-toggle {
+    left: 0;
+    top: calc(var(--topbar-h) + min(40vh, 220px));
+  }
 
   .channel-grid {
     padding: 6px;
@@ -1634,6 +1657,10 @@ input[type=search] { -webkit-appearance: none; }
   .channel-text h3 { font-size: 12px; }
 
   .player-stage { flex: 0 0 auto; aspect-ratio: 16 / 9; min-height: 0; max-height: 40vh; }
+  .workspace.epg-active .player-stage {
+    flex: 0 0 auto;
+    max-height: 40vh;
+  }
   .player-stage.no-video { aspect-ratio: auto; max-height: none; height: auto; min-height: 48px; }
   .player-stage.no-video #videoPlayer { display: none; }
   .player-stage.no-video .mv-slot-0 .player-message,
@@ -1772,6 +1799,44 @@ input[type=search] { -webkit-appearance: none; }
     max-height: none;
     aspect-ratio: auto;
     flex: 1;
+  }
+
+  .workspace.epg-active {
+    flex-direction: column;
+  }
+
+  .workspace.epg-active .content {
+    order: 1;
+    flex: 1 1 auto;
+    height: calc(100dvh - var(--topbar-h));
+    min-height: 0;
+  }
+
+  .workspace.epg-active .player-stage {
+    flex: 0 0 42vh;
+    aspect-ratio: auto;
+    max-height: 42vh;
+    min-height: 0;
+  }
+
+  .workspace.epg-active .guide-panel {
+    display: flex !important;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .workspace.epg-active .epg-guide {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .workspace.epg-active .sidebar {
+    display: none;
+  }
+
+  .workspace.epg-active .sidebar-toggle {
+    left: 0;
+    top: calc(var(--topbar-h) + 42vh);
   }
 
   .now-panel { padding: 4px 10px; }
