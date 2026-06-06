@@ -42,6 +42,9 @@ manifest = manifest.replace(
     if (!(/android:banner=/.test(attrs))) {
       attrs += ' android:banner="@mipmap/ic_launcher"';
     }
+    if (!(/android:theme=/.test(attrs))) {
+      attrs += ' android:theme="@style/AppTheme"';
+    }
     return `<application${attrs}>`;
   },
 );
