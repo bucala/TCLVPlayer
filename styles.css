@@ -1609,6 +1609,18 @@ input[type=search] { -webkit-appearance: none; }
     height: 34px;
   }
 
+  .workspace.sidebar-rail .content,
+  .workspace.sidebar-hidden .content {
+    flex: 1 1 0;
+  }
+
+  .workspace.sidebar-rail .player-stage,
+  .workspace.sidebar-hidden .player-stage {
+    flex: 1;
+    aspect-ratio: auto;
+    max-height: none;
+  }
+
   .workspace.sidebar-hidden .sidebar {
     flex: 0 0 0;
     min-height: 0;
