@@ -21,13 +21,11 @@ class MainActivity : BridgeActivity() {
 
     private fun configureWebView() {
         val webView = bridge?.webView ?: return
-        webView.post {
-            webView.settings.apply {
-                mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-                mediaPlaybackRequiresUserGesture = false
-                domStorageEnabled = true
-                javaScriptEnabled = true
-            }
+        webView.settings.apply {
+            mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+            mediaPlaybackRequiresUserGesture = false
+            domStorageEnabled = true
+            javaScriptEnabled = true
         }
     }
 

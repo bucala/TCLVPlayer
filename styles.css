@@ -1408,9 +1408,11 @@ html:not([data-platform="electron"]) .sidebar-toggle {
   top: 0;
   bottom: 0;
   background: var(--surface2);
-  border: 1px solid var(--border);
+  border: none;
+  border-right: 1px solid var(--border);
   border-radius: 0;
   padding: 3px 8px;
+  box-sizing: border-box;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -1582,7 +1584,8 @@ html:not([data-platform="electron"]) .sidebar-toggle {
     flex: 1 1 0;
     min-height: 0;
     max-height: 45vh;
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
     order: 2;
   }
 

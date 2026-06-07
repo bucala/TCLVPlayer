@@ -3,7 +3,7 @@
   "appName": "TCLVPlayer",
   "webDir": "dist/web",
   "server": {
-    "androidScheme": "https"
+    "androidScheme": "http"
   },
   "plugins": {
     "SplashScreen": {
