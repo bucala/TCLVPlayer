@@ -13,10 +13,10 @@ import com.getcapacitor.BridgeActivity
 
 class MainActivity : BridgeActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
-        enableImmersiveFullscreen()
         registerPlugin(TCLVPlayerPlugin::class.java)
         super.onCreate(savedInstanceState)
         configureWebView()
+        enableImmersiveFullscreen()
     }
 
     private fun configureWebView() {
@@ -27,6 +27,11 @@ class MainActivity : BridgeActivity() {
             domStorageEnabled = true
             javaScriptEnabled = true
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        enableImmersiveFullscreen()
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
