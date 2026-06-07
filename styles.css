@@ -1909,3 +1909,83 @@ html:not([data-platform="electron"]) .sidebar-toggle {
   .channel-logo { width: 36px; height: 28px; }
   .channel-text h3 { font-size: 11px; }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ANDROID — Platform-specific overrides
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+html[data-platform="android"] {
+  --topbar-h: 48px;
+}
+
+html[data-platform="android"] body {
+  padding: env(safe-area-inset-top) 0 0 0;
+}
+
+@media (max-width: 700px) {
+  html[data-platform="android"] .sidebar {
+    max-height: none;
+    flex: 1 1 0;
+  }
+
+  html[data-platform="android"] .section-title {
+    padding: 6px 10px;
+    gap: 4px;
+  }
+
+  html[data-platform="android"] .section-title h2 {
+    font-size: 12px;
+  }
+
+  html[data-platform="android"] .epg-search {
+    order: 99;
+    width: 100%;
+    margin-top: 2px;
+    height: 28px;
+    font-size: 12px;
+  }
+
+  html[data-platform="android"] #guideRange {
+    font-size: 10px;
+  }
+
+  html[data-platform="android"] .workspace.epg-active .player-stage {
+    max-height: 0;
+    min-height: 0;
+    overflow: hidden;
+    flex: 0 0 0;
+  }
+
+  html[data-platform="android"] .workspace.epg-active .content {
+    flex: 1 1 0;
+    min-height: 0;
+  }
+
+  html[data-platform="android"] .workspace.epg-active .guide-panel {
+    flex: 1 1 0;
+  }
+
+  html[data-platform="android"] .epg-guide {
+    padding: 0;
+  }
+}
+
+@media (max-width: 900px) and (orientation: landscape) {
+  html[data-platform="android"] .workspace.epg-active .player-stage {
+    max-height: 20vh;
+  }
+
+  html[data-platform="android"] .section-title {
+    padding: 4px 10px;
+    gap: 4px;
+  }
+
+  html[data-platform="android"] .section-title h2 {
+    font-size: 12px;
+  }
+
+  html[data-platform="android"] .epg-search {
+    height: 28px;
+    font-size: 12px;
+  }
+}
