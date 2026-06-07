@@ -682,7 +682,7 @@ function setStreamStatus(channelId, status) {
   updateChannelStatusDot(channelId);
 }
 function updateChannelStatusDot(channelId) {
-  var card = dom.channelGrid.querySelector('[data-channel-id="' + channelId + '"]');
+  var card = dom.channelGrid.querySelector('[data-id="' + channelId + '"]');
   if (!card) return;
   var dot = card.querySelector('.status-dot');
   if (!dot) return;
@@ -1140,32 +1140,7 @@ function tryMpegtsPlayback(url) {
   state.mpegtsPlayer.load();
   safeAutoplay(dom.video);
 }
-function buildQualityMenu() {
-  return;
-  if (!state.hls || !window.Hls) { dom.qualityControl.hidden = true; return; }
-  var levels = state.hls.levels;
-  if (!levels || !levels.length) { dom.qualityControl.hidden = true; return; }
-  dom.qualitySelect.innerHTML = '';
-  function addOpt(val, lbl) { var o = document.createElement('option'); o.value = val; o.textContent = lbl; dom.qualitySelect.appendChild(o); }
-  addOpt('-1', 'Auto');
-  if (levels.length > 1) {
-    var hasH = levels.some(function(l) { return l.height > 0; });
-    if (hasH) {
-      var used = new Set();
-      [['qualityLow', 360], ['qualityMedium', 720], ['qualityHigh', 1080]].forEach(function(pair) {
-        var best = -1, bestD = Infinity;
-        levels.forEach(function(lv, i) { var d = Math.abs((lv.height || 0) - pair[1]); if (d < bestD) { bestD = d; best = i; } });
-        if (best >= 0 && !used.has(best)) { used.add(best); addOpt(best, t(pair[0])); }
-      });
-    } else {
-      addOpt(0, t('qualityLow'));
-      if (levels.length > 2) addOpt(Math.floor(levels.length / 2), t('qualityMedium'));
-      addOpt(levels.length - 1, t('qualityHigh'));
-    }
-  }
-  dom.qualitySelect.value = '-1';
-  dom.qualityControl.hidden = false;
-}
+function buildQualityMenu() {}
 function safeAutoplay(videoEl) {
   videoEl.muted = true;
   var p = videoEl.play();
@@ -1179,11 +1154,11 @@ function safeAutoplay(videoEl) {
   });
 }
 async function playExternalAndroid(channel) {
-  if (!window.Capacitor?.Plugins?.TCLVPlayer) { showMessage(t('optionalMissing')); return; }
+  if (!window.Capacitor?.Plugins?.TCLVPlayer) { playHtml5(channel); return; }
   var playerName = (state.player === 'native') ? 'system' : state.player;
   try {
     await window.Capacitor.Plugins.TCLVPlayer.openExternalPlayer({ player: playerName, url: channel.url });
-  } catch (e) { showMessage(e.message || streamErrorMsg()); }
+  } catch { playHtml5(channel); }
 }
 function playExternalDesktop(channel) {
   if (!window.TCLVNative?.openExternal) { showMessage(t('optionalMissing')); return; }
