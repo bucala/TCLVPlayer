@@ -682,7 +682,7 @@ function setStreamStatus(channelId, status) {
   updateChannelStatusDot(channelId);
 }
 function updateChannelStatusDot(channelId) {
-  var card = dom.channelGrid.querySelector('[data-channel-id="' + channelId + '"]');
+  var card = dom.channelGrid.querySelector('[data-id="' + channelId + '"]');
   if (!card) return;
   var dot = card.querySelector('.status-dot');
   if (!dot) return;
@@ -1154,11 +1154,11 @@ function safeAutoplay(videoEl) {
   });
 }
 async function playExternalAndroid(channel) {
-  if (!window.Capacitor?.Plugins?.TCLVPlayer) { showMessage(t('optionalMissing')); return; }
+  if (!window.Capacitor?.Plugins?.TCLVPlayer) { playHtml5(channel); return; }
   var playerName = (state.player === 'native') ? 'system' : state.player;
   try {
     await window.Capacitor.Plugins.TCLVPlayer.openExternalPlayer({ player: playerName, url: channel.url });
-  } catch (e) { showMessage(e.message || streamErrorMsg()); }
+  } catch { playHtml5(channel); }
 }
 function playExternalDesktop(channel) {
   if (!window.TCLVNative?.openExternal) { showMessage(t('optionalMissing')); return; }
