@@ -1972,7 +1972,19 @@ html[data-platform="android"] body {
 
 @media (max-width: 900px) and (orientation: landscape) {
   html[data-platform="android"] .workspace.epg-active .player-stage {
-    max-height: 20vh;
+    max-height: 0;
+    min-height: 0;
+    overflow: hidden;
+    flex: 0 0 0;
+  }
+
+  html[data-platform="android"] .workspace.epg-active .content {
+    flex: 1 1 0;
+    min-height: 0;
+  }
+
+  html[data-platform="android"] .workspace.epg-active .guide-panel {
+    flex: 1 1 0;
   }
 
   html[data-platform="android"] .section-title {
@@ -1985,7 +1997,39 @@ html[data-platform="android"] body {
   }
 
   html[data-platform="android"] .epg-search {
+    order: 99;
+    width: 100%;
+    margin-top: 2px;
     height: 28px;
     font-size: 12px;
+  }
+
+  html[data-platform="android"] #guideRange {
+    font-size: 10px;
+  }
+
+  html[data-platform="android"] .epg-guide {
+    padding: 0;
+  }
+
+  html[data-platform="android"] .timeline-row {
+    height: 40px;
+  }
+
+  html[data-platform="android"] .timeline-label {
+    width: 100px;
+  }
+
+  html[data-platform="android"] .timeline-corner {
+    width: 100px;
+  }
+
+  html[data-platform="android"] .timeline-label img {
+    width: 24px;
+    height: 18px;
+  }
+
+  html[data-platform="android"] .timeline-label span {
+    font-size: 10px;
   }
 }
