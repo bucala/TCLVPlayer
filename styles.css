@@ -1916,10 +1916,34 @@ html:not([data-platform="electron"]) .sidebar-toggle {
 
 html[data-platform="android"] {
   --topbar-h: 48px;
+  --sai-top: env(safe-area-inset-top, 0px);
+  --sai-right: env(safe-area-inset-right, 0px);
+  --sai-bottom: env(safe-area-inset-bottom, 0px);
+  --sai-left: env(safe-area-inset-left, 0px);
 }
 
 html[data-platform="android"] body {
-  padding: env(safe-area-inset-top) 0 0 0;
+  padding: 0;
+}
+
+html[data-platform="android"] .topbar {
+  padding-top: var(--sai-top);
+  padding-left: max(12px, var(--sai-left));
+  padding-right: max(12px, var(--sai-right));
+}
+
+html[data-platform="android"] .sidebar {
+  padding-bottom: var(--sai-bottom);
+  padding-left: var(--sai-left);
+}
+
+html[data-platform="android"] .content {
+  padding-right: var(--sai-right);
+}
+
+html[data-platform="android"] .section-title {
+  padding-left: max(16px, var(--sai-left));
+  padding-right: max(16px, var(--sai-right));
 }
 
 @media (max-width: 700px) {
