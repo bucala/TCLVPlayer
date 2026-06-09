@@ -1547,7 +1547,6 @@ function bindEvents() {
   });
   dom.playerSelect.addEventListener('change', () => { state.player = dom.playerSelect.value; syncCustomSelects(); saveCurrentPlayer(); const channel = selectedChannel(); if (channel) playChannel(channel); });
   dom.languageSelect.addEventListener('change', () => { state.language = dom.languageSelect.value; safeSet('tclv.language', state.language); renderAll(); });
-  dom.logoFile?.addEventListener('change', () => {});
 }
 async function reloadEpgSources() {
   var sources = state.epgSources.filter(function(s) { return s.active !== false && s.source && !s.text; });
