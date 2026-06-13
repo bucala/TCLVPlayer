@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   TCLVPlayer v1.0.0 — Warm Dark Theme
+   TCLVPlayer v1.0.1 — Warm Dark Theme
    Pure dark backgrounds, warm orange accent, large rounded corners.
    Adaptive: Mobile portrait/landscape, Android TV, Web browser.
    ═══════════════════════════════════════════════════════════════════════════ */
@@ -1102,6 +1102,71 @@ input[type=search] { -webkit-appearance: none; }
   color: var(--text);
   outline: none;
 }
+
+/* ─── Settings toolbar ────────────────────────────────────────────────────── */
+
+.settings-toolbar {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.settings-toolbar-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text-secondary);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  padding: 0;
+}
+.settings-toolbar-btn svg { width: 18px; height: 18px; }
+.settings-toolbar-btn:hover { background: var(--surface3); color: var(--text); }
+.settings-toolbar-btn.active,
+.settings-toolbar-btn[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+.icon-toggle { position: relative; }
+.icon-toggle.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+.android-only { display: none; }
+html[data-platform="android"] .android-only { display: grid; }
+
+/* ─── Lock overlay ────────────────────────────────────────────────────────── */
+
+.lock-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.lock-overlay[hidden] { display: none !important; }
+
+.lock-unlock-btn {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  background: rgba(0, 0, 0, 0.5);
+  color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+.lock-overlay.show-unlock .lock-unlock-btn {
+  opacity: 1;
+  pointer-events: auto;
+}
+.lock-unlock-btn svg { width: 24px; height: 24px; }
+
+.lock-button[hidden] { display: none !important; }
 
 /* ─── Program detail modal ─────────────────────────────────────────────────── */
 
