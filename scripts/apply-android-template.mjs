@@ -61,23 +61,22 @@ manifest = manifest.replace(
 
 if (!manifest.includes('android:supportsPictureInPicture')) {
   manifest = manifest.replace(
-    /(<activity[\s\S]*?android:name="\.MainActivity")/,
-    (match) => `${match}\n            android:supportsPictureInPicture="true"\n            android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation"`,
+    /(android:name="\.MainActivity")/,
+    (match) => `${match}\n            android:supportsPictureInPicture="true"`,
+  );
+}
+
+if (manifest.includes('android:configChanges=') && !manifest.includes('smallestScreenSize')) {
+  manifest = manifest.replace(
+    /android:configChanges="([^"]*)"/,
+    (match, val) => `android:configChanges="${val}|smallestScreenSize"`,
   );
 }
 
 if (!manifest.includes('BootReceiver')) {
   manifest = manifest.replace(
-    /<\/application>/,
-    `        <receiver
-            android:name=".BootReceiver"
-            android:enabled="false"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.BOOT_COMPLETED" />
-            </intent-filter>
-        </receiver>
-    </application>`,
+    /(\s*)<\/application>/,
+    `\n        <receiver\n            android:name=".BootReceiver"\n            android:enabled="false"\n            android:exported="true">\n            <intent-filter>\n                <action android:name="android.intent.action.BOOT_COMPLETED" />\n            </intent-filter>\n        </receiver>\n$1</application>`,
   );
 }
 
