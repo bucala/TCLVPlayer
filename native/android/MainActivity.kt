@@ -17,6 +17,10 @@ class MainActivity : BridgeActivity() {
         super.onCreate(savedInstanceState)
         configureWebView()
         enableImmersiveFullscreen()
+        @Suppress("DEPRECATION")
+        window.decorView.setOnSystemUiVisibilityChangeListener {
+            enableImmersiveFullscreen()
+        }
     }
 
     private fun configureWebView() {

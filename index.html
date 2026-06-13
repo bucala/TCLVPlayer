@@ -39,12 +39,14 @@
       <div id="settingsOverlay" class="settings-overlay" hidden></div>
       <aside id="settingsPanel" class="settings-panel" hidden aria-label="Nastavenia">
         <div class="settings-header">
-          <h2>Nastavenia</h2>
+          <div class="settings-header-row">
+            <h2>Nastavenia</h2>
+            <button id="settingsClose" class="icon-button" aria-label="Zavrieť">✕</button>
+          </div>
           <div class="settings-toolbar">
             <button id="mvToggle" class="icon-button settings-toolbar-btn" aria-label="Multi-view" aria-pressed="false" title="Multi-view"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="8" height="8" rx="1"/><rect x="14" y="3" width="8" height="8" rx="1"/><rect x="2" y="13" width="8" height="8" rx="1"/><rect x="14" y="13" width="8" height="8" rx="1"/></svg></button>
             <label id="autostartToggle" class="icon-toggle settings-toolbar-btn android-only" title="Spustiť po štarte"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg><input type="checkbox" id="autostartCheck" hidden /></label>
           </div>
-          <button id="settingsClose" class="icon-button" aria-label="Zavrieť">✕</button>
         </div>
         <div class="settings-section">
           <h3 data-i18n="settingsPlayer">Prehrávač & Jazyk</h3>

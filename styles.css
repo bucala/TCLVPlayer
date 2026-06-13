@@ -227,15 +227,21 @@ button {
 
 .settings-header {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   padding: 14px 16px;
-  gap: 8px;
+  gap: 10px;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
   background: var(--surface);
   position: sticky;
   top: 0;
   z-index: 1;
+}
+
+.settings-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .settings-header h2 {
@@ -693,6 +699,7 @@ input[type=search] { -webkit-appearance: none; }
   border-radius: var(--radius);
   cursor: pointer;
   position: relative;
+  overflow: hidden;
   transition: background 0.2s var(--ease);
 }
 
@@ -1110,8 +1117,6 @@ input[type=search] { -webkit-appearance: none; }
 .settings-toolbar {
   display: flex;
   gap: 6px;
-  margin-left: auto;
-  margin-right: 8px;
 }
 
 .settings-toolbar-btn {
