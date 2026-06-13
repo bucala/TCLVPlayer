@@ -998,14 +998,12 @@ input[type=search] { -webkit-appearance: none; }
   right: 8px;
   z-index: 150;
 }
-/* ─── PiP button ───────────────────────────────────────────────────────────── */
+/* ─── PiP & Lock in settings toolbar ──────────────────────────────────────── */
 
-.pip-button {
-  z-index: 130;
-}
-.pip-button:hover { background: var(--surface3); color: #fff; }
-.pip-button.active { background: var(--accent); border-color: var(--accent); color: #fff; }
-.pip-button[hidden] { display: none !important; }
+.settings-toolbar-btn.pip-button { z-index: 1; }
+.settings-toolbar-btn[hidden] { display: none !important; }
+.settings-toolbar-btn.active,
+.settings-toolbar-btn.pip-button.active { background: var(--accent); border-color: var(--accent); color: #fff; }
 
 .quality-control[hidden] { display: none !important; }
 .quality-control select {
@@ -1176,6 +1174,7 @@ html[data-platform="android"] .android-only { display: grid; }
 .lock-unlock-btn svg { width: 24px; height: 24px; }
 
 .lock-button[hidden] { display: none !important; }
+.lock-button.active { background: var(--accent); border-color: var(--accent); color: #fff; }
 
 /* ─── Program detail modal ─────────────────────────────────────────────────── */
 
