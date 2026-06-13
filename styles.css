@@ -227,15 +227,21 @@ button {
 
 .settings-header {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   padding: 14px 16px;
-  gap: 8px;
+  gap: 10px;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
   background: var(--surface);
   position: sticky;
   top: 0;
   z-index: 1;
+}
+
+.settings-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .settings-header h2 {
@@ -693,6 +699,7 @@ input[type=search] { -webkit-appearance: none; }
   border-radius: var(--radius);
   cursor: pointer;
   position: relative;
+  overflow: hidden;
   transition: background 0.2s var(--ease);
 }
 
@@ -991,14 +998,12 @@ input[type=search] { -webkit-appearance: none; }
   right: 8px;
   z-index: 150;
 }
-/* ─── PiP button ───────────────────────────────────────────────────────────── */
+/* ─── PiP & Lock in settings toolbar ──────────────────────────────────────── */
 
-.pip-button {
-  z-index: 130;
-}
-.pip-button:hover { background: var(--surface3); color: #fff; }
-.pip-button.active { background: var(--accent); border-color: var(--accent); color: #fff; }
-.pip-button[hidden] { display: none !important; }
+.settings-toolbar-btn.pip-button { z-index: 1; }
+.settings-toolbar-btn[hidden] { display: none !important; }
+.settings-toolbar-btn.active,
+.settings-toolbar-btn.pip-button.active { background: var(--accent); border-color: var(--accent); color: #fff; }
 
 .quality-control[hidden] { display: none !important; }
 .quality-control select {
@@ -1110,8 +1115,6 @@ input[type=search] { -webkit-appearance: none; }
 .settings-toolbar {
   display: flex;
   gap: 6px;
-  margin-left: auto;
-  margin-right: 8px;
 }
 
 .settings-toolbar-btn {
@@ -1171,6 +1174,7 @@ html[data-platform="android"] .android-only { display: grid; }
 .lock-unlock-btn svg { width: 24px; height: 24px; }
 
 .lock-button[hidden] { display: none !important; }
+.lock-button.active { background: var(--accent); border-color: var(--accent); color: #fff; }
 
 /* ─── Program detail modal ─────────────────────────────────────────────────── */
 
