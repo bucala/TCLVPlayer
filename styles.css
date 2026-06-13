@@ -228,8 +228,8 @@ button {
 .settings-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   padding: 14px 16px;
+  gap: 8px;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
   background: var(--surface);
@@ -756,6 +756,8 @@ input[type=search] { -webkit-appearance: none; }
   overflow: hidden;
   height: 3px;
   margin-top: 6px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .progress-track span {
@@ -1108,7 +1110,8 @@ input[type=search] { -webkit-appearance: none; }
 .settings-toolbar {
   display: flex;
   gap: 6px;
-  margin-bottom: 8px;
+  margin-left: auto;
+  margin-right: 8px;
 }
 
 .settings-toolbar-btn {
@@ -1138,11 +1141,14 @@ html[data-platform="android"] .android-only { display: grid; }
 .lock-overlay {
   position: fixed;
   inset: 0;
-  z-index: 200;
-  background: transparent;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.01);
   display: flex;
   align-items: center;
   justify-content: center;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 .lock-overlay[hidden] { display: none !important; }
 
@@ -1158,11 +1164,9 @@ html[data-platform="android"] .android-only { display: grid; }
   place-items: center;
   opacity: 0;
   transition: opacity 0.3s;
-  pointer-events: none;
 }
 .lock-overlay.show-unlock .lock-unlock-btn {
   opacity: 1;
-  pointer-events: auto;
 }
 .lock-unlock-btn svg { width: 24px; height: 24px; }
 
@@ -2015,6 +2019,11 @@ html[data-platform="android"] .section-title {
   html[data-platform="android"] .sidebar {
     max-height: none;
     flex: 1 1 0;
+    min-height: 0;
+  }
+
+  html[data-platform="android"] .workspace {
+    gap: 0;
   }
 
   html[data-platform="android"] .section-title {
