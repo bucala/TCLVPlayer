@@ -7,6 +7,7 @@ const manifestPath = join("android", "app", "src", "main", "AndroidManifest.xml"
 const files = [
   ["native/android/TCLVPlayerPlugin.kt", join(packagePath, "TCLVPlayerPlugin.kt")],
   ["native/android/MainActivity.kt", join(packagePath, "MainActivity.kt")],
+  ["native/android/BootReceiver.kt", join(packagePath, "BootReceiver.kt")],
 ];
 
 for (const [source, target] of files) {
@@ -28,6 +29,7 @@ manifest = addAfter(
   /<manifest\b[^>]*>/,
   [
     '    <uses-permission android:name="android.permission.INTERNET" />',
+    '    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />',
     '    <uses-feature android:name="android.software.leanback" android:required="false" />',
     '    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />',
   ],
@@ -56,6 +58,28 @@ manifest = manifest.replace(
     return `${match}\n                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />`;
   },
 );
+
+if (!manifest.includes('android:supportsPictureInPicture')) {
+  manifest = manifest.replace(
+    /(<activity[\s\S]*?android:name="\.MainActivity")/,
+    (match) => `${match}\n            android:supportsPictureInPicture="true"\n            android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation"`,
+  );
+}
+
+if (!manifest.includes('BootReceiver')) {
+  manifest = manifest.replace(
+    /<\/application>/,
+    `        <receiver
+            android:name=".BootReceiver"
+            android:enabled="false"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+    </application>`,
+  );
+}
 
 await writeFile(manifestPath, manifest);
 

@@ -1,7 +1,12 @@
-﻿package sk.tclv.player
+package sk.tclv.player
 
+import android.app.PictureInPictureParams
+import android.content.ComponentName
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
+import android.util.Rational
 import com.getcapacitor.Plugin
 import com.getcapacitor.PluginCall
 import com.getcapacitor.PluginMethod
@@ -44,6 +49,40 @@ class TCLVPlayerPlugin : Plugin() {
             call.resolve()
         } catch (e: Exception) {
             call.reject("Could not open external player: ${e.message}")
+        }
+    }
+
+    @PluginMethod
+    fun enterPip(call: PluginCall) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            call.reject("PiP requires Android 8.0+"); return
+        }
+        try {
+            val params = PictureInPictureParams.Builder()
+                .setAspectRatio(Rational(16, 9))
+                .build()
+            activity.enterPictureInPictureMode(params)
+            call.resolve()
+        } catch (e: Exception) {
+            call.reject("PiP failed: ${e.message}")
+        }
+    }
+
+    @PluginMethod
+    fun setAutostart(call: PluginCall) {
+        val enabled = call.getBoolean("enabled") ?: false
+        try {
+            val receiver = ComponentName(activity, BootReceiver::class.java)
+            val state = if (enabled)
+                PackageManager.COMPONENT_ENABLED_STATE_ENABLED
+            else
+                PackageManager.COMPONENT_ENABLED_STATE_DISABLED
+            activity.packageManager.setComponentEnabledSetting(
+                receiver, state, PackageManager.DONT_KILL_APP
+            )
+            call.resolve()
+        } catch (e: Exception) {
+            call.reject("Autostart toggle failed: ${e.message}")
         }
     }
 }
