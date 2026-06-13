@@ -22,25 +22,19 @@
     "appId": "sk.tclv.player",
     "productName": "TCLVPlayer",
     "files": [
-      "index.html",
-      "styles.css",
-      "app.js",
-      "favicon.svg",
       "dist/web/**/*",
-      "assets/**/*",
-      "native/electron/**/*",
-      "node_modules/video.js/dist/**/*",
-      "node_modules/artplayer/dist/**/*",
-      "node_modules/hls.js/dist/**/*",
-      "node_modules/mpegts.js/dist/**/*"
+      "assets/icon.png",
+      "native/electron/**/*"
     ],
     "win": {
-      "target": [
-        "nsis",
-        "portable"
-      ],
+      "target": "nsis",
       "icon": "assets/icon.png"
-    }
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "asar": true
   },
   "dependencies": {
     "@capacitor/android": "^8.3.4",

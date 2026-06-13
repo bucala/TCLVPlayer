@@ -699,7 +699,6 @@ input[type=search] { -webkit-appearance: none; }
   border-radius: var(--radius);
   cursor: pointer;
   position: relative;
-  overflow: hidden;
   transition: background 0.2s var(--ease);
 }
 
@@ -1999,8 +1998,11 @@ html[data-platform="android"] body {
   padding: 0;
 }
 
-html[data-platform="android"] .topbar {
+html[data-platform="android"] .app-shell {
   padding-top: var(--sai-top);
+}
+
+html[data-platform="android"] .topbar {
   padding-left: max(12px, var(--sai-left));
   padding-right: max(12px, var(--sai-right));
 }
