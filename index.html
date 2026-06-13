@@ -23,6 +23,7 @@
           </div>
         </div>
         <nav class="top-actions">
+          <button id="lockButton" class="icon-button lock-button" hidden title="Lock" aria-label="Zamknúť ovládanie"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></button>
           <button id="chToggle" class="epg-toggle" aria-label="Channels" title="Kanály">CH</button>
           <button id="epgToggle" class="epg-toggle" aria-label="EPG" aria-pressed="false">EPG</button>
           <button id="menuToggle" class="icon-button" aria-label="Nastavenia" aria-expanded="false" aria-controls="settingsPanel">
@@ -43,7 +44,6 @@
           </div>
           <div class="settings-toolbar">
             <button id="pipButton" class="icon-button settings-toolbar-btn" hidden title="Picture-in-Picture" aria-label="Picture-in-Picture"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="15" rx="2"/><path d="M14 3h7v5h-7z"/></svg></button>
-            <button id="lockButton" class="icon-button settings-toolbar-btn lock-button" hidden title="Lock" aria-label="Zamknúť ovládanie"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></button>
             <button id="mvToggle" class="icon-button settings-toolbar-btn" aria-label="Multi-view" aria-pressed="false" title="Multi-view"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="8" height="8" rx="1"/><rect x="14" y="3" width="8" height="8" rx="1"/><rect x="2" y="13" width="8" height="8" rx="1"/><rect x="14" y="13" width="8" height="8" rx="1"/></svg></button>
             <label id="autostartToggle" class="icon-toggle settings-toolbar-btn android-only" title="Spustiť po štarte"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg><input type="checkbox" id="autostartCheck" hidden /></label>
           </div>
