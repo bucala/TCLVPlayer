@@ -18,13 +18,16 @@ class TCLVPlayerPlugin : Plugin() {
     @PluginMethod
     fun openExternalPlayer(call: PluginCall) {
         val player = call.getString("player") ?: "vlc"
-        val url = call.getString("url") ?: run {
-            call.reject("Missing stream URL"); return
+        val url = call.getString("url")
+        if (url == null) {
+            call.reject("Missing stream URL")
+            return
         }
         val uri = Uri.parse(url)
         val scheme = uri.scheme?.lowercase() ?: ""
         if (scheme !in listOf("http", "https", "rtsp", "rtmp", "file")) {
-            call.reject("Unsupported URL scheme: $scheme"); return
+            call.reject("Unsupported URL scheme: $scheme")
+            return
         }
         try {
             val packageName = when (player.lowercase()) {
@@ -36,10 +39,10 @@ class TCLVPlayerPlugin : Plugin() {
             val intent = Intent(Intent.ACTION_VIEW).apply {
                 setDataAndType(uri, "video/*")
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                if (packageName != null) setPackage(packageName)
+                packageName?.let { setPackage(it) }
             }
             val finalIntent = if (packageName != null &&
-                activity.packageManager.resolveActivity(intent, 0) == null) {
+                (activity.packageManager.resolveActivity(intent, 0) == null)) {
                 Intent(Intent.ACTION_VIEW).apply {
                     setDataAndType(uri, "video/*")
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -78,11 +81,18 @@ class TCLVPlayerPlugin : Plugin() {
             else
                 PackageManager.COMPONENT_ENABLED_STATE_DISABLED
             activity.packageManager.setComponentEnabledSetting(
-                receiver, state, PackageManager.DONT_KILL_APP
+                receiver, state, PackageManager.DONT_KILL_APP,
             )
             call.resolve()
         } catch (e: Exception) {
             call.reject("Autostart toggle failed: ${e.message}")
         }
+    }
+
+    @PluginMethod
+    fun setBackgroundPlayback(call: PluginCall) {
+        val enabled = call.getBoolean("enabled") ?: false
+        (activity as? MainActivity)?.setBackgroundPlaybackEnabled(enabled)
+        call.resolve()
     }
 }

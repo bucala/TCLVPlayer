@@ -13,6 +13,7 @@ Všetky významné zmeny v projekte sú dokumentované v tomto súbore.
 
 #### Added
 - **Android prehravanie na pozadi** — v nastaveniach pribudlo Android tlacidlo na prehravanie na pozadi aj pri vypnutom displeji, backed by native partial wake lock.
+- **Android Studio Kotlin template** — natívne Android triedy sú udržiavané ako Kotlin zdroje a `android:sync` ich kopíruje priamo do Android Studio projektu bez Java/Kotlin duplicít.
 
 #### Fixed
 - **Android sidebar hidden rezim** — treti stav sidepanelu v landscape teraz panel naozaj uplne skryje namiesto poskodeneho medzistavu.

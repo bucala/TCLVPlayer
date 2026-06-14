@@ -10,20 +10,21 @@ Install dependencies first:
 npm install
 ```
 
-Generate the Android project:
+Generate or update the Android Studio project:
 
 ```powershell
-npm run android:init
+npm run android:sync
 ```
 
-Copy these files:
+The sync script copies the Kotlin native templates into the generated Android Studio project:
 
 ```text
 android/app/src/main/java/sk/tclv/player/TCLVPlayerPlugin.kt
 android/app/src/main/java/sk/tclv/player/MainActivity.kt
+android/app/src/main/java/sk/tclv/player/BootReceiver.kt
 ```
 
-Templates are stored in this folder as `TCLVPlayerPlugin.kt` and `MainActivity.kt`.
+Templates are stored in this folder as `TCLVPlayerPlugin.kt`, `MainActivity.kt` and `BootReceiver.kt`. Java duplicates are removed during sync so Android Studio sees one native implementation.
 
 For GoogleTV, add leanback support to `android/app/src/main/AndroidManifest.xml`:
 
