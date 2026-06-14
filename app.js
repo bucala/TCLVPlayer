@@ -938,6 +938,16 @@ function toggleSidebar() {
   var next = state.sidebarMode === 'full' ? 'rail' : state.sidebarMode === 'rail' ? 'hidden' : 'full';
   setSidebarMode(next, true);
 }
+async function ensureEpgLoadedForActivePlaylist() {
+  var playlist = state.playlists.find(function(p) { return p.id === state.activePlaylistId; });
+  if (state.epgSources.length) {
+    await reloadEpgSources({ showOnLoad: false });
+  }
+  if (!state.epg.size && playlist?.text) {
+    await autoLoadEpgFromPlaylist(playlist.text);
+  }
+  if (state.epgVisible) renderGuide();
+}
 function toggleEpg() {
   state.epgVisible = !state.epgVisible;
   var workspace = document.querySelector('.workspace');
@@ -948,7 +958,10 @@ function toggleEpg() {
   }
   var panel = dom.guidePanel;
   if (panel) panel.hidden = !state.epgVisible;
-  if (state.epgVisible) renderGuide();
+  if (state.epgVisible) {
+    renderGuide();
+    if (getPlatform() === 'android') ensureEpgLoadedForActivePlaylist();
+  }
 }
 function renderGuide() {
   var baseHours = 8 * state.epgZoom;
@@ -1529,7 +1542,7 @@ function lockScreen() {
   state.lockHoldTriggered = false;
   clearTimeout(state.lockTapTimer);
   clearTimeout(state.lockHoldTimer);
-  if (dom.lockOverlay) { dom.lockOverlay.hidden = false; dom.lockOverlay.classList.add('show-unlock'); }
+  if (dom.lockOverlay) { dom.lockOverlay.hidden = false; dom.lockOverlay.classList.remove('show-unlock'); }
   if (dom.lockButton) dom.lockButton.classList.add('active');
   showMessage(t('locked'));
 }
@@ -1709,7 +1722,7 @@ function bindEvents() {
   dom.playerSelect.addEventListener('change', () => { state.player = dom.playerSelect.value; syncCustomSelects(); saveCurrentPlayer(); const channel = selectedChannel(); if (channel) playChannel(channel); });
   dom.languageSelect.addEventListener('change', () => { state.language = dom.languageSelect.value; safeSet('tclv.language', state.language); renderAll(); });
 }
-async function reloadEpgSources() {
+async function reloadEpgSources(options = {}) {
   var sources = state.epgSources.filter(function(s) { return s.active !== false && s.source && !s.text; });
   for (var i = 0; i < sources.length; i++) {
     try {
@@ -1718,9 +1731,9 @@ async function reloadEpgSources() {
     } catch {}
   }
   if (sources.some(function(s) { return s.text; })) rebuildMergedEpg();
-  if (state.epg.size && !state.epgVisible) {
+  if (state.epg.size && !state.epgVisible && options.showOnLoad !== false) {
     toggleEpg();
   }
 }
-function init() { initLogoIndex(); bindEvents(); state.player = dom.playerSelect.value = state.player; state.language = translations[state.language] ? state.language : 'sk'; state.corsProxy = detectCorsProxySync(); if (dom.corsProxyInput) dom.corsProxyInput.value = state.corsProxy; detectLocalProxy(); var platform = getPlatform(); document.documentElement.dataset.platform = platform; if (platform === 'android') { try { if (window.screen?.orientation?.lock) window.screen.orientation.lock('any').catch(function() {}); } catch {} } if (platform === 'electron' || platform === 'android') { var netSection = dom.corsProxyInput?.closest('.settings-section'); if (netSection) netSection.style.display = 'none'; } else if (platform === 'web-http') { var corsHintEl = dom.corsProxyInput?.closest('.settings-section')?.querySelector('.settings-hint'); if (corsHintEl) corsHintEl.textContent = 'HTTP — priame prehrávanie bez proxy.'; } if (!isNativePlatform()) { dom.playerSelect.querySelectorAll('.native-only').forEach(function(opt) { opt.disabled = true; opt.hidden = true; }); } initCustomSelects(); if (dom.pipButton && (document.pictureInPictureEnabled || platform === 'android')) dom.pipButton.removeAttribute('hidden'); if (dom.lockButton && (platform === 'android')) dom.lockButton.removeAttribute('hidden'); if (dom.autostartCheck) dom.autostartCheck.checked = state.autostart; if (dom.autostartToggle) dom.autostartToggle.classList.toggle('active', state.autostart); setPlayerActive(false); renderSourceLists(); if (state.playlists.length && state.activePlaylistId) { activatePlaylist(state.activePlaylistId).then(function() { if (!state.channels.length && state.playlists.length) { setTimeout(function() { activatePlaylist(state.activePlaylistId, { forceReload: true }); }, 3000); } }); } else if (state.playlists.length && !state.activePlaylistId) { state.activePlaylistId = state.playlists[0].id; safeSet('tclv.activePlaylistId', state.activePlaylistId); activatePlaylist(state.activePlaylistId); } else { renderAll(); if (state.epgSources.length) reloadEpgSources(); } setSidebarMode(state.sidebarMode); setInterval(() => { if (state.epgVisible) renderGuide(); document.querySelectorAll('.channel-card').forEach((card) => { const ch = state.channels.find((c) => c.id === card.dataset.channelId); if (!ch) return; const prog = currentProgram(ch); const bar = card.querySelector('.progress-track span'); if (bar) bar.style.width = progress(prog) + '%'; const txt = card.querySelector('.channel-text p'); if (txt) txt.textContent = prog?.title || ''; }); }, 60 * 1000); }
+function init() { initLogoIndex(); bindEvents(); state.player = dom.playerSelect.value = state.player; state.language = translations[state.language] ? state.language : 'sk'; state.corsProxy = detectCorsProxySync(); if (dom.corsProxyInput) dom.corsProxyInput.value = state.corsProxy; detectLocalProxy(); var platform = getPlatform(); document.documentElement.dataset.platform = platform; if (platform === 'android') { try { if (window.screen?.orientation?.lock) window.screen.orientation.lock('any').catch(function() {}); } catch {} } if (platform === 'electron' || platform === 'android') { var netSection = dom.corsProxyInput?.closest('.settings-section'); if (netSection) netSection.style.display = 'none'; } else if (platform === 'web-http') { var corsHintEl = dom.corsProxyInput?.closest('.settings-section')?.querySelector('.settings-hint'); if (corsHintEl) corsHintEl.textContent = 'HTTP — priame prehrávanie bez proxy.'; } if (!isNativePlatform()) { dom.playerSelect.querySelectorAll('.native-only').forEach(function(opt) { opt.disabled = true; opt.hidden = true; }); } initCustomSelects(); if (dom.pipButton && (document.pictureInPictureEnabled || platform === 'android')) dom.pipButton.removeAttribute('hidden'); if (dom.lockButton && (platform === 'android')) dom.lockButton.removeAttribute('hidden'); if (dom.autostartCheck) dom.autostartCheck.checked = state.autostart; if (dom.autostartToggle) dom.autostartToggle.classList.toggle('active', state.autostart); setPlayerActive(false); renderSourceLists(); if (state.playlists.length && state.activePlaylistId) { activatePlaylist(state.activePlaylistId).then(function() { if (!state.channels.length && state.playlists.length) { setTimeout(function() { activatePlaylist(state.activePlaylistId, { forceReload: true }).then(function() { if (platform === 'android') ensureEpgLoadedForActivePlaylist(); }); }, 3000); } if (platform === 'android') ensureEpgLoadedForActivePlaylist(); }); } else if (state.playlists.length && !state.activePlaylistId) { state.activePlaylistId = state.playlists[0].id; safeSet('tclv.activePlaylistId', state.activePlaylistId); activatePlaylist(state.activePlaylistId).then(function() { if (platform === 'android') ensureEpgLoadedForActivePlaylist(); }); } else { renderAll(); if (state.epgSources.length) reloadEpgSources(platform === 'android' ? { showOnLoad: false } : {}); } setSidebarMode(state.sidebarMode); setInterval(() => { if (state.epgVisible) renderGuide(); document.querySelectorAll('.channel-card').forEach((card) => { const ch = state.channels.find((c) => c.id === card.dataset.channelId); if (!ch) return; const prog = currentProgram(ch); const bar = card.querySelector('.progress-track span'); if (bar) bar.style.width = progress(prog) + '%'; const txt = card.querySelector('.channel-text p'); if (txt) txt.textContent = prog?.title || ''; }); }, 60 * 1000); }
 init();
