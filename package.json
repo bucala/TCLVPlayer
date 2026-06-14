@@ -40,7 +40,7 @@
     "asar": true
   },
   "dependencies": {
-    "@capacitor/android": "^8.3.4",
+    "@capacitor/android": "^8.4.0",
     "@capacitor/core": "^8.3.4",
     "artplayer": "^5.2.5",
     "flv.js": "^1.6.2",
@@ -51,7 +51,7 @@
     "video.js": "^8.21.1"
   },
   "devDependencies": {
-    "@capacitor/cli": "^8.3.4",
+    "@capacitor/cli": "^8.4.0",
     "@eslint/js": "^10.0.1",
     "electron": "^42.3.0",
     "electron-builder": "^26.0.0",
