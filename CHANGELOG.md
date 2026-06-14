@@ -7,6 +7,20 @@ Všetky významné zmeny v projekte sú dokumentované v tomto súbore.
 
 ---
 
+## [1.1.12] — 2026-06-14
+
+### Android Studio generation
+
+#### Added
+- **Android Studio generator** — novy `scripts/android-studio.mjs` pripravuje `dist/web`, vytvori alebo aktualizuje Capacitor `android/`, aplikuje Kotlin sablony, spusti `cap sync android` a doplni `android/local.properties` so SDK cestou.
+- **NPM prikazy** — doplnene `android:generate`, `android:studio` a `android:apk` pre generovanie projektu, otvorenie Android Studio a debug APK build bez rucneho klikania.
+
+#### Changed
+- **Android update skript** — `scripts/update-android.ps1` pouziva jednotny Android Studio generator a volitelne vie rovno otvorit Studio alebo zostavit debug APK.
+- **Android dokumentacia** — README a `native/android/README.md` vysvetluju generovany `android/` projekt, odporucany workflow a ignorovanie Android Studio artefaktov.
+
+---
+
 ## [1.1.11] — 2026-06-14
 
 ### Player integrations and third-party licenses

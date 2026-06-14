@@ -7,6 +7,7 @@
 param(
     [switch]$OpenStudio,    # -OpenStudio  => otvorit Android Studio po syncu
     [switch]$FirstTime,     # -FirstTime   => prve spustenie (cap add android)
+    [switch]$BuildDebug,    # -BuildDebug  => zostavit debug APK po syncu
     [switch]$ForceReset     # -ForceReset  => zahodit lokalne zmeny a vynutit origin/main
 )
 
@@ -76,55 +77,21 @@ try {
     exit 1
 }
 
-# --- 3. Prepare web bundle ---
-Write-Step "Build web bundlu (copy-web.mjs)..."
+# --- 3. Android Studio projekt ---
+Write-Step "Generovanie Android Studio projektu..."
 try {
-    node scripts/copy-web.mjs
-    Write-OK "Web bundle pripraveny"
+    $generatorArgs = @()
+    if ($BuildDebug) { $generatorArgs += "--build" }
+    if ($OpenStudio) { $generatorArgs += "--open" }
+    node scripts/android-studio.mjs @generatorArgs
+    Write-OK "Android Studio projekt pripraveny"
 } catch {
-    Write-Fail "copy-web.mjs zlyhalo."
+    Write-Fail "Android Studio generator zlyhal."
     exit 1
 }
 
-# --- 4. Android platform ---
 if ($FirstTime) {
-    Write-Step "Prvy setup — pridavanie Android platformy (cap add android)..."
-    try {
-        npm run android:init
-        Write-OK "Android platforma pripravena"
-    } catch {
-        Write-Fail "cap add android zlyhalo."
-        exit 1
-    }
-} elseif (-not (Test-Path "android\app\src\main\AndroidManifest.xml")) {
-    Write-Fail "Android projekt chyba. Spusti .\scripts\update-android.ps1 -FirstTime alebo npm run android:setup."
-    exit 1
-}
-
-# --- 5. Apply Android template ---
-Write-Step "Aplikovanie Android sablony..."
-try {
-    node scripts/apply-android-template.mjs
-    Write-OK "Android manifest patchnuty"
-} catch {
-    Write-Fail "apply-android-template.mjs zlyhalo."
-    exit 1
-}
-
-# --- 6. Capacitor sync ---
-Write-Step "Capacitor sync (cap sync android)..."
-try {
-    npx cap sync android
-    Write-OK "Capacitor sync dokonceny"
-} catch {
-    Write-Fail "cap sync android zlyhalo."
-    exit 1
-}
-
-# --- 7. Volitelne otvorenie Android Studio ---
-if ($OpenStudio) {
-    Write-Step "Otvaram Android Studio..."
-    npx cap open android
+    Write-Host "    [INFO] -FirstTime je zachovany pre kompatibilitu; generator uz vytvara android/ automaticky." -ForegroundColor DarkGray
 }
 
 Write-Host ""
@@ -132,5 +99,6 @@ Write-Host "  Hotovo! Android projekt je aktualizovany." -ForegroundColor Green
 Write-Host ""
 Write-Host "  Dalsi kroky:" -ForegroundColor DarkGray
 Write-Host "    Build APK v Android Studio: Build > Build Bundle(s)/APK(s) > Build APK" -ForegroundColor DarkGray
+Write-Host "    Alebo spusti: npm run android:apk" -ForegroundColor DarkGray
 Write-Host "    Alebo spusti: .\scripts\update-android.ps1 -OpenStudio" -ForegroundColor DarkGray
 Write-Host ""
