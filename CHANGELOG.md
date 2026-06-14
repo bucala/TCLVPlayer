@@ -13,7 +13,9 @@ Všetky významné zmeny v projekte sú dokumentované v tomto súbore.
 
 #### Fixed
 - **Android fullscreen** — natívne Android triedy sú generované v Java verzii, takže immersive fullscreen sa reálne kompiluje a systémové status/navigation bary sa opakovane skrývajú.
-- **Android lock overlay** — odomknutie funguje cez viditeľné odomykacie tlačidlo, dvojtap/dvojklik a dlhé podržanie nastavené na 2 sekundy.
+- **Android landscape layout** — fullscreen režim už nerezervuje bočný safe-area pás, ktorý zasahoval do sidebaru a staníc.
+- **Android lock overlay** — odomykacie tlačidlo je skryté po zamknutí, zobrazí sa až po dotyku a odomknutie funguje cez dvojtap/dvojklik alebo 2-sekundové podržanie.
+- **Android EPG preload** — aktívne EPG zdroje sa doťahujú pri otvorení aplikácie aj pri otvorení EPG panelu.
 - **Logá staníc** — resolver používa aliasy aj pri `tv-logo/tv-logos` kandidátoch a nevyraďuje úspešne cacheované logo po predchádzajúcom dočasnom zlyhaní.
 - **Bodka aktivity streamu** — indikátor má fixnú pozíciu v pravom hornom rohu logo bunky a nezasahuje do názvu stanice.
 

@@ -1173,10 +1173,12 @@ html[data-platform="android"] .android-only { display: grid; }
   display: grid;
   place-items: center;
   opacity: 0;
+  pointer-events: none;
   transition: opacity 0.3s;
 }
 .lock-overlay.show-unlock .lock-unlock-btn {
   opacity: 1;
+  pointer-events: auto;
 }
 .lock-unlock-btn svg { width: 24px; height: 24px; }
 
@@ -2008,10 +2010,10 @@ html:not([data-platform="electron"]) .sidebar-toggle {
 
 html[data-platform="android"] {
   --topbar-h: 48px;
-  --sai-top: env(safe-area-inset-top, 0px);
-  --sai-right: env(safe-area-inset-right, 0px);
-  --sai-bottom: env(safe-area-inset-bottom, 0px);
-  --sai-left: env(safe-area-inset-left, 0px);
+  --sai-top: 0px;
+  --sai-right: 0px;
+  --sai-bottom: 0px;
+  --sai-left: 0px;
 }
 
 html[data-platform="android"] body {
@@ -2115,26 +2117,26 @@ html[data-platform="android"] .section-title {
 
 @media (max-width: 900px) and (orientation: landscape) {
   html[data-platform="android"] .app-shell {
-    padding-top: var(--sai-top);
+    padding-top: 0;
   }
 
   html[data-platform="android"] .topbar {
-    padding-left: max(10px, var(--sai-left));
-    padding-right: max(10px, var(--sai-right));
+    padding-left: 10px;
+    padding-right: 10px;
   }
 
   html[data-platform="android"] .sidebar {
-    width: calc(128px + var(--sai-left));
-    flex: 0 0 calc(128px + var(--sai-left));
-    padding-left: var(--sai-left);
+    width: 128px;
+    flex: 0 0 128px;
+    padding-left: 0;
   }
 
   html[data-platform="android"] .sidebar-toggle {
-    left: calc(128px + var(--sai-left));
+    left: 128px;
   }
 
   html[data-platform="android"] .channel-grid {
-    padding-left: max(6px, calc(var(--sai-left) + 6px));
+    padding-left: 6px;
     padding-right: 6px;
   }
 
@@ -2155,16 +2157,16 @@ html[data-platform="android"] .section-title {
   }
 
   html[data-platform="android"] .workspace.sidebar-rail .sidebar {
-    width: calc(58px + var(--sai-left));
-    flex-basis: calc(58px + var(--sai-left));
+    width: 58px;
+    flex-basis: 58px;
   }
 
   html[data-platform="android"] .workspace.sidebar-rail .sidebar-toggle {
-    left: calc(58px + var(--sai-left));
+    left: 58px;
   }
 
   html[data-platform="android"] .workspace.sidebar-rail .channel-grid {
-    padding-left: max(6px, calc(var(--sai-left) + 6px));
+    padding-left: 6px;
     padding-right: 6px;
   }
 
