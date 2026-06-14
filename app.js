@@ -108,7 +108,7 @@ function defaultSidebarMode() {
   return safeGet("tclv.sidebarVisible", "true") === "false" ? "hidden" : "full";
 }
 const state = {
-  language: safeGet("tclv.language", "sk"), channels: [], epg: new Map(), selectedChannelId: null, player: defaultPlayer(), overlayTimer: 0, videoJsPlayer: null, artPlayer: null, hls: null, mpegtsPlayer: null,
+  language: safeGet("tclv.language", "sk"), channels: [], epg: new Map(), selectedChannelId: null, player: defaultPlayer(), overlayTimer: 0, videoJsPlayer: null, artPlayer: null, hls: null, mpegtsPlayer: null, flvPlayer: null, jPlayerReady: false,
   corsProxy: "",
   epgOffsetHours: 0, epgZoom: 1,
   playlists: migrateStoredSources("tclv.playlists", []), activePlaylistId: safeGet("tclv.activePlaylistId", null),
@@ -139,7 +139,7 @@ const state = {
 };
 
 const dom = {
-  playlistFile: document.querySelector("#playlistFile"), epgFile: document.querySelector("#epgFile"), playlistUrl: document.querySelector("#playlistUrl"), epgUrl: document.querySelector("#epgUrl"), addPlaylistUrl: document.querySelector("#addPlaylistUrl"), addEpgUrl: document.querySelector("#addEpgUrl"), playerSelect: document.querySelector("#playerSelect"), languageSelect: document.querySelector("#languageSelect"), channelGrid: document.querySelector("#channelGrid"), channelTemplate: document.querySelector("#channelTemplate"), video: document.querySelector("#videoPlayer"), artPlayerHost: document.querySelector("#artPlayerHost"), playerMessage: document.querySelector("#playerMessage"), switchOverlay: document.querySelector("#switchOverlay"), epgGuide: document.querySelector("#epgGuide"), guideRange: document.querySelector("#guideRange"), logoFile: document.querySelector("#logoFile"), menuToggle: document.querySelector("#menuToggle"), settingsPanel: document.querySelector("#settingsPanel"), settingsOverlay: document.querySelector("#settingsOverlay"), settingsClose: document.querySelector("#settingsClose"), playlistList: document.querySelector("#playlistList"), epgList: document.querySelector("#epgList"),
+  playlistFile: document.querySelector("#playlistFile"), epgFile: document.querySelector("#epgFile"), playlistUrl: document.querySelector("#playlistUrl"), epgUrl: document.querySelector("#epgUrl"), addPlaylistUrl: document.querySelector("#addPlaylistUrl"), addEpgUrl: document.querySelector("#addEpgUrl"), playerSelect: document.querySelector("#playerSelect"), languageSelect: document.querySelector("#languageSelect"), channelGrid: document.querySelector("#channelGrid"), channelTemplate: document.querySelector("#channelTemplate"), video: document.querySelector("#videoPlayer"), artPlayerHost: document.querySelector("#artPlayerHost"), jPlayerHost: document.querySelector("#jPlayerHost"), playerMessage: document.querySelector("#playerMessage"), switchOverlay: document.querySelector("#switchOverlay"), epgGuide: document.querySelector("#epgGuide"), guideRange: document.querySelector("#guideRange"), logoFile: document.querySelector("#logoFile"), menuToggle: document.querySelector("#menuToggle"), settingsPanel: document.querySelector("#settingsPanel"), settingsOverlay: document.querySelector("#settingsOverlay"), settingsClose: document.querySelector("#settingsClose"), playlistList: document.querySelector("#playlistList"), epgList: document.querySelector("#epgList"),
   corsProxyInput: document.querySelector("#corsProxy"), epgSearch: document.querySelector("#epgSearch"),
   epgToggle: document.querySelector("#epgToggle"), sidebarToggle: document.querySelector("#sidebarToggle"),
   guidePanel: document.querySelector("#guidePanel") || document.querySelector(".guide-panel"),
@@ -1090,21 +1090,33 @@ function renderAll() { translateUi(); renderSourceLists(); renderGroupTabs(); re
 
 function stopVideoJs() { if (state.videoJsPlayer) { state.videoJsPlayer.pause(); try { state.videoJsPlayer.reset(); } catch {} } }
 function stopArtPlayer() { if (state.artPlayer) { try { state.artPlayer.destroy(); } catch {} state.artPlayer = null; } dom.artPlayerHost.style.display = 'none'; }
-function destroyHls() { if (state.hls) { try { state.hls.destroy(); } catch {} state.hls = null; } if (state.mpegtsPlayer) { try { state.mpegtsPlayer.destroy(); } catch {} state.mpegtsPlayer = null; } }
-function stopInternalPlayers() { stopVideoJs(); stopArtPlayer(); destroyHls(); dom.video.pause(); if (dom.qualityControl) dom.qualityControl.hidden = true; }
-function showHtmlVideo() { dom.video.style.display = 'block'; dom.artPlayerHost.style.display = 'none'; }
+function stopJPlayer() {
+  if (!dom.jPlayerHost) return;
+  try { if (state.jPlayerReady && window.jQuery) window.jQuery(dom.jPlayerHost).jPlayer('destroy'); } catch {}
+  state.jPlayerReady = false;
+  dom.jPlayerHost.innerHTML = '';
+  dom.jPlayerHost.style.display = 'none';
+}
+function destroyHls() {
+  if (state.hls) { try { state.hls.destroy(); } catch {} state.hls = null; }
+  if (state.mpegtsPlayer) { try { state.mpegtsPlayer.destroy(); } catch {} state.mpegtsPlayer = null; }
+  if (state.flvPlayer) { try { state.flvPlayer.destroy(); } catch {} state.flvPlayer = null; }
+}
+function stopInternalPlayers() { stopVideoJs(); stopArtPlayer(); stopJPlayer(); destroyHls(); dom.video.pause(); if (dom.qualityControl) dom.qualityControl.hidden = true; }
+function showHtmlVideo() { dom.video.style.display = 'block'; dom.artPlayerHost.style.display = 'none'; if (dom.jPlayerHost) dom.jPlayerHost.style.display = 'none'; }
 function getStreamType(url) {
   var raw = String(url || '');
   if (/^rtmps?:\/\//i.test(raw)) return 'rtmp';
   if (/^rtsps?:/i.test(raw)) return 'rtsp';
   var clean = raw.split('?')[0].toLowerCase();
   if (clean.endsWith('.m3u8')) return 'hls';
+  if (clean.endsWith('.flv')) return 'flv';
   if (clean.endsWith('.ts')) return 'ts';
   if (clean.endsWith('.mp4') || clean.endsWith('.mpv')) return 'mp4';
   if (clean.endsWith('.webm')) return 'webm';
   return 'hls';
 }
-function guessMimeType(url) { var t = getStreamType(url); if (t === 'hls') return 'application/x-mpegURL'; if (t === 'mp4') return 'video/mp4'; if (t === 'webm') return 'video/webm'; return 'application/x-mpegURL'; }
+function guessMimeType(url) { var t = getStreamType(url); if (t === 'hls') return 'application/x-mpegURL'; if (t === 'mp4') return 'video/mp4'; if (t === 'webm') return 'video/webm'; if (t === 'flv') return 'video/x-flv'; return 'application/x-mpegURL'; }
 async function ensureScript(id, sources) { if (document.querySelector(`script[data-loader-id="${id}"]`)) return; for (const source of sources) { try { await new Promise((resolve, reject) => { const script = document.createElement('script'); script.src = source; script.dataset.loaderId = id; script.onload = resolve; script.onerror = reject; document.head.append(script); }); return; } catch {} } throw new Error('Asset could not be loaded.'); }
 async function ensureStyle(id, sources) { if (document.querySelector(`link[data-loader-id="${id}"]`)) return; for (const source of sources) { try { await new Promise((resolve, reject) => { const link = document.createElement('link'); link.rel = 'stylesheet'; link.href = source; link.dataset.loaderId = id; link.onload = resolve; link.onerror = reject; document.head.append(link); }); return; } catch {} } throw new Error('Asset could not be loaded.'); }
 function assetOrder(local, cdn) { return getPlatform() === 'web-https' ? [cdn, local] : [local, cdn]; }
@@ -1112,6 +1124,12 @@ async function ensureVideoJs() { if (window.videojs) return; await ensureStyle('
 async function ensureArtPlayer() { if (window.Artplayer) return; await ensureScript('artplayer-js', assetOrder('./vendor/artplayer/artplayer.js','https://cdn.jsdelivr.net/npm/artplayer@5/dist/artplayer.js')); }
 async function ensureHls() { if (window.Hls) return; await ensureScript('hls-js', assetOrder('./vendor/hls.js/hls.min.js', 'https://cdn.jsdelivr.net/npm/hls.js@latest')); }
 async function ensureMpegts() { if (window.mpegts) return; await ensureScript('mpegts-js', assetOrder('./vendor/mpegts.js/mpegts.min.js', 'https://cdn.jsdelivr.net/npm/mpegts.js@latest/dist/mpegts.min.js')); }
+async function ensureFlvJs() { if (window.flvjs) return; await ensureScript('flvjs-js', assetOrder('./vendor/flv.js/flv.min.js', 'https://cdn.jsdelivr.net/npm/flv.js@1.6.2/dist/flv.min.js')); }
+async function ensureJPlayer() {
+  if (!window.jQuery) await ensureScript('jquery-js', assetOrder('./vendor/jquery/jquery.min.js', 'https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js'));
+  if (window.jQuery?.fn?.jPlayer) return;
+  await ensureScript('jplayer-js', assetOrder('./vendor/jplayer/jquery.jplayer.min.js', 'https://cdn.jsdelivr.net/npm/jplayer@2.9.2/dist/jplayer/jquery.jplayer.min.js'));
+}
 var _messageTimer = 0;
 function showMessage(message, duration) {
   dom.playerMessage.textContent = message;
@@ -1199,6 +1217,18 @@ function tryMpegtsPlayback(url) {
   state.mpegtsPlayer.load();
   safeAutoplay(dom.video);
 }
+function tryFlvPlayback(url) {
+  destroyHls();
+  if (!window.flvjs?.isSupported()) { showMessage(t('html5Notice')); return; }
+  state.flvPlayer = window.flvjs.createPlayer({
+    type: 'flv',
+    isLive: true,
+    url: streamUrl(url)
+  });
+  state.flvPlayer.attachMediaElement(dom.video);
+  state.flvPlayer.load();
+  safeAutoplay(dom.video);
+}
 function buildQualityMenu() {}
 function safeAutoplay(videoEl) {
   videoEl.muted = true;
@@ -1279,6 +1309,58 @@ async function playVideoJs(channel) {
     }
   } catch (error) { showMessage(`${t('optionalMissing')} ${error.message || ''}`.trim()); }
 }
+async function playFlvJs(channel) {
+  var type = getStreamType(channel.url);
+  if (type === 'rtmp' || type === 'rtsp') { showMessage(t('rtmpUnsupported')); return; }
+  try {
+    stopInternalPlayers(); showHtmlVideo();
+    dom.video.removeAttribute('src'); dom.video.load();
+    dom.video.muted = false; dom.video.volume = 1;
+    if (type === 'hls') { await playHtml5(channel); return; }
+    if (type === 'ts') { await ensureMpegts(); if (window.mpegts?.isSupported()) { tryMpegtsPlayback(channel.url); return; } }
+    if (type === 'flv') { await ensureFlvJs(); tryFlvPlayback(channel.url); return; }
+    dom.video.src = streamUrl(channel.url);
+    dom.video.addEventListener('canplay', function() { safeAutoplay(dom.video); }, { once: true });
+    dom.video.load();
+  } catch (error) { showMessage(`${t('optionalMissing')} ${error.message || ''}`.trim()); }
+}
+async function playJPlayer(channel) {
+  var type = getStreamType(channel.url);
+  if (type === 'rtmp' || type === 'rtsp') { showMessage(t('rtmpUnsupported')); return; }
+  if (type === 'hls' || type === 'ts' || type === 'flv') { await playHtml5(channel); return; }
+  try {
+    stopInternalPlayers();
+    await ensureJPlayer();
+    dom.video.removeAttribute('src'); dom.video.load();
+    dom.video.style.display = 'none';
+    dom.artPlayerHost.style.display = 'none';
+    dom.jPlayerHost.style.display = 'block';
+    var $host = window.jQuery(dom.jPlayerHost);
+    $host.jPlayer({
+      ready: function() {
+        state.jPlayerReady = true;
+        var media = {};
+        var finalUrl = streamUrl(channel.url);
+        if (type === 'webm') { media.webmv = finalUrl; }
+        else { media.m4v = finalUrl; }
+        $host.jPlayer('setMedia', media).jPlayer('play');
+        setStreamStatus(channel.id, 'ok');
+      },
+      error: function() {
+        setStreamStatus(channel.id, 'error');
+        showMessage(streamErrorMsg());
+      },
+      supplied: 'm4v, webmv, m3u8v',
+      solution: 'html',
+      cssSelectorAncestor: '',
+      size: { width: '100%', height: '100%' },
+      useStateClassSkin: false,
+      autoBlur: false,
+      smoothPlayBar: true,
+      keyEnabled: false
+    });
+  } catch (error) { showMessage(`${t('optionalMissing')} ${error.message || ''}`.trim()); }
+}
 async function playArtPlayer(channel) {
   var type = getStreamType(channel.url);
   if (type === 'rtmp' || type === 'rtsp') { showMessage(t('rtmpUnsupported')); return; }
@@ -1348,6 +1430,8 @@ function playChannel(channel) {
   }
   if (state.player === 'videojs') return playVideoJs(channel);
   if (state.player === 'artplayer') return playArtPlayer(channel);
+  if (state.player === 'flvjs') return playFlvJs(channel);
+  if (state.player === 'jplayer') return playJPlayer(channel);
   return playHtml5(channel);
 }
 function showSwitchOverlay(channel) {

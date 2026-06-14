@@ -7,6 +7,20 @@ Všetky významné zmeny v projekte sú dokumentované v tomto súbore.
 
 ---
 
+## [1.1.11] — 2026-06-14
+
+### Player integrations and third-party licenses
+
+#### Added
+- **flv.js player** — samostatna volba prehravaca pre FLV/MPEG-TS streamy s lazy-load z vendor alebo CDN.
+- **jPlayer** — samostatna HTML5 media volba cez jPlayer + jQuery pre alternativne prehravanie MP4/WebM; HLS/TS/FLV bezpecne padaju spat na existujuci HTML5 tok.
+- **Licencie tretich stran** — doplneny `THIRDPARTY.md` s MIT, Apache-2.0 a Unlicense textami vratane `iptv-org/iptv`.
+
+#### Changed
+- **README credits** — doplnene kredity a zavislosti pre ArtPlayer, flv.js, jPlayer, Video.js, jQuery a iptv-org.
+
+---
+
 ## [1.1.10] — 2026-06-14
 
 ### Android lock, sidebar and EPG polish

@@ -23,6 +23,9 @@ const optionalCopies = [
   ["node_modules/artplayer/dist/artplayer.js", "vendor/artplayer/artplayer.js"],
   ["node_modules/hls.js/dist/hls.min.js", "vendor/hls.js/hls.min.js"],
   ["node_modules/mpegts.js/dist/mpegts.min.js", "vendor/mpegts.js/mpegts.min.js"],
+  ["node_modules/flv.js/dist/flv.min.js", "vendor/flv.js/flv.min.js"],
+  ["node_modules/jquery/dist/jquery.min.js", "vendor/jquery/jquery.min.js"],
+  ["node_modules/jplayer/dist/jplayer/jquery.jplayer.min.js", "vendor/jplayer/jquery.jplayer.min.js"],
 ];
 
 for (const [source, target] of optionalCopies) {
