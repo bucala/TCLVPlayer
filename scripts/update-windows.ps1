@@ -6,7 +6,8 @@
 
 param(
     [switch]$BuildExe,      # -BuildExe  => zbuilduje .exe installer
-    [switch]$RunAfter       # -RunAfter  => po update spusti aplikaciu
+    [switch]$RunAfter,      # -RunAfter  => po update spusti aplikaciu
+    [switch]$ForceReset     # -ForceReset => zahodit lokalne zmeny a vynutit origin/main
 )
 
 $ErrorActionPreference = "Stop"
@@ -25,13 +26,23 @@ Write-Host "  TCLVPlayer  Windows Update" -ForegroundColor Yellow
 Write-Host "  Adresar: $rootDir" -ForegroundColor DarkGray
 Write-Host ""
 
-# --- 1. Git fetch + reset ---
+# --- 1. Git fetch + safe pull ---
 Write-Step "Stiahnutie najnovsich zmien z GitHubu..."
 try {
     git fetch origin | Out-Null
-    git reset --hard origin/main | Out-Null
-    git clean -fd | Out-Null
-    Write-OK "Git synchronizovany s origin/main"
+    if ($ForceReset) {
+        git reset --hard origin/main | Out-Null
+        git clean -fd | Out-Null
+        Write-OK "Git vynutene synchronizovany s origin/main"
+    } else {
+        $dirty = git status --porcelain
+        if ($dirty) {
+            Write-Fail "Repo obsahuje lokalne zmeny. Najprv ich commitni/odloz, alebo spusti s -ForceReset."
+            exit 1
+        }
+        git pull --ff-only origin main | Out-Null
+        Write-OK "Git aktualizovany cez fast-forward pull"
+    }
 } catch {
     Write-Fail "Git zlyhali. Skontroluj pripojenie alebo ci si v spravnom adresari."
     exit 1

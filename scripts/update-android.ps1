@@ -6,7 +6,8 @@
 
 param(
     [switch]$OpenStudio,    # -OpenStudio  => otvorit Android Studio po syncu
-    [switch]$FirstTime      # -FirstTime   => prve spustenie (cap add android)
+    [switch]$FirstTime,     # -FirstTime   => prve spustenie (cap add android)
+    [switch]$ForceReset     # -ForceReset  => zahodit lokalne zmeny a vynutit origin/main
 )
 
 $ErrorActionPreference = "Stop"
@@ -43,13 +44,23 @@ if (-not $env:ANDROID_HOME -and -not $env:ANDROID_SDK_ROOT) {
     Write-OK "Android SDK = $sdkPath"
 }
 
-# --- 1. Git fetch + reset ---
+# --- 1. Git fetch + safe pull ---
 Write-Step "Stiahnutie najnovsich zmien z GitHubu..."
 try {
     git fetch origin | Out-Null
-    git reset --hard origin/main | Out-Null
-    git clean -fd | Out-Null
-    Write-OK "Git synchronizovany s origin/main"
+    if ($ForceReset) {
+        git reset --hard origin/main | Out-Null
+        git clean -fd | Out-Null
+        Write-OK "Git vynutene synchronizovany s origin/main"
+    } else {
+        $dirty = git status --porcelain
+        if ($dirty) {
+            Write-Fail "Repo obsahuje lokalne zmeny. Najprv ich commitni/odloz, alebo spusti s -ForceReset."
+            exit 1
+        }
+        git pull --ff-only origin main | Out-Null
+        Write-OK "Git aktualizovany cez fast-forward pull"
+    }
 } catch {
     Write-Fail "Git zlyhali."
     exit 1
@@ -75,7 +86,22 @@ try {
     exit 1
 }
 
-# --- 4. Apply Android template ---
+# --- 4. Android platform ---
+if ($FirstTime) {
+    Write-Step "Prvy setup — pridavanie Android platformy (cap add android)..."
+    try {
+        npm run android:init
+        Write-OK "Android platforma pripravena"
+    } catch {
+        Write-Fail "cap add android zlyhalo."
+        exit 1
+    }
+} elseif (-not (Test-Path "android\app\src\main\AndroidManifest.xml")) {
+    Write-Fail "Android projekt chyba. Spusti .\scripts\update-android.ps1 -FirstTime alebo npm run android:setup."
+    exit 1
+}
+
+# --- 5. Apply Android template ---
 Write-Step "Aplikovanie Android sablony..."
 try {
     node scripts/apply-android-template.mjs
@@ -83,17 +109,6 @@ try {
 } catch {
     Write-Fail "apply-android-template.mjs zlyhalo."
     exit 1
-}
-
-# --- 5. Prve spustenie: cap add android ---
-if ($FirstTime) {
-    Write-Step "Prvy setup — pridavanie Android platformy (cap add android)..."
-    try {
-        npx cap add android
-        Write-OK "Android platforma pridana"
-    } catch {
-        Write-Host "    [i] Android uz existuje, preskakujem..." -ForegroundColor DarkYellow
-    }
 }
 
 # --- 6. Capacitor sync ---

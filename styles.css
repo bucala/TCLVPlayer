@@ -595,6 +595,10 @@ input[type=search] { -webkit-appearance: none; }
   align-items: center;
 }
 .workspace.sidebar-rail .channel-card {
+  --channel-pad-x: 8px;
+  --channel-pad-y: 8px;
+  --channel-logo-w: 42px;
+  --channel-logo-h: 32px;
   width: 56px;
   min-height: 54px;
   grid-template-columns: 1fr;
@@ -612,8 +616,8 @@ input[type=search] { -webkit-appearance: none; }
   display: none !important;
 }
 .workspace.sidebar-rail .status-dot {
-  left: 46px;
-  top: 8px;
+  left: calc(var(--channel-pad-x) + var(--channel-logo-w) - 10px);
+  top: calc(var(--channel-pad-y) + 2px);
 }
 
 /* ─── Sidebar header: search + group tabs ─────────────────────────────────── */
@@ -689,6 +693,10 @@ input[type=search] { -webkit-appearance: none; }
 }
 
 .channel-card {
+  --channel-pad-x: 12px;
+  --channel-pad-y: 10px;
+  --channel-logo-w: 48px;
+  --channel-logo-h: 36px;
   display: grid;
   grid-template-columns: 48px 1fr;
   grid-template-rows: auto 3px;
@@ -916,8 +924,8 @@ input[type=search] { -webkit-appearance: none; }
 
 .status-dot {
   position: absolute;
-  left: 46px;
-  top: 10px;
+  left: calc(var(--channel-pad-x) + var(--channel-logo-w) - 10px);
+  top: calc(var(--channel-pad-y) + 2px);
   width: 8px;
   height: 8px;
   border-radius: 50%;
@@ -1740,6 +1748,10 @@ html:not([data-platform="electron"]) .sidebar-toggle {
   }
 
   .channel-card {
+    --channel-pad-x: 10px;
+    --channel-pad-y: 8px;
+    --channel-logo-w: 40px;
+    --channel-logo-h: 30px;
     grid-template-columns: 40px 1fr;
     padding: 8px 10px;
     border-radius: var(--radius-sm);
@@ -1862,6 +1874,10 @@ html:not([data-platform="electron"]) .sidebar-toggle {
   .workspace.sidebar-rail .sidebar { width: 58px; }
   .workspace.sidebar-rail .sidebar-toggle { left: 58px; }
   .workspace.sidebar-rail .channel-card {
+    --channel-pad-x: 6px;
+    --channel-pad-y: 6px;
+    --channel-logo-w: 34px;
+    --channel-logo-h: 26px;
     width: 46px;
     min-height: 44px;
     padding: 6px;
@@ -1876,6 +1892,10 @@ html:not([data-platform="electron"]) .sidebar-toggle {
   }
 
   .channel-card {
+    --channel-pad-x: 8px;
+    --channel-pad-y: 6px;
+    --channel-logo-w: 32px;
+    --channel-logo-h: 24px;
     grid-template-columns: 32px 1fr;
     grid-template-rows: auto;
     padding: 6px 8px;
@@ -1996,10 +2016,13 @@ html[data-platform="android"] {
 
 html[data-platform="android"] body {
   padding: 0;
+  background: #000;
+  overflow: hidden;
 }
 
 html[data-platform="android"] .app-shell {
-  padding-top: var(--sai-top);
+  padding-top: 0;
+  padding-bottom: 0;
 }
 
 html[data-platform="android"] .topbar {
@@ -2013,6 +2036,7 @@ html[data-platform="android"] .sidebar {
 }
 
 html[data-platform="android"] .content {
+  padding-left: 0;
   padding-right: var(--sai-right);
 }
 
@@ -2022,14 +2046,29 @@ html[data-platform="android"] .section-title {
 }
 
 @media (max-width: 700px) {
+  html[data-platform="android"] .app-shell {
+    padding-top: 0;
+  }
+
   html[data-platform="android"] .sidebar {
     max-height: none;
     flex: 1 1 0;
     min-height: 0;
+    padding-left: 0;
   }
 
   html[data-platform="android"] .workspace {
     gap: 0;
+  }
+
+  html[data-platform="android"] .channel-grid {
+    padding-left: max(10px, calc(var(--sai-left) + 10px));
+    padding-right: max(10px, calc(var(--sai-right) + 10px));
+  }
+
+  html[data-platform="android"] .workspace.sidebar-rail .channel-grid {
+    padding-left: max(34px, calc(var(--sai-left) + 34px));
+    padding-right: max(12px, calc(var(--sai-right) + 12px));
   }
 
   html[data-platform="android"] .section-title {
@@ -2075,6 +2114,75 @@ html[data-platform="android"] .section-title {
 }
 
 @media (max-width: 900px) and (orientation: landscape) {
+  html[data-platform="android"] .app-shell {
+    padding-top: var(--sai-top);
+  }
+
+  html[data-platform="android"] .topbar {
+    padding-left: max(10px, var(--sai-left));
+    padding-right: max(10px, var(--sai-right));
+  }
+
+  html[data-platform="android"] .sidebar {
+    width: calc(128px + var(--sai-left));
+    flex: 0 0 calc(128px + var(--sai-left));
+    padding-left: var(--sai-left);
+  }
+
+  html[data-platform="android"] .sidebar-toggle {
+    left: calc(128px + var(--sai-left));
+  }
+
+  html[data-platform="android"] .channel-grid {
+    padding-left: max(6px, calc(var(--sai-left) + 6px));
+    padding-right: 6px;
+  }
+
+  html[data-platform="android"] .channel-card {
+    --channel-pad-x: 6px;
+    --channel-pad-y: 6px;
+    --channel-logo-w: 34px;
+    --channel-logo-h: 26px;
+    grid-template-columns: 34px minmax(0, 1fr);
+    gap: 8px;
+    padding-left: 6px;
+    padding-right: 6px;
+  }
+
+  html[data-platform="android"] .channel-logo {
+    width: 34px;
+    height: 26px;
+  }
+
+  html[data-platform="android"] .workspace.sidebar-rail .sidebar {
+    width: calc(58px + var(--sai-left));
+    flex-basis: calc(58px + var(--sai-left));
+  }
+
+  html[data-platform="android"] .workspace.sidebar-rail .sidebar-toggle {
+    left: calc(58px + var(--sai-left));
+  }
+
+  html[data-platform="android"] .workspace.sidebar-rail .channel-grid {
+    padding-left: max(6px, calc(var(--sai-left) + 6px));
+    padding-right: 6px;
+  }
+
+  html[data-platform="android"] .workspace.sidebar-rail .channel-card {
+    --channel-pad-x: 6px;
+    --channel-pad-y: 6px;
+    --channel-logo-w: 34px;
+    --channel-logo-h: 26px;
+    width: 46px;
+    min-height: 44px;
+    padding: 6px;
+  }
+
+  html[data-platform="android"] .workspace.sidebar-rail .channel-logo {
+    width: 34px;
+    height: 26px;
+  }
+
   html[data-platform="android"] .workspace.epg-active .player-stage {
     max-height: 0;
     min-height: 0;

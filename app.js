@@ -130,6 +130,9 @@ const state = {
   locked: false,
   lockTapCount: 0,
   lockTapTimer: 0,
+  lockHoldTimer: 0,
+  lockHoldStarted: false,
+  lockHoldTriggered: false,
   autostart: safeGet('tclv.autostart', 'false') === 'true'
 };
 
@@ -252,7 +255,11 @@ const LOGO_ALIASES = {
   'jojsvet': ['JOJ Svet', 'JOJSvet.sk'],
   'wau': ['WAU', 'JOJWAU.sk'],
   'jojko': ['Jojko.sk'],
-  'riktv': ['RiK TV', 'RiKTV.sk']
+  'riktv': ['RiK TV', 'RiKTV.sk'],
+  'disneychannel': ['Disney Channel Slovakia', 'DisneyChannel.cz', 'DisneyChannel.hu'],
+  'disneyjunior': ['Disney Junior Slovakia', 'DisneyJunior.cz', 'DisneyJunior.hu'],
+  'minimax': ['Minimax.sk', 'Minimax.cz'],
+  'jimjam': ['JimJam.sk', 'JimJam.cz']
 };
 function channelLogoAliases(channel) {
   var values = [channel.tvgId, channel.name, channel.id].filter(Boolean);
@@ -399,10 +406,12 @@ function tvLogoSlug(name) {
     .replace(/^-+|-+$/g, '');
 }
 function tvLogoCandidates(channel) {
-  var slug = tvLogoSlug(channel.name);
-  if (!slug) return [];
-  return TV_LOGO_COUNTRIES.map(function(country) {
-    return TV_LOGO_BASE + country + '/' + slug + '-' + TV_LOGO_COUNTRY_SUFFIX[country] + '.png';
+  var slugs = channelLogoAliases(channel).map(tvLogoSlug).filter(Boolean);
+  slugs = [...new Set(slugs)];
+  return slugs.flatMap(function(slug) {
+    return TV_LOGO_COUNTRIES.map(function(country) {
+      return TV_LOGO_BASE + country + '/' + slug + '-' + TV_LOGO_COUNTRY_SUFFIX[country] + '.png';
+    });
   });
 }
 function normalizeLogoUrl(url) {
@@ -427,7 +436,10 @@ function logoCandidates(channel) {
     if (loaded) indexedLogoCandidates(channel, loaded).forEach(add);
   }
   add(channel.logo);
-  urls = urls.filter(function(url) { return !state.logoFailures.has(url); });
+  urls = urls.filter(function(url) {
+    var resolved = state.logoResolved[channelLogoCacheKey(channel)];
+    return url === resolved || !state.logoFailures.has(url);
+  });
   urls.push(placeholderLogo(channel.name));
   return urls;
 }
@@ -445,6 +457,7 @@ function setLogoImage(imgEl, channel) {
     var src = imgEl.getAttribute('src') || '';
     if (src && !src.startsWith('data:image/')) {
       state.logoResolved[channelLogoCacheKey(channel)] = src;
+      state.logoFailures.delete(src);
       safeSetJson('tclv.logoResolved', state.logoResolved);
     }
   };
@@ -1512,23 +1525,55 @@ async function autoLoadEpgFromPlaylist(text) {
 function lockScreen() {
   state.locked = true;
   state.lockTapCount = 0;
-  if (dom.lockOverlay) dom.lockOverlay.hidden = false;
+  state.lockHoldStarted = false;
+  state.lockHoldTriggered = false;
+  clearTimeout(state.lockTapTimer);
+  clearTimeout(state.lockHoldTimer);
+  if (dom.lockOverlay) { dom.lockOverlay.hidden = false; dom.lockOverlay.classList.add('show-unlock'); }
   if (dom.lockButton) dom.lockButton.classList.add('active');
   showMessage(t('locked'));
 }
 function unlockScreen() {
   state.locked = false;
   state.lockTapCount = 0;
+  state.lockHoldStarted = false;
+  state.lockHoldTriggered = false;
+  clearTimeout(state.lockTapTimer);
+  clearTimeout(state.lockHoldTimer);
   if (dom.lockOverlay) { dom.lockOverlay.hidden = true; dom.lockOverlay.classList.remove('show-unlock'); }
   if (dom.lockButton) dom.lockButton.classList.remove('active');
   showMessage(t('unlocked'));
 }
-function handleLockTap() {
-  state.lockTapCount++;
+function revealLockUnlock() {
+  if (!state.locked) return;
+  dom.lockOverlay?.classList.add('show-unlock');
   clearTimeout(state.lockTapTimer);
+  state.lockTapTimer = setTimeout(function() {
+    state.lockTapCount = 0;
+    dom.lockOverlay?.classList.remove('show-unlock');
+  }, 2200);
+}
+function startLockHold() {
+  if (!state.locked) return;
+  revealLockUnlock();
+  state.lockHoldStarted = true;
+  state.lockHoldTriggered = false;
+  clearTimeout(state.lockHoldTimer);
+  state.lockHoldTimer = setTimeout(function() {
+    state.lockHoldTriggered = true;
+    unlockScreen();
+  }, 2000);
+}
+function cancelLockHold() {
+  clearTimeout(state.lockHoldTimer);
+  state.lockHoldStarted = false;
+}
+function handleLockTap() {
+  if (!state.locked) return;
+  if (state.lockHoldTriggered) return;
+  state.lockTapCount++;
   if (state.lockTapCount === 1) {
-    dom.lockOverlay?.classList.add('show-unlock');
-    state.lockTapTimer = setTimeout(function() { state.lockTapCount = 0; dom.lockOverlay?.classList.remove('show-unlock'); }, 2000);
+    revealLockUnlock();
   }
   if (state.lockTapCount >= 2) {
     unlockScreen();
@@ -1584,14 +1629,61 @@ function bindEvents() {
   dom.mvSlot0?.addEventListener('click', function() { if (state.multiview && state.mvSlot !== 0) setMvFocus(0); });
   dom.mvSlot1?.addEventListener('click', function() { if (state.multiview && state.mvSlot !== 1) setMvFocus(1); });
   dom.lockButton?.addEventListener('click', function() { if (state.locked) unlockScreen(); else lockScreen(); });
+  dom.lockUnlock?.addEventListener('click', function(e) {
+    e.stopPropagation();
+    e.preventDefault();
+    unlockScreen();
+  });
   if (dom.lockOverlay) {
-    ['click','touchstart','touchmove','touchend','pointerdown','pointerup','mousedown','mouseup','contextmenu','dblclick'].forEach(function(evt) {
-      dom.lockOverlay.addEventListener(evt, function(e) {
+    dom.lockOverlay.addEventListener('pointerdown', function(e) {
+      e.stopPropagation();
+      e.preventDefault();
+      startLockHold();
+    }, { passive: false });
+    dom.lockOverlay.addEventListener('pointerup', function(e) {
+      e.stopPropagation();
+      e.preventDefault();
+      cancelLockHold();
+      if (!state.lockHoldTriggered) handleLockTap();
+    }, { passive: false });
+    dom.lockOverlay.addEventListener('pointercancel', function(e) {
+      e.stopPropagation();
+      e.preventDefault();
+      cancelLockHold();
+    }, { passive: false });
+    dom.lockOverlay.addEventListener('pointerleave', cancelLockHold);
+    dom.lockOverlay.addEventListener('dblclick', function(e) {
+      e.stopPropagation();
+      e.preventDefault();
+      unlockScreen();
+    }, { passive: false });
+    dom.lockOverlay.addEventListener('click', function(e) {
+      e.stopPropagation();
+      e.preventDefault();
+      if (!window.PointerEvent) handleLockTap();
+    }, { passive: false });
+    dom.lockOverlay.addEventListener('contextmenu', function(e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }, { passive: false });
+    if (!window.PointerEvent) {
+      dom.lockOverlay.addEventListener('touchstart', function(e) {
         e.stopPropagation();
         e.preventDefault();
-        if (evt === 'click' && (e.target === dom.lockOverlay || e.target === dom.lockUnlock || dom.lockUnlock?.contains(e.target))) handleLockTap();
+        startLockHold();
       }, { passive: false });
-    });
+      dom.lockOverlay.addEventListener('touchend', function(e) {
+        e.stopPropagation();
+        e.preventDefault();
+        cancelLockHold();
+        if (!state.lockHoldTriggered) handleLockTap();
+      }, { passive: false });
+      dom.lockOverlay.addEventListener('touchcancel', function(e) {
+        e.stopPropagation();
+        e.preventDefault();
+        cancelLockHold();
+      }, { passive: false });
+    }
   }
   dom.autostartToggle?.addEventListener('click', function(e) { e.preventDefault(); toggleAutostart(); });
   dom.exportSettings?.addEventListener('click', exportSettings);

@@ -1,18 +1,31 @@
-import { copyFile, mkdir, readdir, readFile, writeFile } from "node:fs/promises";
+import { access, copyFile, mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
 const packagePath = join("android", "app", "src", "main", "java", "sk", "tclv", "player");
 const manifestPath = join("android", "app", "src", "main", "AndroidManifest.xml");
 
 const files = [
-  ["native/android/TCLVPlayerPlugin.kt", join(packagePath, "TCLVPlayerPlugin.kt")],
-  ["native/android/MainActivity.kt", join(packagePath, "MainActivity.kt")],
-  ["native/android/BootReceiver.kt", join(packagePath, "BootReceiver.kt")],
+  ["native/android/TCLVPlayerPlugin.java", join(packagePath, "TCLVPlayerPlugin.java")],
+  ["native/android/MainActivity.java", join(packagePath, "MainActivity.java")],
+  ["native/android/BootReceiver.java", join(packagePath, "BootReceiver.java")],
 ];
+
+try {
+  await access(manifestPath);
+} catch {
+  console.error(
+    "Android project is missing. Run `npm run android:setup` or `npm run android:sync` first so Capacitor can create android/.",
+  );
+  process.exit(1);
+}
 
 for (const [source, target] of files) {
   await mkdir(dirname(target), { recursive: true });
   await copyFile(source, target);
+}
+
+for (const stale of ["TCLVPlayerPlugin.kt", "MainActivity.kt", "BootReceiver.kt"]) {
+  await rm(join(packagePath, stale), { force: true });
 }
 
 await copyDirectory(join("native", "android", "res"), join("android", "app", "src", "main", "res"));
