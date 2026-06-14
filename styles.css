@@ -981,7 +981,7 @@ input[type=search] { -webkit-appearance: none; }
 .player-stage.multiview .mv-slot { cursor: pointer; }
 .player-stage.multiview .mv-focused { box-shadow: inset 0 0 0 2px var(--accent); cursor: default; }
 
-#videoPlayer, .art-player-host, #videoPlayer2 {
+#videoPlayer, .art-player-host, .jplayer-host, #videoPlayer2 {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -991,6 +991,13 @@ input[type=search] { -webkit-appearance: none; }
 }
 
 .art-player-host { display: none; }
+.jplayer-host { display: none; }
+.jplayer-host .jp-jplayer,
+.jplayer-host video {
+  width: 100% !important;
+  height: 100% !important;
+  background: #000;
+}
 
 /* Video.js creates a wrapper div — force it to fill the stage */
 .player-stage .video-js {

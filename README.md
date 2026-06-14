@@ -13,7 +13,7 @@
 [![Windows Build](https://github.com/bucala/TCLVPlayer/actions/workflows/windows.yml/badge.svg)](https://github.com/bucala/TCLVPlayer/actions/workflows/windows.yml)
 [![Android Build](https://github.com/bucala/TCLVPlayer/actions/workflows/android.yml/badge.svg)](https://github.com/bucala/TCLVPlayer/actions/workflows/android.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-orange.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.1.10-orange)](#changelog)
+[![Version](https://img.shields.io/badge/version-1.1.11-orange)](#changelog)
 [![Vanilla JS](https://img.shields.io/badge/Vanilla-JS-yellow?logo=javascript)](app.js)
 [![No Framework](https://img.shields.io/badge/No%20Framework-zero%20build-lightgrey)](#)
 
@@ -192,6 +192,8 @@ https://api.allorigins.win/raw?url=
 - 🎬 **HTML5** — s automatickým HLS fallbackom cez `hls.js`
 - 🎞️ **Video.js** — s HLS podporou, lazy-load
 - 🖥️ **ArtPlayer** — s HLS + MPEG-TS podporou cez `mpegts.js`, lazy-load
+- 📼 **flv.js** — samostatna volba pre FLV/MPEG-TS streamy, lazy-load
+- 🎧 **jPlayer** — samostatna HTML5 media volba cez jQuery plugin, lazy-load
 - 🎥 **HLS kvalita** — floating dropdown pre výber kvality (Natívna / 360p / 720p / 1080p)
 - 🖼️ **Picture-in-Picture** — ovládanie v hornom menu nad videom
 - 🔄 **Try-direct-first** — proxy len keď je nutné (CORS chyba)
@@ -240,6 +242,8 @@ https://api.allorigins.win/raw?url=
 | **HTML5** | Vsetky | hls.js auto-fallback | Bez zavislosti, funguje vsade |
 | **Video.js** | Web/Windows | hls.js integrovany | Lazy-load z vendor/ alebo CDN |
 | **ArtPlayer** | Web/Windows | hls.js cez customType | Lazy-load z vendor/ alebo CDN |
+| **flv.js** | Web/Windows | HTML5 fallback | FLV/MPEG-TS lazy-load z vendor/ alebo CDN |
+| **jPlayer** | Web/Windows | HTML5/jQuery plugin | Alternativny HTML5 wrapper, lazy-load |
 | **VLC/mpv** | Android/Windows | Externe | Volitelne externe playery |
 
 ---
@@ -308,11 +312,28 @@ TCLVPlayer/
 | `@capacitor/core` + `android` + `cli` | ^8 | MIT | Android/GoogleTV bridge |
 | `hls.js` | ^1.5 | Apache-2.0 | HLS streaming |
 | `mpegts.js` | ^1.8 | Apache-2.0 | MPEG-TS streaming (ArtPlayer) |
+| `flv.js` | ^1.6 | Apache-2.0 | FLV/MPEG-TS streaming |
 | `video.js` | ^8 | Apache-2.0 | Alternatívny web player |
 | `artplayer` | ^5 | MIT | Alternatívny web player |
+| `jplayer` | ^2.9 | MIT | Alternativny HTML5 web player |
+| `jquery` | ^3.7 | MIT | jPlayer runtime dependency |
 | `http-server` | ^14 | MIT | Dev web server |
 | `eslint` | ^10 | MIT | Linting |
 | `vitest` | ^4 | MIT | Unit testy |
+
+---
+
+## 🙏 Third-party credits
+
+TCLVPlayer pouziva permisivne open-source kniznice a verejne IPTV metadata. Plne licencne texty su v [THIRDPARTY.md](THIRDPARTY.md).
+
+| Projekt | Repozitar | Licencia | Pouzitie |
+|:--------|:----------|:---------|:--------|
+| ArtPlayer | <https://github.com/zhw2590582/ArtPlayer> | MIT | Alternativny web player |
+| flv.js | <https://github.com/bilibili/flv.js> | Apache-2.0 | FLV/MPEG-TS prehravanie |
+| jPlayer | <https://github.com/jplayer/jPlayer> | MIT | Alternativny HTML5 media wrapper |
+| Video.js | <https://github.com/videojs/video.js> | Apache-2.0 | Alternativny web player |
+| iptv-org/iptv | <https://github.com/iptv-org/iptv> | Unlicense | Verejne IPTV playlist metadata |
 
 ---
 
