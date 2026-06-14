@@ -4,11 +4,7 @@ import { dirname, join } from "node:path";
 const packagePath = join("android", "app", "src", "main", "java", "sk", "tclv", "player");
 const manifestPath = join("android", "app", "src", "main", "AndroidManifest.xml");
 
-const files = [
-  ["native/android/TCLVPlayerPlugin.java", join(packagePath, "TCLVPlayerPlugin.java")],
-  ["native/android/MainActivity.java", join(packagePath, "MainActivity.java")],
-  ["native/android/BootReceiver.java", join(packagePath, "BootReceiver.java")],
-];
+const classes = ["TCLVPlayerPlugin", "MainActivity", "BootReceiver"];
 
 try {
   await access(manifestPath);
@@ -19,13 +15,22 @@ try {
   process.exit(1);
 }
 
-for (const [source, target] of files) {
+for (const cls of classes) {
+  let source = join("native", "android", `${cls}.kt`);
+  let target = join(packagePath, `${cls}.kt`);
+  let other = join(packagePath, `${cls}.java`);
+
+  try {
+    await access(source);
+  } catch {
+    source = join("native", "android", `${cls}.java`);
+    target = join(packagePath, `${cls}.java`);
+    other = join(packagePath, `${cls}.kt`);
+  }
+
   await mkdir(dirname(target), { recursive: true });
   await copyFile(source, target);
-}
-
-for (const stale of ["TCLVPlayerPlugin.kt", "MainActivity.kt", "BootReceiver.kt"]) {
-  await rm(join(packagePath, stale), { force: true });
+  await rm(other, { force: true });
 }
 
 await copyDirectory(join("native", "android", "res"), join("android", "app", "src", "main", "res"));
