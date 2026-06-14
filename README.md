@@ -13,7 +13,7 @@
 [![Windows Build](https://github.com/bucala/TCLVPlayer/actions/workflows/windows.yml/badge.svg)](https://github.com/bucala/TCLVPlayer/actions/workflows/windows.yml)
 [![Android Build](https://github.com/bucala/TCLVPlayer/actions/workflows/android.yml/badge.svg)](https://github.com/bucala/TCLVPlayer/actions/workflows/android.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-orange.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.0.0-orange)](#changelog)
+[![Version](https://img.shields.io/badge/version-1.1.9-orange)](#changelog)
 [![Vanilla JS](https://img.shields.io/badge/Vanilla-JS-yellow?logo=javascript)](app.js)
 [![No Framework](https://img.shields.io/badge/No%20Framework-zero%20build-lightgrey)](#)
 
@@ -89,8 +89,8 @@ npm run windows
 
 # Zbuildovať .exe distribúčiu (NSIS inštalátor + portable)
 npm run windows:dist
-# Výstup: dist\TCLVPlayer Setup 0.8.0.exe
-#          dist\TCLVPlayer 0.8.0.exe
+# Výstup: dist\TCLVPlayer Setup 1.1.9.exe
+#          dist\TCLVPlayer 1.1.9.exe
 ```
 
 **Update existujúcej inštalácie:**
@@ -98,7 +98,10 @@ npm run windows:dist
 .\scripts\update-windows.ps1            # len aktualizovanie
 .\scripts\update-windows.ps1 -BuildExe  # + build .exe
 .\scripts\update-windows.ps1 -RunAfter  # + okamžité spustenie
+.\scripts\update-windows.ps1 -ForceReset # vynútený reset na origin/main
 ```
+
+Štandardný update nezahodí lokálne zmeny. Ak skript nájde neuprataný working tree, zastaví sa a vypíše čo treba spraviť.
 
 > Ak PowerShell hlási `execution policy`: `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`
 
@@ -128,6 +131,7 @@ npm run android:open
 .\scripts\update-android.ps1 -FirstTime           # prvé spustenie
 .\scripts\update-android.ps1 -OpenStudio          # + otvoritť Android Studio
 .\scripts\update-android.ps1 -FirstTime -OpenStudio
+.\scripts\update-android.ps1 -ForceReset          # vynútený reset na origin/main
 ```
 
 **Prostřediu prepéc env premenné (raz, trvalo):**

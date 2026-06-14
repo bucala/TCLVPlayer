@@ -7,6 +7,31 @@ Všetky významné zmeny v projekte sú dokumentované v tomto súbore.
 
 ---
 
+## [1.1.9] — 2026-06-14
+
+### Android fullscreen, lock and channel polish
+
+#### Fixed
+- **Android fullscreen** — natívne Android triedy sú generované v Java verzii, takže immersive fullscreen sa reálne kompiluje a systémové status/navigation bary sa opakovane skrývajú.
+- **Android lock overlay** — odomknutie funguje cez viditeľné odomykacie tlačidlo, dvojtap/dvojklik a dlhé podržanie nastavené na 2 sekundy.
+- **Logá staníc** — resolver používa aliasy aj pri `tv-logo/tv-logos` kandidátoch a nevyraďuje úspešne cacheované logo po predchádzajúcom dočasnom zlyhaní.
+- **Bodka aktivity streamu** — indikátor má fixnú pozíciu v pravom hornom rohu logo bunky a nezasahuje do názvu stanice.
+
+---
+
+## [1.1.8] — 2026-06-14
+
+### Android setup safety and layout
+
+#### Fixed
+- **Android lock overlay** — zamknutú obrazovku je možné odomknúť dvojtapom/dvojklikom alebo dlhým podržaním.
+- **Android safe area rozloženie** — topbar v portréte rešpektuje systémovú lištu a sidebar/rail režim už nezasahuje do ikon staníc ani do videa.
+- **Android sync/setup** — `android:sync` pripraví Capacitor Android projekt pri prvom použití a template patch sa nespustí nad neexistujúcim projektom.
+- **Update skripty** — Windows aj Android update už predvolene nepoužívajú `git reset --hard`; tvrdý reset je dostupný iba cez explicitný `-ForceReset`.
+- **Verzie dokumentácie** — `package.json`, `package-lock.json`, README badge a príklady výstupov sú zjednotené na `1.1.8`.
+
+---
+
 ## [1.1.7] — 2026-06-06
 
 ### Android playback and layout
