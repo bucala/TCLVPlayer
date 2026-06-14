@@ -1,6 +1,6 @@
 {
   "name": "tclvplayer",
-  "version": "1.1.11",
+  "version": "1.1.12",
   "private": true,
   "description": "Simple IPTV player for Windows, Android, GoogleTV and web.",
   "main": "native/electron/main.js",
@@ -14,6 +14,9 @@
     "android:apply-template": "node scripts/apply-android-template.mjs",
     "android:setup": "npm run prepare:web && npm run android:init && npm run android:apply-template && cap sync android",
     "android:sync": "npm run prepare:web && npm run android:init && npm run android:apply-template && cap sync android",
+    "android:generate": "node scripts/android-studio.mjs",
+    "android:studio": "node scripts/android-studio.mjs --open",
+    "android:apk": "node scripts/android-studio.mjs --build",
     "android:open": "cap open android",
     "lint": "eslint .",
     "test": "vitest run"

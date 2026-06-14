@@ -7,4 +7,8 @@ android/
 !native/android/
 !native/android/res/
 !native/android/res/**
+.idea/
+*.iml
+out/
+native/android/.idea/
 .env

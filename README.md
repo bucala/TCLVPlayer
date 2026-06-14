@@ -13,7 +13,7 @@
 [![Windows Build](https://github.com/bucala/TCLVPlayer/actions/workflows/windows.yml/badge.svg)](https://github.com/bucala/TCLVPlayer/actions/workflows/windows.yml)
 [![Android Build](https://github.com/bucala/TCLVPlayer/actions/workflows/android.yml/badge.svg)](https://github.com/bucala/TCLVPlayer/actions/workflows/android.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-orange.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.1.11-orange)](#changelog)
+[![Version](https://img.shields.io/badge/version-1.1.12-orange)](#changelog)
 [![Vanilla JS](https://img.shields.io/badge/Vanilla-JS-yellow?logo=javascript)](app.js)
 [![No Framework](https://img.shields.io/badge/No%20Framework-zero%20build-lightgrey)](#)
 
@@ -63,7 +63,9 @@ npm install
 | 📦 **Windows `.exe`** | `npm run windows:dist` | `dist/` — NSIS + portable |
 | 🤖 **Android setup** | `npm run android:setup` | Capacitor projekt |
 | 🔄 **Android sync** | `npm run android:sync` | Aktualizuje natívny projekt |
-| 📂 **Android Studio** | `npm run android:open` | Otvorí Android Studio |
+| 🧩 **Android Studio generate** | `npm run android:generate` | Vygeneruje/zosynchronizuje `android/` pre Android Studio |
+| 📂 **Android Studio** | `npm run android:studio` | Vygeneruje a otvorí Android Studio |
+| 📦 **Android debug APK** | `npm run android:apk` | `android/app/build/outputs/apk/debug/` |
 
 > **Tip:** Pre Vercel/HTTPS: spustite `npm run proxy` na lokalnom PC — streamy pojdu priamo cez vasu siet.
 
@@ -115,26 +117,31 @@ npm run windows:dist
 **Požiadavky:** Node.js ≥ 18, Android Studio, Java JDK
 
 ```powershell
-# Prvné spustenie — inicializácia projektu
+# Prvé spustenie — inicializácia projektu
 npm install
-npm run android:setup
-npm run android:open   # otvor Android Studio → Build APK
+npm run android:generate
+npm run android:studio   # otvor Android Studio → Build APK
 
 # Každý ďalší update
-npm run android:sync
-npm run android:open
+npm run android:generate
+npm run android:studio
+
+# Debug APK bez ručného otvorenia Android Studio
+npm run android:apk
 ```
+
+`android:generate` je odporúčaný príkaz pre Android Studio. Pripraví `dist/web`, vytvorí alebo aktualizuje Capacitor `android/` projekt, skopíruje Kotlin šablóny, doplní `android/local.properties` so SDK cestou a spraví `cap sync android`.
 
 **Pomocný PowerShell skript:**
 ```powershell
 .\scripts\update-android.ps1                      # štandardný update
-.\scripts\update-android.ps1 -FirstTime           # prvé spustenie
-.\scripts\update-android.ps1 -OpenStudio          # + otvoritť Android Studio
-.\scripts\update-android.ps1 -FirstTime -OpenStudio
+.\scripts\update-android.ps1 -OpenStudio          # + otvoriť Android Studio
+.\scripts\update-android.ps1 -BuildDebug          # + zostaviť debug APK
+.\scripts\update-android.ps1 -BuildDebug -OpenStudio
 .\scripts\update-android.ps1 -ForceReset          # vynútený reset na origin/main
 ```
 
-**Prostřediu prepéc env premenné (raz, trvalo):**
+**Prostredie — prepísať env premenné (raz, trvalo):**
 ```powershell
 [Environment]::SetEnvironmentVariable("JAVA_HOME", "C:\Program Files\Android\Android Studio\jbr", "User")
 [Environment]::SetEnvironmentVariable("ANDROID_HOME", "$env:LOCALAPPDATA\Android\Sdk", "User")
