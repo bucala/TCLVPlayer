@@ -13,7 +13,7 @@
 [![Windows Build](https://github.com/bucala/TCLVPlayer/actions/workflows/windows.yml/badge.svg)](https://github.com/bucala/TCLVPlayer/actions/workflows/windows.yml)
 [![Android Build](https://github.com/bucala/TCLVPlayer/actions/workflows/android.yml/badge.svg)](https://github.com/bucala/TCLVPlayer/actions/workflows/android.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-orange.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.1.9-orange)](#changelog)
+[![Version](https://img.shields.io/badge/version-1.1.10-orange)](#changelog)
 [![Vanilla JS](https://img.shields.io/badge/Vanilla-JS-yellow?logo=javascript)](app.js)
 [![No Framework](https://img.shields.io/badge/No%20Framework-zero%20build-lightgrey)](#)
 

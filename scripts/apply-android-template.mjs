@@ -42,6 +42,7 @@ manifest = addAfter(
   /<manifest\b[^>]*>/,
   [
     '    <uses-permission android:name="android.permission.INTERNET" />',
+    '    <uses-permission android:name="android.permission.WAKE_LOCK" />',
     '    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />',
     '    <uses-feature android:name="android.software.leanback" android:required="false" />',
     '    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />',

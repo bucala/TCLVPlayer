@@ -88,4 +88,14 @@ public class TCLVPlayerPlugin extends Plugin {
             call.reject("Autostart toggle failed: " + ex.getMessage());
         }
     }
+
+    @PluginMethod
+    public void setBackgroundPlayback(PluginCall call) {
+        Boolean enabled = call.getBoolean("enabled");
+        if (enabled == null) enabled = false;
+        if (getActivity() instanceof MainActivity) {
+            ((MainActivity) getActivity()).setBackgroundPlaybackEnabled(enabled);
+        }
+        call.resolve();
+    }
 }

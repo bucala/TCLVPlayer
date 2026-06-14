@@ -7,6 +7,21 @@ Všetky významné zmeny v projekte sú dokumentované v tomto súbore.
 
 ---
 
+## [1.1.10] — 2026-06-14
+
+### Android lock, sidebar and EPG polish
+
+#### Added
+- **Android prehravanie na pozadi** — v nastaveniach pribudlo Android tlacidlo na prehravanie na pozadi aj pri vypnutom displeji, backed by native partial wake lock.
+
+#### Fixed
+- **Android sidebar hidden rezim** — treti stav sidepanelu v landscape teraz panel naozaj uplne skryje namiesto poskodeneho medzistavu.
+- **Android lock** — zamknutie aj odomknutie prebieha iba cez 2-sekundove podrzanie zamku; kliknutie do plochy prehravania uz obrazovku neodomkne.
+- **EPG timeline** — EPG panel uz nema presvitajuci pas medzi ovladanim a casovou osou.
+- **Bodka aktivity streamu** — indikator sa zobrazi az pri realnej udalosti prehravania alebo chyby pre HTML5/Video.js/ArtPlayer.
+
+---
+
 ## [1.1.9] — 2026-06-14
 
 ### Android fullscreen, lock and channel polish
