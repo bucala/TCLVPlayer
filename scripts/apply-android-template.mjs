@@ -16,16 +16,16 @@ try {
 }
 
 for (const cls of classes) {
-  let source = join("native", "android", `${cls}.kt`);
-  let target = join(packagePath, `${cls}.kt`);
-  let other = join(packagePath, `${cls}.java`);
+  let source = join("native", "android", `${cls}.java`);
+  let target = join(packagePath, `${cls}.java`);
+  let other = join(packagePath, `${cls}.kt`);
 
   try {
     await access(source);
   } catch {
-    source = join("native", "android", `${cls}.java`);
-    target = join(packagePath, `${cls}.java`);
-    other = join(packagePath, `${cls}.kt`);
+    source = join("native", "android", `${cls}.kt`);
+    target = join(packagePath, `${cls}.kt`);
+    other = join(packagePath, `${cls}.java`);
   }
 
   await mkdir(dirname(target), { recursive: true });
