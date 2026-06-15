@@ -7,12 +7,25 @@ Všetky významné zmeny v projekte sú dokumentované v tomto súbore.
 
 ---
 
+## [1.1.13] — 2026-06-15
+
+### Android launch crash fix
+
+#### Fixed
+- **Android runtime crash** — natívne Android šablóny sú opäť Java zdroje, aby ich default Capacitor/Android Studio projekt reálne skompiloval bez Kotlin Gradle pluginu. Tým sa do APK dostane `MainActivity`, `TCLVPlayerPlugin` aj `BootReceiver` a aplikácia nespadne hneď pri štarte.
+
+#### Changed
+- **Android template sync** — `apply-android-template.mjs` preferuje `.java` šablóny a odstraňuje prípadné `.kt` duplicity v generovanom projekte.
+- **Android dokumentácia** — README texty hovoria o Java native shelli namiesto Kotlin šablón.
+
+---
+
 ## [1.1.12] — 2026-06-14
 
 ### Android Studio generation
 
 #### Added
-- **Android Studio generator** — novy `scripts/android-studio.mjs` pripravuje `dist/web`, vytvori alebo aktualizuje Capacitor `android/`, aplikuje Kotlin sablony, spusti `cap sync android` a doplni `android/local.properties` so SDK cestou.
+- **Android Studio generator** — novy `scripts/android-studio.mjs` pripravuje `dist/web`, vytvori alebo aktualizuje Capacitor `android/`, aplikuje native Android sablony, spusti `cap sync android` a doplni `android/local.properties` so SDK cestou.
 - **NPM prikazy** — doplnene `android:generate`, `android:studio` a `android:apk` pre generovanie projektu, otvorenie Android Studio a debug APK build bez rucneho klikania.
 
 #### Changed

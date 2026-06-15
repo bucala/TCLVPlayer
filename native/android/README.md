@@ -28,15 +28,15 @@ Build a debug APK without opening Android Studio:
 npm run android:apk
 ```
 
-The generator copies the Kotlin native templates into the generated Android Studio project:
+The generator copies the Java native templates into the generated Android Studio project:
 
 ```text
-android/app/src/main/java/sk/tclv/player/TCLVPlayerPlugin.kt
-android/app/src/main/java/sk/tclv/player/MainActivity.kt
-android/app/src/main/java/sk/tclv/player/BootReceiver.kt
+android/app/src/main/java/sk/tclv/player/TCLVPlayerPlugin.java
+android/app/src/main/java/sk/tclv/player/MainActivity.java
+android/app/src/main/java/sk/tclv/player/BootReceiver.java
 ```
 
-Templates are stored in this folder as `TCLVPlayerPlugin.kt`, `MainActivity.kt` and `BootReceiver.kt`. Java duplicates are removed during sync so Android Studio sees one native implementation.
+Templates are stored in this folder as `TCLVPlayerPlugin.java`, `MainActivity.java` and `BootReceiver.java`. Kotlin duplicates are removed during sync so Android Studio sees one native implementation that compiles in the default Capacitor project.
 
 The `android/` folder is generated and ignored by Git. Commit source changes in the shared web files, `capacitor.config.json`, `scripts/`, or this `native/android/` template folder instead of committing Android Studio `.idea`, `.iml`, `build/`, or generated app files.
 

@@ -13,7 +13,7 @@
 [![Windows Build](https://github.com/bucala/TCLVPlayer/actions/workflows/windows.yml/badge.svg)](https://github.com/bucala/TCLVPlayer/actions/workflows/windows.yml)
 [![Android Build](https://github.com/bucala/TCLVPlayer/actions/workflows/android.yml/badge.svg)](https://github.com/bucala/TCLVPlayer/actions/workflows/android.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-orange.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.1.12-orange)](#changelog)
+[![Version](https://img.shields.io/badge/version-1.1.13-orange)](#changelog)
 [![Vanilla JS](https://img.shields.io/badge/Vanilla-JS-yellow?logo=javascript)](app.js)
 [![No Framework](https://img.shields.io/badge/No%20Framework-zero%20build-lightgrey)](#)
 
@@ -130,7 +130,7 @@ npm run android:studio
 npm run android:apk
 ```
 
-`android:generate` je odporúčaný príkaz pre Android Studio. Pripraví `dist/web`, vytvorí alebo aktualizuje Capacitor `android/` projekt, skopíruje Kotlin šablóny, doplní `android/local.properties` so SDK cestou a spraví `cap sync android`.
+`android:generate` je odporúčaný príkaz pre Android Studio. Pripraví `dist/web`, vytvorí alebo aktualizuje Capacitor `android/` projekt, skopíruje Java natívne šablóny, doplní `android/local.properties` so SDK cestou a spraví `cap sync android`.
 
 **Pomocný PowerShell skript:**
 ```powershell
@@ -235,7 +235,7 @@ https://api.allorigins.win/raw?url=
 | Platforma | Shell | CORS | Externý player |
 |:----------|:------|:----:|:---------------|
 | 🖥️ **Windows 11** | Electron | ✅ Bypass | — |
-| 🤖 **Android** | Capacitor + Kotlin | ✅ Natívne | `Intent.ACTION_VIEW` |
+| 🤖 **Android** | Capacitor + Java | ✅ Natívne | `Intent.ACTION_VIEW` |
 | 📺 **GoogleTV** | Capacitor + Leanback | ✅ Natívne | `Intent.ACTION_VIEW` |
 | 🌐 **Web** | http-server | ⚠️ Proxy | clipboard fallback |
 
