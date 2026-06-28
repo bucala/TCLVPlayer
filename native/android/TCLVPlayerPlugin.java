@@ -1,5 +1,6 @@
 package sk.tclv.player;
 
+import android.app.Activity;
 import android.app.PictureInPictureParams;
 import android.content.ComponentName;
 import android.content.Intent;
@@ -78,15 +79,23 @@ public class TCLVPlayerPlugin extends Plugin {
             return;
         }
 
-        try {
-            PictureInPictureParams params = new PictureInPictureParams.Builder()
-                .setAspectRatio(new Rational(16, 9))
-                .build();
-            getActivity().enterPictureInPictureMode(params);
-            call.resolve();
-        } catch (Exception exception) {
-            call.reject("PiP failed: " + exception.getMessage());
+        Activity activity = getActivity();
+        if (activity == null) {
+            call.reject("PiP failed: activity is not available");
+            return;
         }
+
+        activity.runOnUiThread(() -> {
+            try {
+                PictureInPictureParams params = new PictureInPictureParams.Builder()
+                    .setAspectRatio(new Rational(16, 9))
+                    .build();
+                activity.enterPictureInPictureMode(params);
+                call.resolve();
+            } catch (Exception exception) {
+                call.reject("PiP failed: " + exception.getMessage());
+            }
+        });
     }
 
     @PluginMethod
