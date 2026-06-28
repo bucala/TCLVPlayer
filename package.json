@@ -48,7 +48,7 @@
     "jplayer": "^2.9.2",
     "jquery": "^3.7.1",
     "mpegts.js": "^1.8.0",
-    "video.js": "^8.21.1"
+    "video.js": "^8.23.9"
   },
   "devDependencies": {
     "@capacitor/cli": "^8.4.1",
