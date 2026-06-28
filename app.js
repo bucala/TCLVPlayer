@@ -12,6 +12,32 @@ function safeSet(key, value) { try { localStorage.setItem(key, value); } catch {
 
 function safeSetJson(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch {} }
 
+function redactSensitiveSource(source) {
+  if (!source || typeof source !== 'string') return source;
+  try {
+    var url = new URL(source);
+    var changed = false;
+    ['password', 'pass'].forEach(function(key) {
+      if (url.searchParams.has(key)) {
+        url.searchParams.set(key, '***');
+        changed = true;
+      }
+    });
+    return changed ? url.toString() : source;
+  } catch { return source.replace(/([?&](?:password|pass)=)[^&]*/gi, '$1***'); }
+}
+
+function exportableSourceRecord(item) {
+  return {
+    id: item.id,
+    name: item.name,
+    source: redactSensitiveSource(item.source),
+    type: item.type,
+    origin: item.origin,
+    active: item.active
+  };
+}
+
 const translations = {
   sk: {
     tagline: "Jednoduchy IPTV prehravac", openPlaylist: "Playlist", openEpg: "EPG", load: "Nacitat", loadEpg: "Nacitat EPG", guide: "Program", noChannels: "Nacitajte M3U/M3U8 alebo XSPF playlist v Nastaveniach.", noEpg: "EPG este nie je nacitane.", noProgram: "Program nie je dostupny", now: "Teraz", next: "Nasleduje", html5Notice: "HTML5 video prehravac je aktivny. Niektore HLS streamy (.m3u8) potrebuju nativnu podporu prehliadaca.", optionalMissing: "Tento player nie je pribaleny. Nacitajte jeho kniznicu alebo pouzite HTML5.",  loadError: "Nepodarilo sa nacitat zdroj.", playlistLoaded: "Playlist nacitany", epgLoaded: "EPG nacitane", logoTitle: "Vybrat logo", settingsPlayer: "Prehrávač & Jazyk", labelPlayer: "Prehrávač", labelLanguage: "Jazyk", settingsPlaylists: "Playlisty", addPlaylist: "Pridať URL", settingsEpg: "EPG zdroje", addEpg: "Pridať EPG", epgHint: "Všetky zdroje sa načítajú a zlúčia.", settingsNetwork: "Sieť", labelCorsProxy: "CORS proxy (len web)", corsHint: "Na Verceli sa automaticky použije vstavaný proxy. Electron a Android ho nepotrebujú.", searchEpg: "Hladat v programe", corsNeeded: "CORS chyba — nastavte CORS proxy v Nastaveniach > Sieť.", proxyBlocked: "Proxy blokuje požiadavku. Skúste iný CORS proxy.", streamUnavailable: "Stream nie je dostupný — server odmietol pripojenie alebo je geo-blokovaný.", clickToPlay: "Kliknite na video pre spustenie prehrávania.", local: "lokálny", network: "sieťový", epgAutoDetected: "EPG zdroje automaticky detegované z playlistu", proxyChanged: "CORS proxy uložený. Znovu načítavam EPG…", qualityNative: "Natívna", qualityHigh: "Vysoká (1080p)", qualityMedium: "Stredná (720p)", qualityLow: "Nízka (360p)", labelQuality: "Kvalita videa", searchChannels: "Hľadať kanály", groupAll: "Všetky", groupFavorites: "Obľúbené", settingsXtream: "Xtream Codes API", xtreamHint: "Prihlasovacie údaje od IPTV poskytovateľa.", addXtream: "Načítať", xtreamLoading: "Načítavanie Xtream playlistu…", settingsBackup: "Export / Import", backupHint: "Zálohovanie a obnovenie nastavení, playlistov a obľúbených.", exportSettings: "Exportovať", importSettings: "Importovať", settingsImported: "Nastavenia obnovené.", catchupAvailable: "Archív dostupný", catchupTitle: "Archív", catchupUnavailable: "Archív nie je dostupný pre tento kanál.", rtmpUnsupported: "RTMP/RTSP streamy nie sú podporované v prehliadači. Použite natívnu aplikáciu (Android/Electron).", reconnecting: "Opätovné pripájanie…", localProxyFound: "Lokálny proxy nájdený — streamy pôjdu priamo bez Vercel proxy.", localProxyHint: "Tip: Spustite 'npm run proxy' na lokálnom PC — streamy pôjdu priamo cez vašu sieť.", locked: "Obrazovka zamknutá", unlocked: "Obrazovka odomknutá", autostartOn: "Automatický štart zapnutý", autostartOff: "Automatický štart vypnutý", backgroundPlaybackOn: "Prehrávanie na pozadí zapnuté", backgroundPlaybackOff: "Prehrávanie na pozadí vypnuté", holdLockHint: "Podržte zámok 2 sekundy",   },
@@ -655,8 +681,16 @@ function playCatchup(channel, start, duration) {
 function exportSettings() {
   var data = {
     version: 1,
-    playlists: state.playlists.map(function(p) { return { id: p.id, name: p.name, source: p.source, type: p.type, origin: p.origin }; }),
-    epgSources: state.epgSources.map(function(s) { return { id: s.id, name: s.name, source: s.source, origin: s.origin, active: s.active }; }),
+    playlists: state.playlists.map(function(p) {
+      var item = exportableSourceRecord(p);
+      delete item.active;
+      return item;
+    }),
+    epgSources: state.epgSources.map(function(s) {
+      var item = exportableSourceRecord(s);
+      delete item.type;
+      return item;
+    }),
     favorites: [...state.favorites],
     language: state.language, player: state.player, players: platformPlayersSnapshot(), corsProxy: state.corsProxy
   };
@@ -715,12 +749,19 @@ function updateChannelStatusDot(channelId) {
   var s = state.streamStatus[channelId];
   dot.className = 'status-dot' + (s ? ' ' + s : '');
 }
+function syncAndroidPlaybackActive(active) {
+  if (getPlatform() !== 'android') return;
+  window.Capacitor?.Plugins?.TCLVPlayer?.setPlaybackActive({ active: !!active }).catch(function() {});
+}
 function bindVideoStatusEvents(videoEl, expectedId) {
   var markOk = function() {
     if (state.selectedChannelId === expectedId) setStreamStatus(expectedId, 'ok');
   };
   var markError = function() {
-    if (state.selectedChannelId === expectedId) setStreamStatus(expectedId, 'error');
+    if (state.selectedChannelId === expectedId) {
+      setStreamStatus(expectedId, 'error');
+      syncAndroidPlaybackActive(false);
+    }
   };
   ['playing', 'canplay', 'loadeddata'].forEach(function(eventName) {
     videoEl.addEventListener(eventName, markOk, { once: true });
@@ -926,7 +967,7 @@ function renderChannels() {
     }
     node.addEventListener('click', () => selectChannel(channel.id));
     node.addEventListener('keydown', (event) => {
-      if (event.key === 'Enter' || event.key === ' ') {
+      if (isSelectKey(event)) {
         event.preventDefault();
         selectChannel(channel.id);
       }
@@ -983,6 +1024,9 @@ function toggleEpg() {
     if (getPlatform() === 'android') ensureEpgLoadedForActivePlaylist();
   }
 }
+function setEpgVisible(visible) {
+  if (state.epgVisible !== !!visible) toggleEpg();
+}
 function renderGuide() {
   var baseHours = 8 * state.epgZoom;
   var offsetMs = state.epgOffsetHours * 60 * 60 * 1000;
@@ -992,7 +1036,7 @@ function renderGuide() {
   const header = document.createElement('div'); header.className = 'timeline-header'; header.innerHTML = `<div class="timeline-corner"></div><div class="time-slots"></div>`; header.querySelector('.time-slots').style.width = `${width}px`;
   for (let cursor = new Date(start); cursor <= end; cursor = new Date(cursor.getTime() + 30 * 60 * 1000)) { const slot = document.createElement('div'); slot.className = 'time-slot'; slot.style.left = `${((cursor - start) / duration) * width}px`; slot.style.width = `${width / 16}px`; slot.textContent = formatTime(cursor); header.querySelector('.time-slots').append(slot); }
   timeline.append(header);
-  channels.forEach((channel) => { const row = document.createElement('div'); row.className = 'timeline-row'; row.innerHTML = `<div class="timeline-label"><img alt=""><span>${escapeHtml(channel.name)}</span></div><div class="program-track"></div>`; setLogoImage(row.querySelector('.timeline-label img'), channel); const track = row.querySelector('.program-track'); track.style.width = `${width}px`; const programs = findPrograms(channel).filter((program) => program.stop > start && program.start < end); if (!programs.length) { const empty = document.createElement('div'); empty.className = 'program'; empty.style.left = '8px'; empty.style.width = '160px'; empty.innerHTML = `<strong>${t('noEpg')}</strong>`; track.append(empty); } else { programs.forEach((program) => { const left = Math.max(0, ((program.start - start) / duration) * width); const right = Math.min(width, ((program.stop - start) / duration) * width); const node = document.createElement('div'); node.className = `program${program.start <= new Date() && program.stop > new Date() ? ' current' : ''}`; node.style.left = `${left}px`; node.style.width = `${Math.max(44, right - left)}px`; node.title = `${program.title} ${formatTime(program.start)}-${formatTime(program.stop)}`; node.tabIndex = 0; node.setAttribute('role', 'button'); node.setAttribute('aria-label', program.title); node.innerHTML = `<strong>${escapeHtml(program.title)}</strong><span>${formatTime(program.start)} - ${formatTime(program.stop)}</span>`; node.addEventListener('click', function() { openProgramDetail(program, channel); }); node.addEventListener('keydown', function(event) { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openProgramDetail(program, channel); } }); track.append(node); }); }
+  channels.forEach((channel) => { const row = document.createElement('div'); row.className = 'timeline-row'; row.innerHTML = `<div class="timeline-label"><img alt=""><span>${escapeHtml(channel.name)}</span></div><div class="program-track"></div>`; setLogoImage(row.querySelector('.timeline-label img'), channel); const track = row.querySelector('.program-track'); track.style.width = `${width}px`; const programs = findPrograms(channel).filter((program) => program.stop > start && program.start < end); if (!programs.length) { const empty = document.createElement('div'); empty.className = 'program'; empty.style.left = '8px'; empty.style.width = '160px'; empty.innerHTML = `<strong>${t('noEpg')}</strong>`; track.append(empty); } else { programs.forEach((program) => { const left = Math.max(0, ((program.start - start) / duration) * width); const right = Math.min(width, ((program.stop - start) / duration) * width); const node = document.createElement('div'); node.className = `program${program.start <= new Date() && program.stop > new Date() ? ' current' : ''}`; node.style.left = `${left}px`; node.style.width = `${Math.max(44, right - left)}px`; node.title = `${program.title} ${formatTime(program.start)}-${formatTime(program.stop)}`; node.tabIndex = 0; node.setAttribute('role', 'button'); node.setAttribute('aria-label', program.title); node.innerHTML = `<strong>${escapeHtml(program.title)}</strong><span>${formatTime(program.start)} - ${formatTime(program.stop)}</span>`; node.addEventListener('click', function() { openProgramDetail(program, channel); }); node.addEventListener('keydown', function(event) { if (isSelectKey(event)) { event.preventDefault(); openProgramDetail(program, channel); } }); track.append(node); }); }
     const nowLine = document.createElement('div'); nowLine.className = 'now-line'; nowLine.style.left = `${Math.max(0, Math.min(width, ((Date.now() - start.getTime()) / duration) * width))}px`; track.append(nowLine);
     timeline.append(row);
   });
@@ -1246,13 +1290,19 @@ async function playExternalAndroid(channel) {
   if (!window.Capacitor?.Plugins?.TCLVPlayer) { playHtml5(channel); return; }
   var playerName = (state.player === 'native') ? 'system' : state.player;
   try {
+    setStreamStatus(channel.id, 'ok');
     await window.Capacitor.Plugins.TCLVPlayer.openExternalPlayer({ player: playerName, url: channel.url });
-  } catch { playHtml5(channel); }
+  } catch {
+    setStreamStatus(channel.id, 'error');
+    syncAndroidPlaybackActive(false);
+    playHtml5(channel);
+  }
 }
 function playExternalDesktop(channel) {
   if (!window.TCLVNative?.openExternal) { showMessage(t('optionalMissing')); return; }
   try {
     window.TCLVNative.openExternal(state.player, channel.url);
+    setStreamStatus(channel.id, 'ok');
   } catch (e) { showMessage(e.message || streamErrorMsg()); }
 }
 async function playHtml5(channel) {
@@ -1413,6 +1463,7 @@ async function playArtPlayer(channel) {
 function setPlayerActive(active) {
   var stage = document.querySelector('.player-stage');
   if (stage) stage.classList.toggle('no-video', !active);
+  syncAndroidPlaybackActive(active);
 }
 function playChannel(channel) {
   hideMessage(); safeSet('tclv.lastChannel', channel.id); setPlayerActive(true);
@@ -1708,6 +1759,81 @@ function cancelTopLockHold() {
   clearTimeout(state.lockButtonHoldTimer);
   if (!state.lockHoldTriggered && !state.locked) showMessage(t('holdLockHint'), 1800);
 }
+function isTextEntryTarget(target) {
+  var tag = target?.tagName;
+  return tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA' || target?.isContentEditable;
+}
+function isSelectKey(event) {
+  return event.key === 'Enter' || event.key === ' ' || event.key === 'Select' || event.keyCode === 23 || event.keyCode === 66;
+}
+function isBackKey(event) {
+  return event.key === 'Escape' || event.key === 'Backspace' || event.key === 'BrowserBack' || event.key === 'GoBack' || event.key === 'Back' || event.keyCode === 4 || event.keyCode === 461;
+}
+function isGuideKey(event) {
+  return event.key === 'Guide' || event.key === 'TVGuide' || event.key === 'ProgramGuide' || event.keyCode === 172;
+}
+function isChannelUpKey(event) {
+  return event.key === 'PageUp' || event.key === 'ChannelUp' || event.keyCode === 166;
+}
+function isChannelDownKey(event) {
+  return event.key === 'PageDown' || event.key === 'ChannelDown' || event.keyCode === 167;
+}
+function focusSelectedChannel() {
+  const active = dom.channelGrid.querySelector('.channel-card.active') || dom.channelGrid.querySelector('.channel-card');
+  active?.focus();
+  active?.scrollIntoView({ block: 'nearest' });
+}
+function focusGuideItem() {
+  if (!state.epgVisible) return;
+  requestAnimationFrame(function() {
+    const current = dom.epgGuide?.querySelector('.program.current') || dom.epgGuide?.querySelector('.program');
+    current?.focus();
+  });
+}
+function selectRelativeChannel(delta) {
+  const channels = filteredChannels();
+  if (!channels.length) return;
+  const idx = channels.findIndex((ch) => ch.id === state.selectedChannelId);
+  const base = idx >= 0 ? idx : 0;
+  const next = (base + delta + channels.length) % channels.length;
+  selectChannel(channels[next].id);
+  focusSelectedChannel();
+}
+function handleBackStep() {
+  if (state.locked) {
+    revealLockUnlock();
+    return true;
+  }
+  if (dom.programDetailModal && !dom.programDetailModal.hidden) {
+    closeProgramDetail();
+    return true;
+  }
+  if (!dom.settingsPanel.hidden) {
+    closeSettings();
+    return true;
+  }
+  if (dom.switchOverlay.classList.contains('show')) {
+    dom.switchOverlay.classList.remove('show');
+    clearTimeout(state.overlayTimer);
+    return true;
+  }
+  if (state.epgVisible) {
+    setEpgVisible(false);
+    focusSelectedChannel();
+    return true;
+  }
+  if (state.sidebarMode === 'hidden') {
+    setSidebarMode('rail', true);
+    focusSelectedChannel();
+    return true;
+  }
+  if (state.sidebarMode === 'rail') {
+    setSidebarMode('full', true);
+    focusSelectedChannel();
+    return true;
+  }
+  return false;
+}
 function toggleAutostart() {
   state.autostart = !state.autostart;
   safeSet('tclv.autostart', String(state.autostart));
@@ -1844,19 +1970,19 @@ function bindEvents() {
     const cards = [...dom.channelGrid.querySelectorAll('.channel-card')];
     const focused = document.activeElement;
     const index = cards.indexOf(focused);
-    if (event.key === 'ArrowUp' || event.key === 'ArrowDown') { event.preventDefault(); if (index < 0) { cards[0]?.focus(); return; } const next = event.key === 'ArrowDown' ? index + 1 : index - 1; if (next >= 0 && next < cards.length) cards[next].focus(); }
+    if (event.key === 'ArrowUp' || event.key === 'ArrowDown') { event.preventDefault(); if (index < 0) { cards[0]?.focus(); return; } const next = event.key === 'ArrowDown' ? index + 1 : index - 1; if (next >= 0 && next < cards.length) { cards[next].focus(); cards[next].scrollIntoView({ block: 'nearest' }); } }
     if (event.key === 'Home') { event.preventDefault(); cards[0]?.focus(); }
     if (event.key === 'End') { event.preventDefault(); cards[cards.length - 1]?.focus(); }
   });
   document.addEventListener('keydown', (event) => {
-    if (event.target.tagName === 'INPUT' || event.target.tagName === 'SELECT' || event.target.tagName === 'TEXTAREA') return;
-    if (event.key === 'Escape') { if (dom.programDetailModal && !dom.programDetailModal.hidden) { closeProgramDetail(); event.preventDefault(); return; } if (!dom.settingsPanel.hidden) { closeSettings(); event.preventDefault(); return; } if (dom.switchOverlay.classList.contains('show')) { dom.switchOverlay.classList.remove('show'); clearTimeout(state.overlayTimer); event.preventDefault(); return; } }
+    if (isTextEntryTarget(event.target)) return;
+    if (isBackKey(event)) { if (handleBackStep()) { event.preventDefault(); return; } }
+    if (isGuideKey(event)) { event.preventDefault(); setEpgVisible(!state.epgVisible); focusGuideItem(); return; }
     if (event.key === 'Info' || event.key === 'MediaInfo' || event.key === 'ContextMenu' || event.keyCode === 165) { event.preventDefault(); openCurrentProgramDetail(); return; }
     if (event.key === 'ArrowRight' && document.activeElement?.closest('.sidebar')) { event.preventDefault(); dom.epgSearch?.focus(); }
     if (event.key === 'ArrowLeft' && !document.activeElement?.closest('.sidebar')) { event.preventDefault(); const active = dom.channelGrid.querySelector('.channel-card.active') || dom.channelGrid.querySelector('.channel-card'); active?.focus(); }
-    const channels = filteredChannels();
-    if ((event.key === 'PageUp' || event.key === 'ChannelUp') && channels.length) { event.preventDefault(); const idx = channels.findIndex((ch) => ch.id === state.selectedChannelId); const prev = idx > 0 ? idx - 1 : channels.length - 1; selectChannel(channels[prev].id); const card = dom.channelGrid.querySelector(`[data-id="${channels[prev].id}"]`); card?.focus(); card?.scrollIntoView({ block: 'nearest' }); }
-    if ((event.key === 'PageDown' || event.key === 'ChannelDown') && channels.length) { event.preventDefault(); const idx = channels.findIndex((ch) => ch.id === state.selectedChannelId); const next = idx < channels.length - 1 ? idx + 1 : 0; selectChannel(channels[next].id); const card = dom.channelGrid.querySelector(`[data-id="${channels[next].id}"]`); card?.focus(); card?.scrollIntoView({ block: 'nearest' }); }
+    if (isChannelUpKey(event)) { event.preventDefault(); selectRelativeChannel(-1); return; }
+    if (isChannelDownKey(event)) { event.preventDefault(); selectRelativeChannel(1); return; }
   });
   dom.playerSelect.addEventListener('change', () => { state.player = dom.playerSelect.value; syncCustomSelects(); saveCurrentPlayer(); const channel = selectedChannel(); if (channel) playChannel(channel); });
   dom.languageSelect.addEventListener('change', () => { state.language = dom.languageSelect.value; safeSet('tclv.language', state.language); renderAll(); });
