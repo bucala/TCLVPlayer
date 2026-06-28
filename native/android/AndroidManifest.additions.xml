@@ -6,14 +6,17 @@
   <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
 
   <application android:usesCleartextTraffic="true" android:banner="@mipmap/ic_launcher">
-    <!-- Add to the MainActivity intent-filter so TCLVPlayer appears on GoogleTV launchers. -->
-    <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
-
     <!-- PiP support -->
     <activity
         android:name=".MainActivity"
         android:supportsPictureInPicture="true"
-        android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation" />
+        android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation">
+      <!-- Keep TV launcher separate from the phone launcher filter. -->
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN" />
+        <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+      </intent-filter>
+    </activity>
 
     <!-- Autostart on boot (disabled by default, toggled from settings) -->
     <receiver

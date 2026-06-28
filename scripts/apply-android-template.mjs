@@ -71,12 +71,17 @@ manifest = manifest.replace(
 );
 
 manifest = manifest.replace(
-  /(<category android:name="android\.intent\.category\.LAUNCHER"\s*\/>)/,
-  (match) => {
-    if (manifest.includes("android.intent.category.LEANBACK_LAUNCHER")) return match;
-    return `${match}\n                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />`;
-  },
+  /\n\s*<category android:name="android\.intent\.category\.LEANBACK_LAUNCHER"\s*\/>/g,
+  "",
 );
+
+if (!manifest.includes("android.intent.category.LEANBACK_LAUNCHER")) {
+  manifest = manifest.replace(
+    /(<activity\b[\s\S]*?android:name="\.MainActivity"[\s\S]*?)(\s*<\/activity>)/,
+    (match, activityBody, closeTag) =>
+      `${activityBody}\n            <intent-filter>\n                <action android:name="android.intent.action.MAIN" />\n                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />\n            </intent-filter>\n${closeTag}`,
+  );
+}
 
 if (!manifest.includes('android:supportsPictureInPicture')) {
   manifest = manifest.replace(
