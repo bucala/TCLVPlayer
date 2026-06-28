@@ -70,10 +70,7 @@ manifest = manifest.replace(
   },
 );
 
-manifest = manifest.replace(
-  /\n\s*<category android:name="android\.intent\.category\.LEANBACK_LAUNCHER"\s*\/>/g,
-  "",
-);
+manifest = removeGeneratedMainIntentFilters(manifest);
 
 if (!manifest.includes("android.intent.category.LEANBACK_LAUNCHER")) {
   manifest = manifest.replace(
@@ -110,6 +107,18 @@ function addAfter(text, marker, additions) {
   const missing = additions.filter((line) => !text.includes(line.trim()));
   if (!missing.length) return text;
   return text.replace(marker, (match) => `${match}\n${missing.join("\n")}`);
+}
+
+function removeGeneratedMainIntentFilters(text) {
+  return text
+    .replace(
+      /\n\s*<intent-filter>\s*<action android:name="android\.intent\.action\.MAIN"\s*\/>\s*<category android:name="android\.intent\.category\.LEANBACK_LAUNCHER"\s*\/>\s*<\/intent-filter>/g,
+      "",
+    )
+    .replace(
+      /\n\s*<intent-filter>\s*<action android:name="android\.intent\.action\.MAIN"\s*\/>\s*<\/intent-filter>/g,
+      "",
+    );
 }
 
 async function copyDirectory(source, target) {

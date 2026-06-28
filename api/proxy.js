@@ -1,3 +1,8 @@
+import { lookup } from "node:dns/promises";
+import { isIP } from "node:net";
+
+const MAX_REDIRECTS = 5;
+
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
@@ -14,41 +19,29 @@ export default async function handler(req, res) {
     return;
   }
 
+  let target;
   try {
-    new URL(url);
+    target = parseProxyUrl(url);
   } catch {
     res.status(400).json({ error: "Invalid URL" });
     return;
   }
 
-  if (!/^https?:\/\//i.test(url)) {
+  if (!isAllowedProtocol(target)) {
     res.status(400).json({ error: "Only http/https URLs allowed" });
     return;
   }
 
-  const blocked = /^https?:\/\/(127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|0\.|localhost)/i;
-  if (blocked.test(url)) {
+  if (!(await isPublicHttpUrl(target))) {
     res.status(403).json({ error: "Private networks not allowed" });
     return;
   }
 
   try {
-    const parsed = new URL(url);
-    const headers = {
-      "User-Agent":
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
-      Referer: parsed.origin + "/",
-      Origin: parsed.origin,
-    };
-
-    const upstream = await fetch(url, {
-      headers,
-      redirect: "follow",
-      signal: AbortSignal.timeout(20000),
-    });
+    const upstream = await fetchWithCheckedRedirects(target);
 
     if (!upstream.ok) {
-      const isStream = /\.(ts|m3u8|m3u)(\?|$)/i.test(url) ||
+      const isStream = /\.(ts|m3u8|m3u)(\?|$)/i.test(target.href) ||
         (upstream.headers.get("content-type") || "").includes("mpegurl");
       res.status(upstream.status).json({
         error: `Upstream returned ${upstream.status}`,
@@ -78,6 +71,10 @@ export default async function handler(req, res) {
     }
   } catch (err) {
     const msg = err.message || "Upstream fetch failed";
+    if (err.statusCode) {
+      res.status(err.statusCode).json({ error: msg });
+      return;
+    }
     const isTimeout = msg.includes("timeout") || msg.includes("abort");
     const isNetwork = msg.includes("ECONNREFUSED") || msg.includes("ENOTFOUND") || msg.includes("ENETUNREACH");
     res.status(502).json({
@@ -85,4 +82,108 @@ export default async function handler(req, res) {
       hint: isTimeout ? "timeout" : isNetwork ? "geo-blocked" : undefined,
     });
   }
+}
+
+function parseProxyUrl(raw) {
+  if (Array.isArray(raw)) raw = raw[0];
+  if (!raw || typeof raw !== "string") throw new Error("Invalid URL");
+  return new URL(raw);
+}
+
+function isAllowedProtocol(url) {
+  return url.protocol === "http:" || url.protocol === "https:";
+}
+
+async function fetchWithCheckedRedirects(initialUrl) {
+  let current = initialUrl;
+  for (let redirects = 0; redirects <= MAX_REDIRECTS; redirects++) {
+    if (!(await isPublicHttpUrl(current))) {
+      const error = new Error("Private networks not allowed");
+      error.statusCode = 403;
+      throw error;
+    }
+
+    const upstream = await fetch(current.href, {
+      headers: upstreamHeaders(current),
+      redirect: "manual",
+      signal: AbortSignal.timeout(20000),
+    });
+
+    if (!isRedirect(upstream.status)) return upstream;
+    const location = upstream.headers.get("location");
+    if (!location) return upstream;
+    current = new URL(location, current);
+  }
+
+  const error = new Error("Too many redirects");
+  error.statusCode = 508;
+  throw error;
+}
+
+function upstreamHeaders(url) {
+  return {
+    "User-Agent":
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+    Referer: url.origin + "/",
+    Origin: url.origin,
+  };
+}
+
+function isRedirect(status) {
+  return status >= 300 && status < 400;
+}
+
+async function isPublicHttpUrl(url) {
+  if (!isAllowedProtocol(url)) return false;
+  const hostname = url.hostname.toLowerCase();
+  if (hostname === "localhost" || hostname.endsWith(".localhost")) return false;
+  if (isBlockedIp(hostname)) return false;
+
+  try {
+    const addresses = await lookup(hostname, { all: true, verbatim: true });
+    return addresses.length > 0 && addresses.every((entry) => !isBlockedIp(entry.address));
+  } catch {
+    return false;
+  }
+}
+
+function isBlockedIp(address) {
+  const version = isIP(address);
+  if (version === 4) return isBlockedIpv4(address);
+  if (version === 6) return isBlockedIpv6(address);
+  return false;
+}
+
+function isBlockedIpv4(address) {
+  const parts = address.split(".").map((part) => Number(part));
+  if (parts.length !== 4 || parts.some((part) => Number.isNaN(part) || part < 0 || part > 255)) return true;
+  const [a, b] = parts;
+  return (
+    a === 0 ||
+    a === 10 ||
+    a === 127 ||
+    (a === 100 && b >= 64 && b <= 127) ||
+    (a === 169 && b === 254) ||
+    (a === 172 && b >= 16 && b <= 31) ||
+    (a === 192 && b === 168) ||
+    a >= 224
+  );
+}
+
+function isBlockedIpv6(address) {
+  const normalized = address.toLowerCase();
+  if (normalized.startsWith("::ffff:")) {
+    return isBlockedIp(normalized.slice(7));
+  }
+  return (
+    normalized === "::" ||
+    normalized === "::1" ||
+    normalized.startsWith("fc") ||
+    normalized.startsWith("fd") ||
+    normalized.startsWith("fe8") ||
+    normalized.startsWith("fe9") ||
+    normalized.startsWith("fea") ||
+    normalized.startsWith("feb") ||
+    normalized.startsWith("ff")
+  );
 }

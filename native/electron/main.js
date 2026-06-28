@@ -6,6 +6,10 @@ const { app, BrowserWindow, session, Menu, ipcMain } = require("electron");
 const { execFile } = require("node:child_process");
 
 const BROWSER_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
+const EXTERNAL_PLAYERS = new Map([
+  ["mpv", { command: "mpv", args: (url) => [url, "--force-window"] }],
+  ["vlc", { command: "vlc", args: (url) => [url] }],
+]);
 
 app.commandLine.appendSwitch("autoplay-policy", "no-user-gesture-required");
 
@@ -69,13 +73,14 @@ function createWindow() {
 }
 
 ipcMain.on("open-external-player", (_event, data) => {
-  const url = data.url;
-  const player = data.player;
+  const url = data && data.url;
+  const player = String(data && data.player || "").toLowerCase();
+  const config = EXTERNAL_PLAYERS.get(player);
+  if (!config) return;
   if (!url || typeof url !== "string") return;
   if (!/^https?:\/\//i.test(url) && !/^rtsp:/i.test(url) && !/^rtmp/i.test(url)) return;
-  const args = player === "mpv" ? [url, "--force-window"] : [url];
   try {
-    const proc = execFile(player, args, { windowsHide: false });
+    const proc = execFile(config.command, config.args(url), { windowsHide: false });
     proc.unref();
   } catch {}
 });
