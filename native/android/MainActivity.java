@@ -5,6 +5,7 @@ import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.PowerManager;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.WindowInsets;
 import android.view.WindowInsetsController;
@@ -22,20 +23,28 @@ public class MainActivity extends BridgeActivity {
 
     private PowerManager.WakeLock backgroundWakeLock;
     private boolean backgroundPlaybackEnabled = false;
+    private boolean playbackActive = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         registerPlugin(TCLVPlayerPlugin.class);
         super.onCreate(savedInstanceState);
-        configureWebView();
+        safeConfigureWebView();
         backgroundPlaybackEnabled = getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .getBoolean(KEY_BACKGROUND_PLAYBACK, false);
         applyBackgroundPlaybackMode();
-        enableImmersiveFullscreen();
+        safeEnableImmersiveFullscreen();
         getWindow().getDecorView().setOnSystemUiVisibilityChangeListener(
-            ignored -> enableImmersiveFullscreen()
+            ignored -> safeEnableImmersiveFullscreen()
         );
-        getWindow().getDecorView().post(this::enableImmersiveFullscreen);
+        getWindow().getDecorView().post(this::safeEnableImmersiveFullscreen);
+    }
+
+    private void safeConfigureWebView() {
+        try {
+            configureWebView();
+        } catch (Exception ignored) {
+        }
     }
 
     private void configureWebView() {
@@ -53,16 +62,17 @@ public class MainActivity extends BridgeActivity {
     public void onResume() {
         super.onResume();
         applyBackgroundPlaybackMode();
-        enableImmersiveFullscreen();
-        getWindow().getDecorView().postDelayed(this::enableImmersiveFullscreen, 250);
+        safeEnableImmersiveFullscreen();
+        getWindow().getDecorView().postDelayed(this::safeEnableImmersiveFullscreen, 250);
     }
 
     @Override
     public void onPause() {
         super.onPause();
-        if (backgroundPlaybackEnabled && getBridge() != null && getBridge().getWebView() != null) {
+        if (backgroundPlaybackEnabled && playbackActive && getBridge() != null && getBridge().getWebView() != null) {
             getBridge().getWebView().onResume();
         }
+        applyBackgroundPlaybackMode();
     }
 
     @Override
@@ -74,7 +84,50 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onWindowFocusChanged(boolean hasFocus) {
         super.onWindowFocusChanged(hasFocus);
-        if (hasFocus) enableImmersiveFullscreen();
+        if (hasFocus) safeEnableImmersiveFullscreen();
+    }
+
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        if (event.getAction() == KeyEvent.ACTION_UP && dispatchTvKeyToWeb(event.getKeyCode())) {
+            return true;
+        }
+        return super.dispatchKeyEvent(event);
+    }
+
+    private boolean dispatchTvKeyToWeb(int keyCode) {
+        String key;
+        switch (keyCode) {
+            case KeyEvent.KEYCODE_BACK:
+                key = "Back";
+                break;
+            case KeyEvent.KEYCODE_CHANNEL_UP:
+                key = "ChannelUp";
+                break;
+            case KeyEvent.KEYCODE_CHANNEL_DOWN:
+                key = "ChannelDown";
+                break;
+            case KeyEvent.KEYCODE_GUIDE:
+                key = "Guide";
+                break;
+            case KeyEvent.KEYCODE_INFO:
+                key = "Info";
+                break;
+            default:
+                return false;
+        }
+        WebView webView = getBridge() == null ? null : getBridge().getWebView();
+        if (webView == null) return false;
+        String js = "window.dispatchEvent(new KeyboardEvent('keydown', { key: '" + key + "', keyCode: " + keyCode + ", bubbles: true }));";
+        webView.evaluateJavascript(js, null);
+        return true;
+    }
+
+    private void safeEnableImmersiveFullscreen() {
+        try {
+            enableImmersiveFullscreen();
+        } catch (Exception ignored) {
+        }
     }
 
     @SuppressWarnings("deprecation")
@@ -123,8 +176,13 @@ public class MainActivity extends BridgeActivity {
         applyBackgroundPlaybackMode();
     }
 
+    public void setPlaybackActive(boolean active) {
+        playbackActive = active;
+        applyBackgroundPlaybackMode();
+    }
+
     private void applyBackgroundPlaybackMode() {
-        if (backgroundPlaybackEnabled) {
+        if (backgroundPlaybackEnabled && playbackActive) {
             getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
             acquireBackgroundWakeLock();
         } else {
@@ -137,6 +195,7 @@ public class MainActivity extends BridgeActivity {
     private void acquireBackgroundWakeLock() {
         if (backgroundWakeLock != null && backgroundWakeLock.isHeld()) return;
         PowerManager powerManager = (PowerManager) getSystemService(Context.POWER_SERVICE);
+        if (powerManager == null) return;
         backgroundWakeLock = powerManager.newWakeLock(
             PowerManager.PARTIAL_WAKE_LOCK,
             "TCLVPlayer:BackgroundPlayback"

@@ -94,6 +94,11 @@ public class TCLVPlayerPlugin extends Plugin {
         Boolean value = call.getBoolean("enabled");
         boolean enabled = value != null && value;
         try {
+            getActivity()
+                .getSharedPreferences("tclv_player", android.content.Context.MODE_PRIVATE)
+                .edit()
+                .putBoolean("autostart", enabled)
+                .apply();
             ComponentName receiver = new ComponentName(getActivity(), BootReceiver.class);
             int state = enabled
                 ? PackageManager.COMPONENT_ENABLED_STATE_ENABLED
@@ -115,6 +120,16 @@ public class TCLVPlayerPlugin extends Plugin {
         boolean enabled = value != null && value;
         if (getActivity() instanceof MainActivity) {
             ((MainActivity) getActivity()).setBackgroundPlaybackEnabled(enabled);
+        }
+        call.resolve();
+    }
+
+    @PluginMethod
+    public void setPlaybackActive(PluginCall call) {
+        Boolean value = call.getBoolean("active");
+        boolean active = value != null && value;
+        if (getActivity() instanceof MainActivity) {
+            ((MainActivity) getActivity()).setPlaybackActive(active);
         }
         call.resolve();
     }
