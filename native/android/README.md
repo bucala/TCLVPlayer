@@ -47,11 +47,16 @@ For GoogleTV, add leanback support to `android/app/src/main/AndroidManifest.xml`
 <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
 ```
 
-Add this category to the launcher activity intent filter so it appears on TV launchers:
+Add a separate Leanback launcher filter so TCLVPlayer appears on TV launchers without making Android Studio launch phone emulators through the TV category:
 
 ```xml
-<category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+<intent-filter>
+    <action android:name="android.intent.action.MAIN" />
+    <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+</intent-filter>
 ```
+
+When debugging on a phone emulator, use the `app` run configuration. A log line that includes `-D --suspend` and then `Connected to the target VM` only means Android Studio started the app in debugger mode; it is not a crash by itself.
 
 ## External players
 
