@@ -182,13 +182,15 @@ public class MainActivity extends BridgeActivity {
     }
 
     private void applyBackgroundPlaybackMode() {
-        if (backgroundPlaybackEnabled && playbackActive) {
-            getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-            acquireBackgroundWakeLock();
-        } else {
-            getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-            releaseBackgroundWakeLock();
-        }
+        runOnUiThread(() -> {
+            if (backgroundPlaybackEnabled && playbackActive) {
+                getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+                acquireBackgroundWakeLock();
+            } else {
+                getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+                releaseBackgroundWakeLock();
+            }
+        });
     }
 
     @SuppressWarnings("WakelockTimeout")
