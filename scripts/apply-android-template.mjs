@@ -61,7 +61,7 @@ manifest = manifest.replace(
       attrs += ' android:usesCleartextTraffic="true"';
     }
     if (!(/android:banner=/.test(attrs))) {
-      attrs += ' android:banner="@mipmap/ic_launcher"';
+      attrs += ' android:banner="@drawable/tv_banner"';
     }
     if (!(/android:theme=/.test(attrs))) {
       attrs += ' android:theme="@style/AppTheme"';
