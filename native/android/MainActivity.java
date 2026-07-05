@@ -1,6 +1,8 @@
 package sk.tclv.player;
 
+import android.app.UiModeManager;
 import android.content.Context;
+import android.content.res.Configuration;
 import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
@@ -47,6 +49,18 @@ public class MainActivity extends BridgeActivity {
         settings.setMediaPlaybackRequiresUserGesture(false);
         settings.setDomStorageEnabled(true);
         settings.setJavaScriptEnabled(true);
+        if (isTelevision()) {
+            // Android TV emulators/boxes frequently fail to composite the
+            // hardware-accelerated WebView surface, showing a solid black
+            // screen. Software rendering avoids that GPU compositing path.
+            webView.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
+        }
+    }
+
+    private boolean isTelevision() {
+        UiModeManager uiModeManager = (UiModeManager) getSystemService(Context.UI_MODE_SERVICE);
+        return uiModeManager != null
+            && uiModeManager.getCurrentModeType() == Configuration.UI_MODE_TYPE_TELEVISION;
     }
 
     @Override
