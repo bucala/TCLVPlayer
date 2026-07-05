@@ -132,7 +132,11 @@ public class MainActivity extends BridgeActivity {
         }
         WebView webView = getBridge() == null ? null : getBridge().getWebView();
         if (webView == null) return false;
-        String js = "window.dispatchEvent(new KeyboardEvent('keydown', { key: '" + key + "', keyCode: " + keyCode + ", bubbles: true }));";
+        // Dispatched on document (not window): the app's keydown listener is
+        // registered on document, and a synthetic event targeted at window
+        // never bubbles down to it — window has no ancestors to bubble
+        // through, so document-level listeners would never see it.
+        String js = "document.dispatchEvent(new KeyboardEvent('keydown', { key: '" + key + "', keyCode: " + keyCode + ", bubbles: true }));";
         webView.evaluateJavascript(js, null);
         return true;
     }

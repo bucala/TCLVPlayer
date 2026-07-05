@@ -908,6 +908,7 @@ function initCustomSelect(custom) {
   });
   custom.addEventListener('keydown', function(event) {
     if (event.key === 'Escape') {
+      event.stopPropagation();
       closeCustomSelect(custom);
       button.focus();
     }
@@ -1857,8 +1858,37 @@ function toggleBackgroundPlayback() {
   syncBackgroundPlaybackNative();
   showMessage(state.backgroundPlayback ? t('backgroundPlaybackOn') : t('backgroundPlaybackOff'));
 }
-function openSettings() { dom.settingsPanel.hidden = false; dom.settingsOverlay.hidden = false; dom.menuToggle?.setAttribute('aria-expanded', 'true'); }
-function closeSettings() { dom.settingsPanel.hidden = true; dom.settingsOverlay.hidden = true; dom.menuToggle?.setAttribute('aria-expanded', 'false'); }
+function settingsFocusables() {
+  if (!dom.settingsPanel) return [];
+  return [...dom.settingsPanel.querySelectorAll('button, input, select, [tabindex]')].filter(function(el) {
+    return !el.disabled && el.tabIndex !== -1 && el.offsetParent !== null;
+  });
+}
+function topbarFocusables() {
+  return [dom.lockButton, dom.chToggle, dom.epgToggle, dom.menuToggle].filter(function(el) {
+    return el && !el.hidden && el.offsetParent !== null;
+  });
+}
+function focusTopbar(fromEnd) {
+  var list = topbarFocusables();
+  var target = fromEnd ? list[list.length - 1] : list[0];
+  target?.focus();
+}
+function openSettings() {
+  dom.settingsPanel.hidden = false; dom.settingsOverlay.hidden = false; dom.menuToggle?.setAttribute('aria-expanded', 'true');
+  // Trap D-pad/Tab navigation inside the panel — otherwise focus stays on
+  // whatever channel card was selected behind the overlay and arrow keys
+  // keep scrolling the (invisible) channel grid instead of the settings UI.
+  document.querySelector('.topbar')?.setAttribute('inert', '');
+  document.querySelector('.workspace')?.setAttribute('inert', '');
+  requestAnimationFrame(function() { settingsFocusables()[0]?.focus(); });
+}
+function closeSettings() {
+  dom.settingsPanel.hidden = true; dom.settingsOverlay.hidden = true; dom.menuToggle?.setAttribute('aria-expanded', 'false');
+  document.querySelector('.topbar')?.removeAttribute('inert');
+  document.querySelector('.workspace')?.removeAttribute('inert');
+  dom.menuToggle?.focus();
+}
 function bindEvents() {
   dom.epgToggle?.addEventListener('click', toggleEpg);
   dom.sidebarToggle?.addEventListener('click', toggleSidebar);
@@ -1974,12 +2004,36 @@ function bindEvents() {
     if (event.key === 'Home') { event.preventDefault(); cards[0]?.focus(); }
     if (event.key === 'End') { event.preventDefault(); cards[cards.length - 1]?.focus(); }
   });
+  document.querySelector('.top-actions')?.addEventListener('keydown', function(event) {
+    var list = topbarFocusables();
+    var idx = list.indexOf(document.activeElement);
+    if (idx === -1) return;
+    if (event.key === 'ArrowRight') {
+      event.preventDefault(); event.stopPropagation();
+      var next = list[idx + 1];
+      if (next) next.focus();
+    } else if (event.key === 'ArrowLeft') {
+      event.preventDefault(); event.stopPropagation();
+      if (idx > 0) { list[idx - 1].focus(); } else { focusSelectedChannel(); }
+    } else if (event.key === 'ArrowDown') {
+      event.preventDefault(); event.stopPropagation();
+      focusSelectedChannel();
+    }
+  });
+  dom.settingsPanel?.addEventListener('keydown', function(event) {
+    if (event.key !== 'Tab') return;
+    var list = settingsFocusables();
+    if (!list.length) return;
+    var first = list[0], last = list[list.length - 1];
+    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+  });
   document.addEventListener('keydown', (event) => {
     if (isTextEntryTarget(event.target)) return;
     if (isBackKey(event)) { if (handleBackStep()) { event.preventDefault(); return; } }
     if (isGuideKey(event)) { event.preventDefault(); setEpgVisible(!state.epgVisible); focusGuideItem(); return; }
     if (event.key === 'Info' || event.key === 'MediaInfo' || event.key === 'ContextMenu' || event.keyCode === 165) { event.preventDefault(); openCurrentProgramDetail(); return; }
-    if (event.key === 'ArrowRight' && document.activeElement?.closest('.sidebar')) { event.preventDefault(); dom.epgSearch?.focus(); }
+    if (event.key === 'ArrowRight' && document.activeElement?.closest('.sidebar')) { event.preventDefault(); focusTopbar(); }
     if (event.key === 'ArrowLeft' && !document.activeElement?.closest('.sidebar')) { event.preventDefault(); const active = dom.channelGrid.querySelector('.channel-card.active') || dom.channelGrid.querySelector('.channel-card'); active?.focus(); }
     if (isChannelUpKey(event)) { event.preventDefault(); selectRelativeChannel(-1); return; }
     if (isChannelDownKey(event)) { event.preventDefault(); selectRelativeChannel(1); return; }
