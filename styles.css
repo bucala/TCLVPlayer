@@ -171,6 +171,24 @@ input, textarea, select {
   color: #fff;
 }
 
+/* Unified keyboard / D-Pad focus rings — clearly visible on TV and never
+   clipped (inset shadow survives overflow:hidden scroll containers). */
+.icon-button:focus-visible,
+.epg-toggle:focus-visible,
+.epg-nav-btn:focus-visible,
+.program-info-button:focus-visible,
+.settings-toolbar-btn:focus-visible,
+.lock-unlock-btn:focus-visible,
+.fav-action:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--accent), 0 0 0 3px var(--accent-glow);
+}
+.epg-guide .program:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--accent);
+  z-index: 4;
+}
+
 button {
   font-family: inherit;
   font-size: 13px;
@@ -1783,8 +1801,11 @@ html:not([data-platform="electron"]) .sidebar-toggle {
   .section-title {
     padding: 8px 12px;
     flex-wrap: wrap;
-    gap: 4px;
+    gap: 4px 6px;
   }
+  /* Two rows only: title + nav + range on top, search full-width below. */
+  .section-title #guideRange { order: 5; margin-left: auto; }
+  .section-title .epg-search { order: 10; }
 
   .epg-search {
     width: 100%;
@@ -2010,6 +2031,30 @@ html:not([data-platform="electron"]) .sidebar-toggle {
 
   .channel-logo { width: 36px; height: 28px; }
   .channel-text h3 { font-size: 11px; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   RESPONSIVE — Short viewport (landscape phones, small TV panes)
+   Keep the channel-info toast and player messages compact so they stay
+   inside the shrunken player stage instead of being clipped by it.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@media (max-height: 500px) {
+  .switch-overlay {
+    bottom: 8px;
+    padding: 8px 12px;
+    gap: 10px;
+  }
+  .switch-overlay img { width: 40px; height: 30px; }
+  .switch-overlay h2 { font-size: 13px; }
+  .switch-overlay p {
+    font-size: 11px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 42vw;
+  }
+  .player-message { bottom: 8px; }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
