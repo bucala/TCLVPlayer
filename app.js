@@ -40,9 +40,9 @@ function exportableSourceRecord(item) {
 
 const translations = {
   sk: {
-    tagline: "Jednoduchy IPTV prehravac", openPlaylist: "Playlist", openEpg: "EPG", load: "Nacitat", loadEpg: "Nacitat EPG", guide: "Program", noChannels: "Nacitajte M3U/M3U8 alebo XSPF playlist v Nastaveniach.", noEpg: "EPG este nie je nacitane.", noProgram: "Program nie je dostupny", now: "Teraz", next: "Nasleduje", html5Notice: "HTML5 video prehravac je aktivny. Niektore HLS streamy (.m3u8) potrebuju nativnu podporu prehliadaca.", optionalMissing: "Tento player nie je pribaleny. Nacitajte jeho kniznicu alebo pouzite HTML5.",  loadError: "Nepodarilo sa nacitat zdroj.", playlistLoaded: "Playlist nacitany", epgLoaded: "EPG nacitane", logoTitle: "Vybrat logo", settingsPlayer: "Prehrávač & Jazyk", labelPlayer: "Prehrávač", labelLanguage: "Jazyk", settingsPlaylists: "Playlisty", addPlaylist: "Pridať URL", settingsEpg: "EPG zdroje", weakTvPlayerHint: "Na starších/pomalších Android TV odporúčame prehrávač \"Natívny\" — spustí stream v systémovej video appke (napr. MX Player, VLC) s hardvérovým dekódovaním namiesto prehrávania v appke.", addEpg: "Pridať EPG", importEpgList: "Importovať zoznam EPG (.txt)", exportEpgList: "Exportovať zoznam EPG (.txt)", epgListImported: "EPG zdroje importované", epgListExported: "Zoznam EPG exportovaný", epgListEmpty: "Súbor neobsahuje žiadne platné EPG riadky (Nazov = URL).", epgHint: "Všetky zdroje sa načítajú a zlúčia.", settingsNetwork: "Sieť", labelCorsProxy: "CORS proxy (len web)", corsHint: "Na Verceli sa automaticky použije vstavaný proxy. Electron a Android ho nepotrebujú.", searchEpg: "Hladat v programe", corsNeeded: "CORS chyba — nastavte CORS proxy v Nastaveniach > Sieť.", proxyBlocked: "Proxy blokuje požiadavku. Skúste iný CORS proxy.", streamUnavailable: "Stream nie je dostupný — server odmietol pripojenie alebo je geo-blokovaný.", clickToPlay: "Kliknite na video pre spustenie prehrávania.", local: "lokálny", network: "sieťový", epgAutoDetected: "EPG zdroje automaticky detegované z playlistu", proxyChanged: "CORS proxy uložený. Znovu načítavam EPG…", qualityNative: "Natívna", qualityHigh: "Vysoká (1080p)", qualityMedium: "Stredná (720p)", qualityLow: "Nízka (360p)", labelQuality: "Kvalita videa", searchChannels: "Hľadať kanály", groupAll: "Všetky", groupFavorites: "Obľúbené", settingsXtream: "Xtream Codes API", xtreamHint: "Prihlasovacie údaje od IPTV poskytovateľa.", addXtream: "Načítať", xtreamLoading: "Načítavanie Xtream playlistu…", settingsBackup: "Export / Import", backupHint: "Zálohovanie a obnovenie nastavení, playlistov a obľúbených.", exportSettings: "Exportovať", importSettings: "Importovať", settingsImported: "Nastavenia obnovené.", catchupAvailable: "Archív dostupný", catchupTitle: "Archív", catchupUnavailable: "Archív nie je dostupný pre tento kanál.", rtmpUnsupported: "RTMP/RTSP streamy nie sú podporované v prehliadači. Použite natívnu aplikáciu (Android/Electron).", reconnecting: "Opätovné pripájanie…", localProxyFound: "Lokálny proxy nájdený — streamy pôjdu priamo bez Vercel proxy.", localProxyHint: "Tip: Spustite 'npm run proxy' na lokálnom PC — streamy pôjdu priamo cez vašu sieť.", locked: "Obrazovka zamknutá", unlocked: "Obrazovka odomknutá", autostartOn: "Automatický štart zapnutý", autostartOff: "Automatický štart vypnutý", backgroundPlaybackOn: "Prehrávanie na pozadí zapnuté", backgroundPlaybackOff: "Prehrávanie na pozadí vypnuté", holdLockHint: "Podržte zámok 2 sekundy",   },
+    tagline: "Jednoduchy IPTV prehravac", openPlaylist: "Playlist", openEpg: "EPG", load: "Nacitat", loadEpg: "Nacitat EPG", guide: "Program", noChannels: "Nacitajte M3U/M3U8 alebo XSPF playlist v Nastaveniach.", noEpg: "EPG este nie je nacitane.", noProgram: "Program nie je dostupny", now: "Teraz", next: "Nasleduje", html5Notice: "HTML5 video prehravac je aktivny. Niektore HLS streamy (.m3u8) potrebuju nativnu podporu prehliadaca.", optionalMissing: "Tento player nie je pribaleny. Nacitajte jeho kniznicu alebo pouzite HTML5.",  loadError: "Nepodarilo sa nacitat zdroj.", playlistLoaded: "Playlist nacitany", epgLoaded: "EPG nacitane", logoTitle: "Vybrat logo", settingsPlayer: "Prehrávač & Jazyk", labelPlayer: "Prehrávač", labelLanguage: "Jazyk", settingsPlaylists: "Playlisty", addPlaylist: "Pridať URL", settingsEpg: "EPG zdroje", weakTvPlayerHint: "Na starších/pomalších Android TV odporúčame prehrávač \"Natívny\" — spustí stream v systémovej video appke (napr. MX Player, VLC) s hardvérovým dekódovaním namiesto prehrávania v appke.", addEpg: "Pridať EPG", importEpgList: "Import EPG", exportEpgList: "Export EPG", epgListImported: "EPG zdroje importované", epgListExported: "Zoznam EPG exportovaný", epgListEmpty: "Súbor neobsahuje žiadne platné EPG riadky (Nazov = URL).", epgHint: "Všetky zdroje sa načítajú a zlúčia.", settingsNetwork: "Sieť", labelCorsProxy: "CORS proxy (len web)", corsHint: "Na Verceli sa automaticky použije vstavaný proxy. Electron a Android ho nepotrebujú.", searchEpg: "Hladat v programe", corsNeeded: "CORS chyba — nastavte CORS proxy v Nastaveniach > Sieť.", proxyBlocked: "Proxy blokuje požiadavku. Skúste iný CORS proxy.", streamUnavailable: "Stream nie je dostupný — server odmietol pripojenie alebo je geo-blokovaný.", clickToPlay: "Kliknite na video pre spustenie prehrávania.", local: "lokálny", network: "sieťový", epgAutoDetected: "EPG zdroje automaticky detegované z playlistu", proxyChanged: "CORS proxy uložený. Znovu načítavam EPG…", qualityNative: "Natívna", qualityHigh: "Vysoká (1080p)", qualityMedium: "Stredná (720p)", qualityLow: "Nízka (360p)", labelQuality: "Kvalita videa", searchChannels: "Hľadať kanály", groupAll: "Všetky", groupFavorites: "Obľúbené", settingsXtream: "Xtream Codes API", xtreamHint: "Prihlasovacie údaje od IPTV poskytovateľa.", addXtream: "Načítať", xtreamLoading: "Načítavanie Xtream playlistu…", settingsBackup: "Export / Import", backupHint: "Zálohovanie a obnovenie nastavení, playlistov a obľúbených.", exportSettings: "Exportovať", importSettings: "Importovať", settingsImported: "Nastavenia obnovené.", catchupAvailable: "Archív dostupný", catchupTitle: "Archív", catchupUnavailable: "Archív nie je dostupný pre tento kanál.", rtmpUnsupported: "RTMP/RTSP streamy nie sú podporované v prehliadači. Použite natívnu aplikáciu (Android/Electron).", reconnecting: "Opätovné pripájanie…", localProxyFound: "Lokálny proxy nájdený — streamy pôjdu priamo bez Vercel proxy.", localProxyHint: "Tip: Spustite 'npm run proxy' na lokálnom PC — streamy pôjdu priamo cez vašu sieť.", locked: "Obrazovka zamknutá", unlocked: "Obrazovka odomknutá", autostartOn: "Automatický štart zapnutý", autostartOff: "Automatický štart vypnutý", backgroundPlaybackOn: "Prehrávanie na pozadí zapnuté", backgroundPlaybackOff: "Prehrávanie na pozadí vypnuté", holdLockHint: "Podržte zámok 2 sekundy",   },
   en: {
-    tagline: "Simple IPTV player", openPlaylist: "Playlist", openEpg: "EPG", load: "Load", loadEpg: "Load EPG", guide: "Guide", noChannels: "Load an M3U/M3U8 or XSPF playlist in Settings.", noEpg: "EPG is not loaded yet.", noProgram: "Program is not available", now: "Now", next: "Next", html5Notice: "HTML5 video player is active. Some HLS streams (.m3u8) need native browser support.", optionalMissing: "This player is not bundled. Load its library or use HTML5.",  loadError: "Could not load the source.", playlistLoaded: "Playlist loaded", epgLoaded: "EPG loaded", logoTitle: "Choose logo", settingsPlayer: "Player & Language", labelPlayer: "Player", labelLanguage: "Language", settingsPlaylists: "Playlists", addPlaylist: "Add URL", settingsEpg: "EPG sources", weakTvPlayerHint: "On older/slower Android TVs we recommend the \"Native\" player — it launches the stream in a system video app (e.g. MX Player, VLC) with hardware decoding instead of playing inside the app.", addEpg: "Add EPG", importEpgList: "Import EPG list (.txt)", exportEpgList: "Export EPG list (.txt)", epgListImported: "EPG sources imported", epgListExported: "EPG list exported", epgListEmpty: "The file has no valid EPG lines (Name = URL).", epgHint: "All sources are loaded and merged.", settingsNetwork: "Network", labelCorsProxy: "CORS proxy (web only)", corsHint: "Built-in proxy is used automatically on Vercel. Electron and Android do not need it.", searchEpg: "Search programs", corsNeeded: "CORS error — set a CORS proxy in Settings > Network.", proxyBlocked: "Proxy is blocking the request. Try a different CORS proxy.", streamUnavailable: "Stream is unavailable — server refused or geo-blocked.", clickToPlay: "Click the video to start playback.", local: "local", network: "network", epgAutoDetected: "EPG sources auto-detected from playlist", proxyChanged: "CORS proxy saved. Reloading EPG…", qualityNative: "Native", qualityHigh: "High (1080p)", qualityMedium: "Medium (720p)", qualityLow: "Low (360p)", labelQuality: "Video quality", searchChannels: "Search channels", groupAll: "All", groupFavorites: "Favorites", settingsXtream: "Xtream Codes API", xtreamHint: "Enter credentials from your IPTV provider.", addXtream: "Load", xtreamLoading: "Loading Xtream playlist…", settingsBackup: "Export / Import", backupHint: "Back up and restore all settings, playlists and favourites.", exportSettings: "Export", importSettings: "Import", settingsImported: "Settings restored.", catchupAvailable: "Archive available", catchupTitle: "Archive", catchupUnavailable: "Archive not available for this channel.", rtmpUnsupported: "RTMP/RTSP streams are not supported in the browser. Use the native app (Android/Electron).", reconnecting: "Reconnecting…", localProxyFound: "Local proxy found — streams will bypass Vercel proxy.", localProxyHint: "Tip: Run 'npm run proxy' on your local PC — streams will go directly through your network.", locked: "Screen locked", unlocked: "Screen unlocked", autostartOn: "Autostart enabled", autostartOff: "Autostart disabled", backgroundPlaybackOn: "Background playback enabled", backgroundPlaybackOff: "Background playback disabled", holdLockHint: "Hold lock for 2 seconds",   }
+    tagline: "Simple IPTV player", openPlaylist: "Playlist", openEpg: "EPG", load: "Load", loadEpg: "Load EPG", guide: "Guide", noChannels: "Load an M3U/M3U8 or XSPF playlist in Settings.", noEpg: "EPG is not loaded yet.", noProgram: "Program is not available", now: "Now", next: "Next", html5Notice: "HTML5 video player is active. Some HLS streams (.m3u8) need native browser support.", optionalMissing: "This player is not bundled. Load its library or use HTML5.",  loadError: "Could not load the source.", playlistLoaded: "Playlist loaded", epgLoaded: "EPG loaded", logoTitle: "Choose logo", settingsPlayer: "Player & Language", labelPlayer: "Player", labelLanguage: "Language", settingsPlaylists: "Playlists", addPlaylist: "Add URL", settingsEpg: "EPG sources", weakTvPlayerHint: "On older/slower Android TVs we recommend the \"Native\" player — it launches the stream in a system video app (e.g. MX Player, VLC) with hardware decoding instead of playing inside the app.", addEpg: "Add EPG", importEpgList: "Import EPG", exportEpgList: "Export EPG", epgListImported: "EPG sources imported", epgListExported: "EPG list exported", epgListEmpty: "The file has no valid EPG lines (Name = URL).", epgHint: "All sources are loaded and merged.", settingsNetwork: "Network", labelCorsProxy: "CORS proxy (web only)", corsHint: "Built-in proxy is used automatically on Vercel. Electron and Android do not need it.", searchEpg: "Search programs", corsNeeded: "CORS error — set a CORS proxy in Settings > Network.", proxyBlocked: "Proxy is blocking the request. Try a different CORS proxy.", streamUnavailable: "Stream is unavailable — server refused or geo-blocked.", clickToPlay: "Click the video to start playback.", local: "local", network: "network", epgAutoDetected: "EPG sources auto-detected from playlist", proxyChanged: "CORS proxy saved. Reloading EPG…", qualityNative: "Native", qualityHigh: "High (1080p)", qualityMedium: "Medium (720p)", qualityLow: "Low (360p)", labelQuality: "Video quality", searchChannels: "Search channels", groupAll: "All", groupFavorites: "Favorites", settingsXtream: "Xtream Codes API", xtreamHint: "Enter credentials from your IPTV provider.", addXtream: "Load", xtreamLoading: "Loading Xtream playlist…", settingsBackup: "Export / Import", backupHint: "Back up and restore all settings, playlists and favourites.", exportSettings: "Export", importSettings: "Import", settingsImported: "Settings restored.", catchupAvailable: "Archive available", catchupTitle: "Archive", catchupUnavailable: "Archive not available for this channel.", rtmpUnsupported: "RTMP/RTSP streams are not supported in the browser. Use the native app (Android/Electron).", reconnecting: "Reconnecting…", localProxyFound: "Local proxy found — streams will bypass Vercel proxy.", localProxyHint: "Tip: Run 'npm run proxy' on your local PC — streams will go directly through your network.", locked: "Screen locked", unlocked: "Screen unlocked", autostartOn: "Autostart enabled", autostartOff: "Autostart disabled", backgroundPlaybackOn: "Background playback enabled", backgroundPlaybackOff: "Background playback disabled", holdLockHint: "Hold lock for 2 seconds",   }
 };
 
 function migrateStoredSources(key, fallback) {
@@ -678,6 +678,30 @@ function playCatchup(channel, start, duration) {
   playHtml5(Object.assign({}, channel, { url: url }));
 }
 // ── Export / Import ───────────────────────────────────────────────────────────
+function fallbackExportFile(content, filename, mime) {
+  var blob = new Blob([content], { type: mime || 'text/plain' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a'); a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
+}
+async function saveExportedFile(content, filename, mime, successMessage) {
+  // Android WebViews don't handle <a download> blob URLs on their own — there's
+  // no DownloadListener wired up, so the fallback below silently does nothing.
+  // Route through a native SAF "Save As" dialog instead so the user actually
+  // gets a picker and a file lands where they chose it to.
+  var TCLVPlayer = window.Capacitor?.Plugins?.TCLVPlayer;
+  if (getPlatform() === 'android' && TCLVPlayer?.saveTextFile) {
+    try {
+      await TCLVPlayer.saveTextFile({ filename: filename, content: content, mimeType: mime || 'text/plain' });
+      if (successMessage) showMessage(successMessage);
+    } catch {
+      // user closed the save dialog without picking a location — not an error
+    }
+    return;
+  }
+  fallbackExportFile(content, filename, mime);
+}
 function exportSettings() {
   var data = {
     version: 1,
@@ -695,22 +719,7 @@ function exportSettings() {
     language: state.language, player: state.player, players: platformPlayersSnapshot(), corsProxy: state.corsProxy
   };
   var json = JSON.stringify(data, null, 2);
-  if (window.Capacitor?.Plugins?.Filesystem) {
-    var Filesystem = window.Capacitor.Plugins.Filesystem;
-    Filesystem.writeFile({ path: 'tclvplayer-settings.json', data: globalThis.btoa(unescape(encodeURIComponent(json))), directory: 'DOCUMENTS' }).then(function() {
-      showMessage(t('exportSettings') + ' → Documents/tclvplayer-settings.json');
-    }).catch(function() { fallbackExport(json); });
-  } else {
-    fallbackExport(json);
-  }
-}
-function fallbackExport(json) { fallbackExportFile(json, 'tclvplayer-settings.json', 'application/json'); }
-function fallbackExportFile(content, filename, mime) {
-  var blob = new Blob([content], { type: mime || 'text/plain' });
-  var url = URL.createObjectURL(blob);
-  var a = document.createElement('a'); a.href = url; a.download = filename;
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
-  setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
+  saveExportedFile(json, 'tclvplayer-settings.json', 'application/json', t('exportSettings'));
 }
 function epgListTemplateText() {
   var lines = state.epgSources
@@ -718,19 +727,12 @@ function epgListTemplateText() {
     .map(function(s) { return (s.name || sourceNameFromUrl(s.source, 'epg.xml')) + ' = ' + s.source; });
   return '# TCLVPlayer — zoznam EPG zdrojov (export)\n'
     + '# Formát: Nazov = URL. Riadky zacinajuce # su komentare.\n'
-    + '# Uprav a naimportuj cez Nastavenia -> EPG zdroje -> "Importovať zoznam EPG (.txt)".\n\n'
+    + '# Uprav a naimportuj cez Nastavenia -> EPG zdroje -> "Import EPG".\n\n'
     + lines.join('\n') + (lines.length ? '\n' : '');
 }
 function exportEpgListFile() {
   var text = epgListTemplateText();
-  if (window.Capacitor?.Plugins?.Filesystem) {
-    var Filesystem = window.Capacitor.Plugins.Filesystem;
-    Filesystem.writeFile({ path: 'tclvplayer-epg-list.txt', data: globalThis.btoa(unescape(encodeURIComponent(text))), directory: 'DOCUMENTS' }).then(function() {
-      showMessage(t('epgListExported') + ' → Documents/tclvplayer-epg-list.txt');
-    }).catch(function() { fallbackExportFile(text, 'tclvplayer-epg-list.txt', 'text/plain'); });
-  } else {
-    fallbackExportFile(text, 'tclvplayer-epg-list.txt', 'text/plain');
-  }
+  saveExportedFile(text, 'tclvplayer-epg-list.txt', 'text/plain', t('epgListExported'));
 }
 async function importSettingsFromFile(file) {
   try {
