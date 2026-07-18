@@ -2384,3 +2384,12 @@ html[data-platform="android"] .program-detail-modal {
 html[data-platform="android"] .program-detail-modal {
   background: rgba(0, 0, 0, 0.88);
 }
+
+/* Animating `width` forces a layout recalculation on every frame of the
+   transition — with a few hundred channel cards in the sidebar, that reflow
+   cost is exactly what makes the CH toggle feel like it hangs on weak
+   TV/tablet hardware. Collapse/expand instantly on Android instead. */
+html[data-platform="android"] .sidebar,
+html[data-platform="android"] .sidebar-toggle {
+  transition: none !important;
+}

@@ -1751,7 +1751,22 @@ async function importEpgListFile(file) {
   }
   showMessage(t('epgListImported') + ': ' + added + '/' + entries.length);
 }
-function rebuildMergedEpg() { const maps = []; for (const source of state.epgSources) { if (source.active === false) continue; try { maps.push(parseXmlTv(source.text)); } catch {} } state.epg = mergeEpgMaps(maps); renderAll(); showMessage(`${t('epgLoaded')}: ${state.epg.size}`); }
+function yieldToMain() { return new Promise(function(resolve) { setTimeout(resolve, 0); }); }
+async function rebuildMergedEpg() {
+  const active = state.epgSources.filter(function(source) { return source.active !== false; });
+  const maps = [];
+  for (let i = 0; i < active.length; i++) {
+    try { maps.push(parseXmlTv(active[i].text)); } catch {}
+    // XMLTV files can be tens of MB; parsing several back-to-back on the
+    // main thread with no yield point is exactly the kind of thing that
+    // makes CH/EPG toggles feel frozen for several seconds right after a
+    // reload. Yielding between sources lets the browser breathe.
+    if (i < active.length - 1) await yieldToMain();
+  }
+  state.epg = mergeEpgMaps(maps);
+  renderAll();
+  showMessage(`${t('epgLoaded')}: ${state.epg.size}`);
+}
 function epgMatchesChannels(epgText) {
   try {
     var map = parseXmlTv(epgText);
@@ -2151,16 +2166,21 @@ function bindEvents() {
 async function reloadEpgSources(options = {}) {
   var sources = state.epgSources.filter(function(s) { return s.active !== false && s.source && !s.text; });
   var failures = 0;
-  for (var i = 0; i < sources.length; i++) {
-    try {
-      var text = await loadTextFromUrl(sources[i].source);
-      if (text) sources[i].text = text;
-    } catch (err) {
+  // Fetch every source concurrently instead of one-at-a-time — with several
+  // multi-MB EPG files (common with IPTV providers), a sequential loop turns
+  // into N network round-trips stacked back to back, easily tens of seconds
+  // on a slow connection, which reads as "EPG never loads" even though it's
+  // just still working through the list.
+  var results = await Promise.allSettled(sources.map(function(s) { return loadTextFromUrl(s.source); }));
+  results.forEach(function(result, i) {
+    if (result.status === 'fulfilled' && result.value) {
+      sources[i].text = result.value;
+    } else {
       failures++;
-      console.warn('EPG source failed to load:', sources[i].source, err);
+      console.warn('EPG source failed to load:', sources[i].source, result.status === 'rejected' ? result.reason : 'empty response');
     }
-  }
-  if (sources.some(function(s) { return s.text; })) rebuildMergedEpg();
+  });
+  if (sources.some(function(s) { return s.text; })) await rebuildMergedEpg();
   // Silent background reloads (app startup, playlist switch) intentionally
   // don't surface errors — but a reload the user can actually observe
   // (opening EPG, adding a source) should tell them when every source
