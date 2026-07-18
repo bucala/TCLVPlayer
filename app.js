@@ -40,9 +40,9 @@ function exportableSourceRecord(item) {
 
 const translations = {
   sk: {
-    tagline: "Jednoduchy IPTV prehravac", openPlaylist: "Playlist", openEpg: "EPG", load: "Nacitat", loadEpg: "Nacitat EPG", guide: "Program", noChannels: "Nacitajte M3U/M3U8 alebo XSPF playlist v Nastaveniach.", noEpg: "EPG este nie je nacitane.", noProgram: "Program nie je dostupny", now: "Teraz", next: "Nasleduje", html5Notice: "HTML5 video prehravac je aktivny. Niektore HLS streamy (.m3u8) potrebuju nativnu podporu prehliadaca.", optionalMissing: "Tento player nie je pribaleny. Nacitajte jeho kniznicu alebo pouzite HTML5.",  loadError: "Nepodarilo sa nacitat zdroj.", playlistLoaded: "Playlist nacitany", epgLoaded: "EPG nacitane", logoTitle: "Vybrat logo", settingsPlayer: "Prehrávač & Jazyk", labelPlayer: "Prehrávač", labelLanguage: "Jazyk", settingsPlaylists: "Playlisty", addPlaylist: "Pridať URL", settingsEpg: "EPG zdroje", addEpg: "Pridať EPG", epgHint: "Všetky zdroje sa načítajú a zlúčia.", settingsNetwork: "Sieť", labelCorsProxy: "CORS proxy (len web)", corsHint: "Na Verceli sa automaticky použije vstavaný proxy. Electron a Android ho nepotrebujú.", searchEpg: "Hladat v programe", corsNeeded: "CORS chyba — nastavte CORS proxy v Nastaveniach > Sieť.", proxyBlocked: "Proxy blokuje požiadavku. Skúste iný CORS proxy.", streamUnavailable: "Stream nie je dostupný — server odmietol pripojenie alebo je geo-blokovaný.", clickToPlay: "Kliknite na video pre spustenie prehrávania.", local: "lokálny", network: "sieťový", epgAutoDetected: "EPG zdroje automaticky detegované z playlistu", proxyChanged: "CORS proxy uložený. Znovu načítavam EPG…", qualityNative: "Natívna", qualityHigh: "Vysoká (1080p)", qualityMedium: "Stredná (720p)", qualityLow: "Nízka (360p)", labelQuality: "Kvalita videa", searchChannels: "Hľadať kanály", groupAll: "Všetky", groupFavorites: "Obľúbené", settingsXtream: "Xtream Codes API", xtreamHint: "Prihlasovacie údaje od IPTV poskytovateľa.", addXtream: "Načítať", xtreamLoading: "Načítavanie Xtream playlistu…", settingsBackup: "Export / Import", backupHint: "Zálohovanie a obnovenie nastavení, playlistov a obľúbených.", exportSettings: "Exportovať", importSettings: "Importovať", settingsImported: "Nastavenia obnovené.", catchupAvailable: "Archív dostupný", catchupTitle: "Archív", catchupUnavailable: "Archív nie je dostupný pre tento kanál.", rtmpUnsupported: "RTMP/RTSP streamy nie sú podporované v prehliadači. Použite natívnu aplikáciu (Android/Electron).", reconnecting: "Opätovné pripájanie…", localProxyFound: "Lokálny proxy nájdený — streamy pôjdu priamo bez Vercel proxy.", localProxyHint: "Tip: Spustite 'npm run proxy' na lokálnom PC — streamy pôjdu priamo cez vašu sieť.", locked: "Obrazovka zamknutá", unlocked: "Obrazovka odomknutá", autostartOn: "Automatický štart zapnutý", autostartOff: "Automatický štart vypnutý", backgroundPlaybackOn: "Prehrávanie na pozadí zapnuté", backgroundPlaybackOff: "Prehrávanie na pozadí vypnuté", holdLockHint: "Podržte zámok 2 sekundy",   },
+    tagline: "Jednoduchy IPTV prehravac", openPlaylist: "Playlist", openEpg: "EPG", load: "Nacitat", loadEpg: "Nacitat EPG", guide: "Program", noChannels: "Nacitajte M3U/M3U8 alebo XSPF playlist v Nastaveniach.", noEpg: "EPG este nie je nacitane.", noProgram: "Program nie je dostupny", now: "Teraz", next: "Nasleduje", html5Notice: "HTML5 video prehravac je aktivny. Niektore HLS streamy (.m3u8) potrebuju nativnu podporu prehliadaca.", optionalMissing: "Tento player nie je pribaleny. Nacitajte jeho kniznicu alebo pouzite HTML5.",  loadError: "Nepodarilo sa nacitat zdroj.", playlistLoaded: "Playlist nacitany", epgLoaded: "EPG nacitane", logoTitle: "Vybrat logo", settingsPlayer: "Prehrávač & Jazyk", labelPlayer: "Prehrávač", labelLanguage: "Jazyk", settingsPlaylists: "Playlisty", addPlaylist: "Pridať URL", settingsEpg: "EPG zdroje", weakTvPlayerHint: "Na starších/pomalších Android TV odporúčame prehrávač \"Natívny\" — spustí stream v systémovej video appke (napr. MX Player, VLC) s hardvérovým dekódovaním namiesto prehrávania v appke.", addEpg: "Pridať EPG", importEpgList: "Importovať zoznam EPG (.txt)", epgListImported: "EPG zdroje importované", epgListEmpty: "Súbor neobsahuje žiadne platné EPG riadky (Nazov = URL).", epgHint: "Všetky zdroje sa načítajú a zlúčia.", settingsNetwork: "Sieť", labelCorsProxy: "CORS proxy (len web)", corsHint: "Na Verceli sa automaticky použije vstavaný proxy. Electron a Android ho nepotrebujú.", searchEpg: "Hladat v programe", corsNeeded: "CORS chyba — nastavte CORS proxy v Nastaveniach > Sieť.", proxyBlocked: "Proxy blokuje požiadavku. Skúste iný CORS proxy.", streamUnavailable: "Stream nie je dostupný — server odmietol pripojenie alebo je geo-blokovaný.", clickToPlay: "Kliknite na video pre spustenie prehrávania.", local: "lokálny", network: "sieťový", epgAutoDetected: "EPG zdroje automaticky detegované z playlistu", proxyChanged: "CORS proxy uložený. Znovu načítavam EPG…", qualityNative: "Natívna", qualityHigh: "Vysoká (1080p)", qualityMedium: "Stredná (720p)", qualityLow: "Nízka (360p)", labelQuality: "Kvalita videa", searchChannels: "Hľadať kanály", groupAll: "Všetky", groupFavorites: "Obľúbené", settingsXtream: "Xtream Codes API", xtreamHint: "Prihlasovacie údaje od IPTV poskytovateľa.", addXtream: "Načítať", xtreamLoading: "Načítavanie Xtream playlistu…", settingsBackup: "Export / Import", backupHint: "Zálohovanie a obnovenie nastavení, playlistov a obľúbených.", exportSettings: "Exportovať", importSettings: "Importovať", settingsImported: "Nastavenia obnovené.", catchupAvailable: "Archív dostupný", catchupTitle: "Archív", catchupUnavailable: "Archív nie je dostupný pre tento kanál.", rtmpUnsupported: "RTMP/RTSP streamy nie sú podporované v prehliadači. Použite natívnu aplikáciu (Android/Electron).", reconnecting: "Opätovné pripájanie…", localProxyFound: "Lokálny proxy nájdený — streamy pôjdu priamo bez Vercel proxy.", localProxyHint: "Tip: Spustite 'npm run proxy' na lokálnom PC — streamy pôjdu priamo cez vašu sieť.", locked: "Obrazovka zamknutá", unlocked: "Obrazovka odomknutá", autostartOn: "Automatický štart zapnutý", autostartOff: "Automatický štart vypnutý", backgroundPlaybackOn: "Prehrávanie na pozadí zapnuté", backgroundPlaybackOff: "Prehrávanie na pozadí vypnuté", holdLockHint: "Podržte zámok 2 sekundy",   },
   en: {
-    tagline: "Simple IPTV player", openPlaylist: "Playlist", openEpg: "EPG", load: "Load", loadEpg: "Load EPG", guide: "Guide", noChannels: "Load an M3U/M3U8 or XSPF playlist in Settings.", noEpg: "EPG is not loaded yet.", noProgram: "Program is not available", now: "Now", next: "Next", html5Notice: "HTML5 video player is active. Some HLS streams (.m3u8) need native browser support.", optionalMissing: "This player is not bundled. Load its library or use HTML5.",  loadError: "Could not load the source.", playlistLoaded: "Playlist loaded", epgLoaded: "EPG loaded", logoTitle: "Choose logo", settingsPlayer: "Player & Language", labelPlayer: "Player", labelLanguage: "Language", settingsPlaylists: "Playlists", addPlaylist: "Add URL", settingsEpg: "EPG sources", addEpg: "Add EPG", epgHint: "All sources are loaded and merged.", settingsNetwork: "Network", labelCorsProxy: "CORS proxy (web only)", corsHint: "Built-in proxy is used automatically on Vercel. Electron and Android do not need it.", searchEpg: "Search programs", corsNeeded: "CORS error — set a CORS proxy in Settings > Network.", proxyBlocked: "Proxy is blocking the request. Try a different CORS proxy.", streamUnavailable: "Stream is unavailable — server refused or geo-blocked.", clickToPlay: "Click the video to start playback.", local: "local", network: "network", epgAutoDetected: "EPG sources auto-detected from playlist", proxyChanged: "CORS proxy saved. Reloading EPG…", qualityNative: "Native", qualityHigh: "High (1080p)", qualityMedium: "Medium (720p)", qualityLow: "Low (360p)", labelQuality: "Video quality", searchChannels: "Search channels", groupAll: "All", groupFavorites: "Favorites", settingsXtream: "Xtream Codes API", xtreamHint: "Enter credentials from your IPTV provider.", addXtream: "Load", xtreamLoading: "Loading Xtream playlist…", settingsBackup: "Export / Import", backupHint: "Back up and restore all settings, playlists and favourites.", exportSettings: "Export", importSettings: "Import", settingsImported: "Settings restored.", catchupAvailable: "Archive available", catchupTitle: "Archive", catchupUnavailable: "Archive not available for this channel.", rtmpUnsupported: "RTMP/RTSP streams are not supported in the browser. Use the native app (Android/Electron).", reconnecting: "Reconnecting…", localProxyFound: "Local proxy found — streams will bypass Vercel proxy.", localProxyHint: "Tip: Run 'npm run proxy' on your local PC — streams will go directly through your network.", locked: "Screen locked", unlocked: "Screen unlocked", autostartOn: "Autostart enabled", autostartOff: "Autostart disabled", backgroundPlaybackOn: "Background playback enabled", backgroundPlaybackOff: "Background playback disabled", holdLockHint: "Hold lock for 2 seconds",   }
+    tagline: "Simple IPTV player", openPlaylist: "Playlist", openEpg: "EPG", load: "Load", loadEpg: "Load EPG", guide: "Guide", noChannels: "Load an M3U/M3U8 or XSPF playlist in Settings.", noEpg: "EPG is not loaded yet.", noProgram: "Program is not available", now: "Now", next: "Next", html5Notice: "HTML5 video player is active. Some HLS streams (.m3u8) need native browser support.", optionalMissing: "This player is not bundled. Load its library or use HTML5.",  loadError: "Could not load the source.", playlistLoaded: "Playlist loaded", epgLoaded: "EPG loaded", logoTitle: "Choose logo", settingsPlayer: "Player & Language", labelPlayer: "Player", labelLanguage: "Language", settingsPlaylists: "Playlists", addPlaylist: "Add URL", settingsEpg: "EPG sources", weakTvPlayerHint: "On older/slower Android TVs we recommend the \"Native\" player — it launches the stream in a system video app (e.g. MX Player, VLC) with hardware decoding instead of playing inside the app.", addEpg: "Add EPG", importEpgList: "Import EPG list (.txt)", epgListImported: "EPG sources imported", epgListEmpty: "The file has no valid EPG lines (Name = URL).", epgHint: "All sources are loaded and merged.", settingsNetwork: "Network", labelCorsProxy: "CORS proxy (web only)", corsHint: "Built-in proxy is used automatically on Vercel. Electron and Android do not need it.", searchEpg: "Search programs", corsNeeded: "CORS error — set a CORS proxy in Settings > Network.", proxyBlocked: "Proxy is blocking the request. Try a different CORS proxy.", streamUnavailable: "Stream is unavailable — server refused or geo-blocked.", clickToPlay: "Click the video to start playback.", local: "local", network: "network", epgAutoDetected: "EPG sources auto-detected from playlist", proxyChanged: "CORS proxy saved. Reloading EPG…", qualityNative: "Native", qualityHigh: "High (1080p)", qualityMedium: "Medium (720p)", qualityLow: "Low (360p)", labelQuality: "Video quality", searchChannels: "Search channels", groupAll: "All", groupFavorites: "Favorites", settingsXtream: "Xtream Codes API", xtreamHint: "Enter credentials from your IPTV provider.", addXtream: "Load", xtreamLoading: "Loading Xtream playlist…", settingsBackup: "Export / Import", backupHint: "Back up and restore all settings, playlists and favourites.", exportSettings: "Export", importSettings: "Import", settingsImported: "Settings restored.", catchupAvailable: "Archive available", catchupTitle: "Archive", catchupUnavailable: "Archive not available for this channel.", rtmpUnsupported: "RTMP/RTSP streams are not supported in the browser. Use the native app (Android/Electron).", reconnecting: "Reconnecting…", localProxyFound: "Local proxy found — streams will bypass Vercel proxy.", localProxyHint: "Tip: Run 'npm run proxy' on your local PC — streams will go directly through your network.", locked: "Screen locked", unlocked: "Screen unlocked", autostartOn: "Autostart enabled", autostartOff: "Autostart disabled", backgroundPlaybackOn: "Background playback enabled", backgroundPlaybackOff: "Background playback disabled", holdLockHint: "Hold lock for 2 seconds",   }
 };
 
 function migrateStoredSources(key, fallback) {
@@ -165,7 +165,7 @@ const state = {
 };
 
 const dom = {
-  playlistFile: document.querySelector("#playlistFile"), epgFile: document.querySelector("#epgFile"), playlistUrl: document.querySelector("#playlistUrl"), epgUrl: document.querySelector("#epgUrl"), addPlaylistUrl: document.querySelector("#addPlaylistUrl"), addEpgUrl: document.querySelector("#addEpgUrl"), playerSelect: document.querySelector("#playerSelect"), languageSelect: document.querySelector("#languageSelect"), channelGrid: document.querySelector("#channelGrid"), channelTemplate: document.querySelector("#channelTemplate"), video: document.querySelector("#videoPlayer"), artPlayerHost: document.querySelector("#artPlayerHost"), jPlayerHost: document.querySelector("#jPlayerHost"), playerMessage: document.querySelector("#playerMessage"), switchOverlay: document.querySelector("#switchOverlay"), epgGuide: document.querySelector("#epgGuide"), guideRange: document.querySelector("#guideRange"), logoFile: document.querySelector("#logoFile"), menuToggle: document.querySelector("#menuToggle"), settingsPanel: document.querySelector("#settingsPanel"), settingsOverlay: document.querySelector("#settingsOverlay"), settingsClose: document.querySelector("#settingsClose"), playlistList: document.querySelector("#playlistList"), epgList: document.querySelector("#epgList"),
+  playlistFile: document.querySelector("#playlistFile"), epgFile: document.querySelector("#epgFile"), epgListFile: document.querySelector("#epgListFile"), playlistUrl: document.querySelector("#playlistUrl"), epgUrl: document.querySelector("#epgUrl"), addPlaylistUrl: document.querySelector("#addPlaylistUrl"), addEpgUrl: document.querySelector("#addEpgUrl"), playerSelect: document.querySelector("#playerSelect"), languageSelect: document.querySelector("#languageSelect"), channelGrid: document.querySelector("#channelGrid"), channelTemplate: document.querySelector("#channelTemplate"), video: document.querySelector("#videoPlayer"), artPlayerHost: document.querySelector("#artPlayerHost"), jPlayerHost: document.querySelector("#jPlayerHost"), playerMessage: document.querySelector("#playerMessage"), switchOverlay: document.querySelector("#switchOverlay"), epgGuide: document.querySelector("#epgGuide"), guideRange: document.querySelector("#guideRange"), logoFile: document.querySelector("#logoFile"), menuToggle: document.querySelector("#menuToggle"), settingsPanel: document.querySelector("#settingsPanel"), settingsOverlay: document.querySelector("#settingsOverlay"), settingsClose: document.querySelector("#settingsClose"), playlistList: document.querySelector("#playlistList"), epgList: document.querySelector("#epgList"),
   corsProxyInput: document.querySelector("#corsProxy"), epgSearch: document.querySelector("#epgSearch"),
   epgToggle: document.querySelector("#epgToggle"), sidebarToggle: document.querySelector("#sidebarToggle"),
   guidePanel: document.querySelector("#guidePanel") || document.querySelector(".guide-panel"),
@@ -1205,6 +1205,15 @@ function hlsConfig(url, forceProxy) {
     levelLoadingTimeOut: 15000,
     levelLoadingMaxRetry: 4,
   };
+  if (getPlatform() === 'android') {
+    // Lower memory/CPU pressure for weak/older Android TV SoCs: a 120s max
+    // buffer holds a lot of decoded/queued segment data on a 1GB-RAM box,
+    // and low-latency mode's part-manifest bookkeeping isn't useful for
+    // typical IPTV restreams anyway.
+    cfg.maxMaxBufferLength = 60;
+    cfg.maxBufferLength = 20;
+    cfg.lowLatencyMode = false;
+  }
   if (forceProxy || needsProxy(url)) {
     cfg.xhrSetup = function(xhr, u) {
       xhr.open('GET', proxyUrl(u), true);
@@ -1564,10 +1573,40 @@ function playlistTypeFromSource(source, text) {
   if (lowered.includes('.xspf') || String(text || '').includes('<playlist')) return 'xspf';
   return 'm3u';
 }
+async function decodeGzipBase64(base64) {
+  var binary = globalThis.atob(base64);
+  var bytes = new Uint8Array(binary.length);
+  for (var i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  if (typeof DecompressionStream === 'undefined') return new globalThis.TextDecoder().decode(bytes);
+  var stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
+  return await new Response(stream).text();
+}
+async function fetchViaCapacitorHttp(url) {
+  var isGz = /\.gz$/i.test(url);
+  var response = await window.Capacitor.Plugins.CapacitorHttp.request({
+    url: url,
+    method: 'GET',
+    responseType: isGz ? 'blob' : 'text'
+  });
+  if (response.status && (response.status < 200 || response.status >= 400)) {
+    throw new Error(response.status + ' ' + (response.url || url));
+  }
+  if (isGz) return decodeGzipBase64(response.data);
+  return typeof response.data === 'string' ? response.data : JSON.stringify(response.data);
+}
 async function loadTextFromUrl(url) {
   var originalUrl = String(url || '').trim();
   url = normalizeDownloadUrl(originalUrl);
   function decode(r, u) { if (u.endsWith('.gz') && typeof DecompressionStream !== 'undefined') return new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).text(); return r.text(); }
+  if (getPlatform() === 'android' && window.Capacitor?.Plugins?.CapacitorHttp) {
+    // Android's WebView still enforces CORS on fetch()/XHR even though this
+    // is a "native" platform — unlike Electron (which strips CORS headers
+    // via a session interceptor), nothing here bypasses it. Many EPG/playlist
+    // hosts don't send Access-Control-Allow-Origin, so a direct fetch() just
+    // fails with an opaque "Failed to fetch". Capacitor's native HTTP bridge
+    // performs the request outside the WebView and isn't subject to CORS.
+    return await fetchViaCapacitorHttp(url);
+  }
   if (isNativePlatform() || (!state.corsProxy && !isMixedContent(url))) {
     var response; try { response = await fetch(url); } catch (err) { if (!isNativePlatform()) throw new Error(t('corsNeeded'), { cause: err }); throw err; }
     if (!response.ok) throw new Error(response.status + ' ' + response.statusText);
@@ -1646,6 +1685,43 @@ async function toggleEpgSource(id) {
   rebuildMergedEpg();
 }
 function addEpgRecord(record) { if (record.active === undefined) record.active = true; state.epgSources.unshift(record); saveEpgMeta(); renderSourceLists(); rebuildMergedEpg(); }
+function parseEpgListTemplate(text) {
+  var entries = [];
+  String(text || '').split(/\r?\n/).forEach(function(rawLine) {
+    var line = rawLine.trim();
+    if (!line || line.startsWith('#')) return;
+    var eqIndex = line.indexOf('=');
+    var name, url;
+    if (eqIndex > -1) {
+      name = line.slice(0, eqIndex).trim();
+      url = line.slice(eqIndex + 1).trim();
+    } else {
+      name = '';
+      url = line;
+    }
+    if (!/^https?:\/\//i.test(url)) return;
+    entries.push({ name: name || sourceNameFromUrl(url, 'epg.xml'), url: url });
+  });
+  return entries;
+}
+async function importEpgListFile(file) {
+  var text = await readFile(file);
+  var entries = parseEpgListTemplate(text);
+  if (!entries.length) { showMessage(t('epgListEmpty')); return; }
+  var added = 0;
+  for (var i = 0; i < entries.length; i++) {
+    var entry = entries[i];
+    if (state.epgSources.some(function(s) { return s.source === entry.url; })) continue;
+    try {
+      var epgText = await loadTextFromUrl(entry.url);
+      addEpgRecord({ id: 'epg-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6), name: entry.name, source: entry.url, origin: 'network', active: true, text: epgText });
+      added++;
+    } catch (err) {
+      console.warn('EPG list import: failed to load', entry.url, err);
+    }
+  }
+  showMessage(t('epgListImported') + ': ' + added + '/' + entries.length);
+}
 function rebuildMergedEpg() { const maps = []; for (const source of state.epgSources) { if (source.active === false) continue; try { maps.push(parseXmlTv(source.text)); } catch {} } state.epg = mergeEpgMaps(maps); renderAll(); showMessage(`${t('epgLoaded')}: ${state.epg.size}`); }
 function epgMatchesChannels(epgText) {
   try {
@@ -1902,6 +1978,7 @@ function bindEvents() {
   dom.settingsClose?.addEventListener('click', closeSettings); dom.settingsOverlay?.addEventListener('click', closeSettings);
   dom.playlistFile.addEventListener('change', async () => { const file = dom.playlistFile.files?.[0]; if (!file) return; try { const text = await readFile(file); const record = { id: `pl-${Date.now()}`, name: file.name, source: file.name, type: file.name.toLowerCase().endsWith('.xspf') ? 'xspf' : 'm3u', origin: 'local', text }; addPlaylistRecord(record); await loadPlaylistText(text, file.name); } catch (error) { showMessage(`${t('loadError')} ${error.message}`); } });
   dom.epgFile.addEventListener('change', async () => { const file = dom.epgFile.files?.[0]; if (!file) return; try { const text = await readFile(file); addEpgRecord({ id: `epg-${Date.now()}`, name: file.name, source: file.name, origin: 'local', text }); } catch (error) { showMessage(`${t('loadError')} ${error.message}`); } });
+  dom.epgListFile?.addEventListener('change', async () => { const file = dom.epgListFile.files?.[0]; if (!file) return; try { await importEpgListFile(file); } catch (error) { showMessage(`${t('loadError')} ${error.message}`); } dom.epgListFile.value = ''; });
   dom.addPlaylistUrl?.addEventListener('click', async () => { try { const url = dom.playlistUrl.value.trim(); if (!url) return; const text = await loadTextFromUrl(url); const name = sourceNameFromUrl(url, 'playlist'); const record = { id: `pl-${Date.now()}`, name, source: url, type: playlistTypeFromSource(url, text), origin: 'network', text }; addPlaylistRecord(record); await loadPlaylistText(text, name); dom.playlistUrl.value = ''; } catch (error) { showMessage(`${t('loadError')} ${error.message}`); } });
   dom.addEpgUrl?.addEventListener('click', async () => { try { const url = dom.epgUrl.value.trim(); if (!url) return; const text = await loadTextFromUrl(url); addEpgRecord({ id: `epg-${Date.now()}`, name: sourceNameFromUrl(url, 'epg.xml'), source: url, origin: 'network', text }); dom.epgUrl.value = ''; } catch (error) { showMessage(`${t('loadError')} ${error.message}`); } });
   dom.corsProxyInput?.addEventListener('change', async () => {
@@ -2043,16 +2120,41 @@ function bindEvents() {
 }
 async function reloadEpgSources(options = {}) {
   var sources = state.epgSources.filter(function(s) { return s.active !== false && s.source && !s.text; });
+  var failures = 0;
   for (var i = 0; i < sources.length; i++) {
     try {
       var text = await loadTextFromUrl(sources[i].source);
       if (text) sources[i].text = text;
-    } catch {}
+    } catch (err) {
+      failures++;
+      console.warn('EPG source failed to load:', sources[i].source, err);
+    }
   }
   if (sources.some(function(s) { return s.text; })) rebuildMergedEpg();
+  // Silent background reloads (app startup, playlist switch) intentionally
+  // don't surface errors — but a reload the user can actually observe
+  // (opening EPG, adding a source) should tell them when every source
+  // failed instead of just showing an empty guide with no explanation.
+  if (failures && failures === sources.length && options.showOnLoad !== false) {
+    showMessage(t('loadError') + ' (EPG)');
+  }
   if (state.epg.size && !state.epgVisible && options.showOnLoad !== false) {
     toggleEpg();
   }
 }
-function init() { initLogoIndex(); bindEvents(); state.player = dom.playerSelect.value = state.player; state.language = translations[state.language] ? state.language : 'sk'; state.corsProxy = detectCorsProxySync(); if (dom.corsProxyInput) dom.corsProxyInput.value = state.corsProxy; detectLocalProxy(); var platform = getPlatform(); document.documentElement.dataset.platform = platform; if (platform === 'android') { try { if (window.screen?.orientation?.lock) window.screen.orientation.lock('any').catch(function() {}); } catch {} } if (platform === 'electron' || platform === 'android') { var netSection = dom.corsProxyInput?.closest('.settings-section'); if (netSection) netSection.style.display = 'none'; } else if (platform === 'web-http') { var corsHintEl = dom.corsProxyInput?.closest('.settings-section')?.querySelector('.settings-hint'); if (corsHintEl) corsHintEl.textContent = 'HTTP — priame prehrávanie bez proxy.'; } if (!isNativePlatform()) { dom.playerSelect.querySelectorAll('.native-only').forEach(function(opt) { opt.disabled = true; opt.hidden = true; }); } initCustomSelects(); if (dom.pipButton && (document.pictureInPictureEnabled || platform === 'android')) dom.pipButton.removeAttribute('hidden'); if (dom.lockButton && (platform === 'android')) dom.lockButton.removeAttribute('hidden'); if (dom.autostartCheck) dom.autostartCheck.checked = state.autostart; if (dom.autostartToggle) dom.autostartToggle.classList.toggle('active', state.autostart); if (dom.backgroundPlaybackCheck) dom.backgroundPlaybackCheck.checked = state.backgroundPlayback; if (dom.backgroundPlaybackToggle) dom.backgroundPlaybackToggle.classList.toggle('active', state.backgroundPlayback); if (platform === 'android') syncBackgroundPlaybackNative(); setPlayerActive(false); renderSourceLists(); if (state.playlists.length && state.activePlaylistId) { activatePlaylist(state.activePlaylistId).then(function() { if (!state.channels.length && state.playlists.length) { setTimeout(function() { activatePlaylist(state.activePlaylistId, { forceReload: true }).then(function() { if (platform === 'android') ensureEpgLoadedForActivePlaylist(); }); }, 3000); } if (platform === 'android') ensureEpgLoadedForActivePlaylist(); }); } else if (state.playlists.length && !state.activePlaylistId) { state.activePlaylistId = state.playlists[0].id; safeSet('tclv.activePlaylistId', state.activePlaylistId); activatePlaylist(state.activePlaylistId).then(function() { if (platform === 'android') ensureEpgLoadedForActivePlaylist(); }); } else { renderAll(); if (state.epgSources.length) reloadEpgSources(platform === 'android' ? { showOnLoad: false } : {}); } setSidebarMode(state.sidebarMode); setInterval(() => { if (state.epgVisible) renderGuide(); document.querySelectorAll('.channel-card').forEach((card) => { const ch = state.channels.find((c) => c.id === card.dataset.channelId); if (!ch) return; const prog = currentProgram(ch); const bar = card.querySelector('.progress-track span'); if (bar) bar.style.width = progress(prog) + '%'; const txt = card.querySelector('.channel-text p'); if (txt) txt.textContent = prog?.title || ''; }); }, 60 * 1000); }
+function init() { initLogoIndex(); bindEvents(); state.player = dom.playerSelect.value = state.player; state.language = translations[state.language] ? state.language : 'sk'; state.corsProxy = detectCorsProxySync(); if (dom.corsProxyInput) dom.corsProxyInput.value = state.corsProxy; detectLocalProxy(); var platform = getPlatform(); document.documentElement.dataset.platform = platform; if (platform === 'android') { try { if (window.screen?.orientation?.lock) window.screen.orientation.lock('any').catch(function() {}); } catch {} } if (platform === 'electron' || platform === 'android') { var netSection = dom.corsProxyInput?.closest('.settings-section'); if (netSection) netSection.style.display = 'none'; } else if (platform === 'web-http') { var corsHintEl = dom.corsProxyInput?.closest('.settings-section')?.querySelector('.settings-hint'); if (corsHintEl) corsHintEl.textContent = 'HTTP — priame prehrávanie bez proxy.'; } if (!isNativePlatform()) { dom.playerSelect.querySelectorAll('.native-only').forEach(function(opt) { opt.disabled = true; opt.hidden = true; }); } initCustomSelects(); if (dom.pipButton && (document.pictureInPictureEnabled || platform === 'android')) dom.pipButton.removeAttribute('hidden'); if (dom.lockButton && (platform === 'android')) dom.lockButton.removeAttribute('hidden'); if (dom.autostartCheck) dom.autostartCheck.checked = state.autostart; if (dom.autostartToggle) dom.autostartToggle.classList.toggle('active', state.autostart); if (dom.backgroundPlaybackCheck) dom.backgroundPlaybackCheck.checked = state.backgroundPlayback; if (dom.backgroundPlaybackToggle) dom.backgroundPlaybackToggle.classList.toggle('active', state.backgroundPlayback); if (platform === 'android') syncBackgroundPlaybackNative(); setPlayerActive(false); renderSourceLists(); if (state.playlists.length && state.activePlaylistId) { activatePlaylist(state.activePlaylistId).then(function() { if (!state.channels.length && state.playlists.length) { setTimeout(function() { activatePlaylist(state.activePlaylistId, { forceReload: true }).then(function() { if (platform === 'android') ensureEpgLoadedForActivePlaylist(); }); }, 3000); } if (platform === 'android') ensureEpgLoadedForActivePlaylist(); }); } else if (state.playlists.length && !state.activePlaylistId) { state.activePlaylistId = state.playlists[0].id; safeSet('tclv.activePlaylistId', state.activePlaylistId); activatePlaylist(state.activePlaylistId).then(function() { if (platform === 'android') ensureEpgLoadedForActivePlaylist(); }); } else { renderAll(); if (state.epgSources.length) reloadEpgSources(platform === 'android' ? { showOnLoad: false } : {}); } setSidebarMode(state.sidebarMode); setInterval(refreshChannelProgress, 60 * 1000); }
+function refreshChannelProgress() {
+  if (state.epgVisible) renderGuide();
+  var byId = new Map();
+  for (var i = 0; i < state.channels.length; i++) byId.set(state.channels[i].id, state.channels[i]);
+  dom.channelGrid.querySelectorAll('.channel-card').forEach(function(card) {
+    var ch = byId.get(card.dataset.channelId);
+    if (!ch) return;
+    var prog = currentProgram(ch);
+    var bar = card.querySelector('.progress-track span');
+    if (bar) bar.style.width = progress(prog) + '%';
+    var txt = card.querySelector('.channel-text p');
+    if (txt) txt.textContent = prog?.title || '';
+  });
+}
 init();

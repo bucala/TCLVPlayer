@@ -58,10 +58,14 @@ public class MainActivity extends BridgeActivity {
         settings.setMediaPlaybackRequiresUserGesture(false);
         settings.setDomStorageEnabled(true);
         settings.setJavaScriptEnabled(true);
-        if (isTelevision()) {
-            // Android TV emulators/boxes frequently fail to composite the
-            // hardware-accelerated WebView surface, showing a solid black
-            // screen. Software rendering avoids that GPU compositing path.
+        if (isTelevision() && isProbablyEmulator()) {
+            // Android TV *emulators* frequently fail to composite the
+            // hardware-accelerated WebView surface (SwiftShader/software GPU
+            // quirk), showing a solid black screen. Software rendering
+            // avoids that. Real TV boxes don't have this problem and forcing
+            // software rendering on them is a severe performance regression
+            // (every paint — scrolling, video, focus changes — goes through
+            // the CPU instead of the GPU), so scope this to emulators only.
             webView.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
         }
     }
@@ -70,6 +74,23 @@ public class MainActivity extends BridgeActivity {
         UiModeManager uiModeManager = (UiModeManager) getSystemService(Context.UI_MODE_SERVICE);
         return uiModeManager != null
             && uiModeManager.getCurrentModeType() == Configuration.UI_MODE_TYPE_TELEVISION;
+    }
+
+    private boolean isProbablyEmulator() {
+        String fingerprint = Build.FINGERPRINT == null ? "" : Build.FINGERPRINT;
+        String model = Build.MODEL == null ? "" : Build.MODEL;
+        String manufacturer = Build.MANUFACTURER == null ? "" : Build.MANUFACTURER;
+        String product = Build.PRODUCT == null ? "" : Build.PRODUCT;
+        String hardware = Build.HARDWARE == null ? "" : Build.HARDWARE;
+        return fingerprint.startsWith("generic")
+            || fingerprint.contains("emulator")
+            || model.contains("Emulator")
+            || model.contains("Android SDK built for")
+            || manufacturer.contains("Genymotion")
+            || hardware.contains("goldfish")
+            || hardware.contains("ranchu")
+            || product.contains("sdk_gphone")
+            || product.contains("google_sdk");
     }
 
     @Override

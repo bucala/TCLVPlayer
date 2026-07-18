@@ -54,6 +54,7 @@
           <div class="settings-body">
             <label class="field-label"><span data-i18n="labelPlayer">Prehrávač</span><select id="playerSelect" class="native-select-hidden" aria-label="Player" tabindex="-1" aria-hidden="true"><option value="native" class="native-only">Natívny</option><option value="html5">HTML5</option><option value="videojs">Video.js</option><option value="artplayer">ArtPlayer</option><option value="flvjs">flv.js</option><option value="jplayer">jPlayer</option><option value="vlc" class="native-only">VLC</option><option value="mpv" class="native-only">mpv</option></select><div id="playerSelectCustom" class="custom-select" data-for="playerSelect"><button class="custom-select-button" type="button" aria-haspopup="listbox" aria-expanded="false"></button><div class="custom-select-menu" role="listbox" hidden></div></div></label>
             <label class="field-label"><span data-i18n="labelLanguage">Jazyk</span><select id="languageSelect" class="native-select-hidden" aria-label="Language" tabindex="-1" aria-hidden="true"><option value="sk">Slovenčina</option><option value="en">English</option></select><div id="languageSelectCustom" class="custom-select" data-for="languageSelect"><button class="custom-select-button" type="button" aria-haspopup="listbox" aria-expanded="false"></button><div class="custom-select-menu" role="listbox" hidden></div></div></label>
+            <p class="settings-hint android-only" data-i18n="weakTvPlayerHint">Na starších/pomalších Android TV odporúčame prehrávač "Natívny" — spustí stream v systémovej video appke (napr. MX Player, VLC) s hardvérovým dekódovaním namiesto prehrávania v appke.</p>
           </div>
         </div>
         <div class="settings-section">
@@ -77,6 +78,7 @@
             <p class="settings-hint" data-i18n="epgHint">Všetky zdroje sa načítajú a zlúčia.</p>
             <div class="field-row"><input id="epgUrl" type="url" placeholder="https://.../epg.xml" /><button id="addEpgUrl" type="button" data-i18n="addEpg">Pridať EPG</button></div>
             <label class="file-button"><input id="epgFile" type="file" accept=".xml,.xmltv,application/xml,text/xml" /><span data-i18n="openEpg">Otvoriť súbor EPG</span></label>
+            <label class="file-button"><input id="epgListFile" type="file" accept=".txt,text/plain" /><span data-i18n="importEpgList">Importovať zoznam EPG (.txt)</span></label>
             <div id="epgList" class="source-list"></div>
           </div>
         </div>
