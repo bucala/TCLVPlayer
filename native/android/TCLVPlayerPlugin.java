@@ -9,16 +9,67 @@ import android.net.Uri;
 import android.os.Build;
 import android.util.Rational;
 
+import androidx.activity.result.ActivityResult;
+
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
+import com.getcapacitor.annotation.ActivityCallback;
 import com.getcapacitor.annotation.CapacitorPlugin;
 
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Locale;
 
 @CapacitorPlugin(name = "TCLVPlayer")
 public class TCLVPlayerPlugin extends Plugin {
+    private String pendingSaveContent = "";
+
+    @PluginMethod
+    public void saveTextFile(PluginCall call) {
+        String filename = call.getString("filename", "export.txt");
+        String content = call.getString("content", "");
+        String mimeType = call.getString("mimeType", "text/plain");
+        pendingSaveContent = content;
+
+        Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType(mimeType);
+        intent.putExtra(Intent.EXTRA_TITLE, filename);
+        try {
+            startActivityForResult(call, intent, "handleSaveTextFileResult");
+        } catch (Exception exception) {
+            call.reject("Could not open save dialog: " + exception.getMessage());
+        }
+    }
+
+    @ActivityCallback
+    private void handleSaveTextFileResult(PluginCall call, ActivityResult result) {
+        if (call == null) return;
+        if (result.getResultCode() != Activity.RESULT_OK || result.getData() == null) {
+            call.reject("Save cancelled");
+            return;
+        }
+        Uri uri = result.getData().getData();
+        if (uri == null) {
+            call.reject("No file selected");
+            return;
+        }
+        try (OutputStream out = getActivity().getContentResolver().openOutputStream(uri)) {
+            if (out == null) {
+                call.reject("Could not open output stream");
+                return;
+            }
+            out.write(pendingSaveContent.getBytes(StandardCharsets.UTF_8));
+            call.resolve();
+        } catch (Exception exception) {
+            call.reject("Save failed: " + exception.getMessage());
+        } finally {
+            pendingSaveContent = "";
+        }
+    }
+
     @PluginMethod
     public void openExternalPlayer(PluginCall call) {
         String player = call.getString("player");
