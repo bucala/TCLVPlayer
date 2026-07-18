@@ -2366,3 +2366,21 @@ html[data-platform="android"] .section-title {
     font-size: 10px;
   }
 }
+
+/* ─── Android performance mode ────────────────────────────────────────────
+   backdrop-filter/blur compositing is one of the heaviest paints a weak TV
+   GPU/SoC can be asked to do, and it's re-run on every frame the overlay is
+   visible over moving content (video, EPG). Disable it on Android and fall
+   back to the solid background color underneath (bumped slightly where the
+   blur was doing real contrast work), rather than paying that cost on
+   hardware it was never designed for. ─────────────────────────────────── */
+html[data-platform="android"] .quality-control select,
+html[data-platform="android"] .player-message,
+html[data-platform="android"] .switch-overlay,
+html[data-platform="android"] .program-detail-modal {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+html[data-platform="android"] .program-detail-modal {
+  background: rgba(0, 0, 0, 0.88);
+}

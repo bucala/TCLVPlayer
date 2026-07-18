@@ -1,0 +1,17 @@
+# TCLVPlayer — šablóna zoznamu EPG zdrojov
+#
+# Ako to použiť:
+#   1. Uprav tento súbor v ľubovoľnom textovom editore (Poznámkový blok, atď).
+#   2. Každý EPG zdroj napíš na samostatný riadok v tvare:
+#        Názov = https://adresa-epg-suboru.xml
+#      Názov je voliteľný — ak ho vynecháš, použije sa názov zo súboru v URL:
+#        https://adresa-epg-suboru.xml
+#   3. Riadky začínajúce znakom # sú komentáre a pri importe sa ignorujú.
+#   4. Ulož súbor ako obyčajný .txt (kódovanie UTF-8).
+#   5. V aplikácii: Nastavenia → EPG zdroje → "Importovať zoznam EPG (.txt)"
+#      a vyber tento súbor. Všetky platné riadky sa naimportujú naraz.
+#
+# Príklady (uprav/zmaž podľa potreby):
+
+CZ EPG = https://iptv-epg.org/files/epg-cz.xml
+SK EPG = https://example.com/epg-sk.xml
