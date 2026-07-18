@@ -1564,10 +1564,40 @@ function playlistTypeFromSource(source, text) {
   if (lowered.includes('.xspf') || String(text || '').includes('<playlist')) return 'xspf';
   return 'm3u';
 }
+async function decodeGzipBase64(base64) {
+  var binary = globalThis.atob(base64);
+  var bytes = new Uint8Array(binary.length);
+  for (var i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  if (typeof DecompressionStream === 'undefined') return new globalThis.TextDecoder().decode(bytes);
+  var stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
+  return await new Response(stream).text();
+}
+async function fetchViaCapacitorHttp(url) {
+  var isGz = /\.gz$/i.test(url);
+  var response = await window.Capacitor.Plugins.CapacitorHttp.request({
+    url: url,
+    method: 'GET',
+    responseType: isGz ? 'blob' : 'text'
+  });
+  if (response.status && (response.status < 200 || response.status >= 400)) {
+    throw new Error(response.status + ' ' + (response.url || url));
+  }
+  if (isGz) return decodeGzipBase64(response.data);
+  return typeof response.data === 'string' ? response.data : JSON.stringify(response.data);
+}
 async function loadTextFromUrl(url) {
   var originalUrl = String(url || '').trim();
   url = normalizeDownloadUrl(originalUrl);
   function decode(r, u) { if (u.endsWith('.gz') && typeof DecompressionStream !== 'undefined') return new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).text(); return r.text(); }
+  if (getPlatform() === 'android' && window.Capacitor?.Plugins?.CapacitorHttp) {
+    // Android's WebView still enforces CORS on fetch()/XHR even though this
+    // is a "native" platform — unlike Electron (which strips CORS headers
+    // via a session interceptor), nothing here bypasses it. Many EPG/playlist
+    // hosts don't send Access-Control-Allow-Origin, so a direct fetch() just
+    // fails with an opaque "Failed to fetch". Capacitor's native HTTP bridge
+    // performs the request outside the WebView and isn't subject to CORS.
+    return await fetchViaCapacitorHttp(url);
+  }
   if (isNativePlatform() || (!state.corsProxy && !isMixedContent(url))) {
     var response; try { response = await fetch(url); } catch (err) { if (!isNativePlatform()) throw new Error(t('corsNeeded'), { cause: err }); throw err; }
     if (!response.ok) throw new Error(response.status + ' ' + response.statusText);
@@ -2043,13 +2073,24 @@ function bindEvents() {
 }
 async function reloadEpgSources(options = {}) {
   var sources = state.epgSources.filter(function(s) { return s.active !== false && s.source && !s.text; });
+  var failures = 0;
   for (var i = 0; i < sources.length; i++) {
     try {
       var text = await loadTextFromUrl(sources[i].source);
       if (text) sources[i].text = text;
-    } catch {}
+    } catch (err) {
+      failures++;
+      console.warn('EPG source failed to load:', sources[i].source, err);
+    }
   }
   if (sources.some(function(s) { return s.text; })) rebuildMergedEpg();
+  // Silent background reloads (app startup, playlist switch) intentionally
+  // don't surface errors — but a reload the user can actually observe
+  // (opening EPG, adding a source) should tell them when every source
+  // failed instead of just showing an empty guide with no explanation.
+  if (failures && failures === sources.length && options.showOnLoad !== false) {
+    showMessage(t('loadError') + ' (EPG)');
+  }
   if (state.epg.size && !state.epgVisible && options.showOnLoad !== false) {
     toggleEpg();
   }
