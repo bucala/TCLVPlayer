@@ -78,7 +78,10 @@
             <p class="settings-hint" data-i18n="epgHint">Všetky zdroje sa načítajú a zlúčia.</p>
             <div class="field-row"><input id="epgUrl" type="url" placeholder="https://.../epg.xml" /><button id="addEpgUrl" type="button" data-i18n="addEpg">Pridať EPG</button></div>
             <label class="file-button"><input id="epgFile" type="file" accept=".xml,.xmltv,application/xml,text/xml" /><span data-i18n="openEpg">Otvoriť súbor EPG</span></label>
-            <label class="file-button"><input id="epgListFile" type="file" accept=".txt,text/plain" /><span data-i18n="importEpgList">Importovať zoznam EPG (.txt)</span></label>
+            <div class="field-row">
+              <label class="file-button"><input id="epgListFile" type="file" accept=".txt,text/plain" /><span data-i18n="importEpgList">Importovať zoznam EPG (.txt)</span></label>
+              <button id="exportEpgList" type="button" data-i18n="exportEpgList">Exportovať zoznam EPG (.txt)</button>
+            </div>
             <div id="epgList" class="source-list"></div>
           </div>
         </div>
