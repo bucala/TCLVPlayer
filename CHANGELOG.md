@@ -7,6 +7,44 @@ Všetky významné zmeny v projekte sú dokumentované v tomto súbore.
 
 ---
 
+## [1.2.0] — 2026-07-18
+
+### Android TV/tablet stability, EPG reliability, Material 3 retheme
+
+Najväčšia dávka zmien od 1.1.13 — pokrýva niekoľko PR (#90–#109) zameraných na
+reálne nahlásené problémy na fyzických zariadeniach (Xiaomi Mi TV MSSP3,
+Redmi Pad 2): pády pri štarte, čierna obrazovka, nefunkčné EPG, zaseknuté UI
+pri prepínaní panelov a nulová spätná väzba pri exporte súborov.
+
+#### Added
+- **EPG zoznam — import/export (.txt)** — Nastavenia › EPG zdroje › `Export EPG` / `Import EPG`. Textová šablóna vo formáte `Nazov = URL` (komentáre cez `#`), pripravená na úpravu v ľubovoľnom textovom editore. `templates/epg-sources-template.txt` slúži ako referenčný vzor.
+- **Natívny "Uložiť ako" dialóg na Androide** — export EPG zoznamu aj zálohy nastavení teraz otvára skutočný Storage Access Framework picker (`ACTION_CREATE_DOCUMENT`) cez nový `TCLVPlayerPlugin.saveTextFile()`. Predtým export na Androide ticho zlyhával — `<a download>` blob-URL trik, na ktorý appka spoliehala, vo WebView bez `DownloadListener` nič neurobí.
+- **D-pad navigácia pre TV diaľkové ovládanie** — šípka doprava zo zoznamu kanálov skočí na horné ovládače (zámok/CH/EPG/nastavenia), šípky vľavo/vpravo/dole v hornej lište, focus trap v Nastaveniach (Tab/Shift+Tab, `inert` pozadie), zdieľaná `handleBackAction()`/`handleBackStep()` logika pre Escape aj hardvérové tlačidlo Späť.
+- **Natívne preposielanie tlačidiel diaľkového ovládania** (Back/Info/Guide/Channel Up/Down) z Androidu do WebView cez `dispatchKeyEvent`.
+
+#### Fixed
+- **Android crash pri štarte** — `values/styles.xml` obsahoval API 28+/29+ atribúty (`windowLayoutInDisplayCutoutMode`, `enforceStatusBarContrast`, …) v základnej téme; presunuté do `values-v28`/`values-v29`. Odstránený aj nefunkčný `StatusBar` plugin blok z `capacitor.config.json` (`@capacitor/status-bar` nie je závislosť).
+- **Čierna obrazovka a zaseknuté UI na reálnom Android TV hardvéri** — workaround pre emulátorový bug (`WebView.setLayerType(LAYER_TYPE_SOFTWARE)`) sa aplikoval na *všetky* Android TV zariadenia vrátane reálneho hardvéru, čo nútilo celý WebView (scroll, video, animácie) cez CPU renderovanie namiesto GPU. Teraz sa aplikuje iba na skutočné emulátory (heuristika cez `Build.FINGERPRINT`).
+- **EPG zdroje sa CORS chybou vôbec nenačítali na Androide** — appka považovala Android za "natívnu" platformu bez potreby CORS proxy, no priamy `fetch()` vo WebView CORS aj tak vynucuje. Textové načítanie (EPG XML, M3U/XSPF) na Androide teraz ide cez natívny `CapacitorHttp` bridge (mimo WebView, mimo CORS).
+- **Import nastavení pridal EPG zdroje do zoznamu, no nikdy nesťahol ich obsah** — `importSettingsFromFile()` teraz explicitne volá `reloadEpgSources()` namiesto spoliehania sa na vedľajší efekt aktivácie playlistu (ktorý pri lokálnom playliste bez uloženého textu vôbec nenastal).
+- **Sekvenčné sťahovanie EPG zdrojov** — viacero EPG súborov sa sťahovalo jeden po druhom (`await` v cykle); pri 5–6 zdrojoch to vedelo trvať desiatky sekúnd, čo pôsobilo ako "EPG sa nenačíta". Teraz paralelne cez `Promise.allSettled`.
+- **Parsovanie viacerých veľkých XMLTV súborov blokovalo hlavné vlákno** — `rebuildMergedEpg()` teraz medzi jednotlivými zdrojmi uvoľní vlákno (`yieldToMain()`), namiesto jedného dlhého synchrónneho bloku, ktorý pôsobil ako zamrznutie appky.
+- **Animácia `width` na sidebar-i pri prepínaní CH panelu** — na slabšom Android TV/tablet hardvéri vynucovala layout reflow stoviek kanálových kariet pri každom prepnutí; na Android platforme je teraz prepnutie okamžité (`transition: none`).
+- **`backdrop-filter: blur()` na Androide** — jeden z najnáročnejších GPU efektov (až 24px blur) vypnutý na Android platforme, nahradený plnou farbou pozadia.
+- Escape v otvorenom custom-select dropdowne už zatvára iba dropdown, nie celý panel Nastavení (`stopPropagation()`).
+- Nefunkčná `#epgSearch` cieľová položka pri D-pad navigácii zo sidebaru (skrytá mimo EPG guide) nahradená správnym prechodom na topbar.
+
+#### Changed
+- **Material 3 retheme** — vizuálna aktualizácia `styles.css`, konzistentné app ikony pre všetky Android mipmap density (`hdpi`–`xxxhdpi`), responzívne úpravy pre TV layout.
+- HLS.js buffering na Androide odľahčený pre slabší hardvér (`maxMaxBufferLength: 60`, `lowLatencyMode: false`).
+- EPG import/export tlačidlá skrátené na `Export EPG` / `Import EPG` v rovnakom štýle ako existujúce Export/Import zálohy nastavení.
+- Nastavenia obsahujú hint odporúčajúci "Natívny" (externý) prehrávač pre staré/slabé Android TV zariadenia — hardvérové dekódovanie mimo WebView, podobne ako Smart IPTV.
+
+#### Dependencies
+- `@capacitor/android` a `@capacitor/cli` na `^8.4.1`, `video.js` na `^8.23.9`, `electron`/`electron-builder` na `^43`/`^26`, `vitest` na `^4.1.10`.
+
+---
+
 ## [1.1.13] — 2026-06-15
 
 ### Android launch crash fix

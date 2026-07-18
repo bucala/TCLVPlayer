@@ -13,7 +13,7 @@
 [![Windows Build](https://github.com/bucala/TCLVPlayer/actions/workflows/windows.yml/badge.svg)](https://github.com/bucala/TCLVPlayer/actions/workflows/windows.yml)
 [![Android Build](https://github.com/bucala/TCLVPlayer/actions/workflows/android.yml/badge.svg)](https://github.com/bucala/TCLVPlayer/actions/workflows/android.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-orange.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.1.13-orange)](#changelog)
+[![Version](https://img.shields.io/badge/version-1.2.0-orange)](#changelog)
 [![Vanilla JS](https://img.shields.io/badge/Vanilla-JS-yellow?logo=javascript)](app.js)
 [![No Framework](https://img.shields.io/badge/No%20Framework-zero%20build-lightgrey)](#)
 
@@ -167,7 +167,7 @@ Pri načítavaní URL playlistov alebo EPG vo web verzii nastav **CORS proxy** v
 https://api.allorigins.win/raw?url=
 ```
 
-> Electron a Android CORS proxy ignorujú — majú natívny bypass cez `onHeadersReceived`.
+> Electron a Android CORS proxy ignorujú — každý má vlastný natívny bypass (Electron: `onHeadersReceived` injektuje `Access-Control-Allow-Origin`; Android: textové zdroje — EPG/playlisty — idú cez natívny `CapacitorHttp` bridge mimo WebView, kde CORS vôbec neplatí).
 
 </details>
 
@@ -192,7 +192,8 @@ https://api.allorigins.win/raw?url=
 - 🤖 Auto-detekcia EPG z M3U `x-tvg-url` hlavičky
 - 💬 Overlay s aktuálnym/nasledujúcim programom pri prepnutí kanála
 - 🔎 Vyhľadávanie v EPG podľa názvu programu
-- 💾 EPG text sa neuľkladá do `localStorage` (prevencia 5 MB crashu)
+- 💾 EPG text sa neuľkladá do `localStorage` (prevencia 5 MB crashu) — refetchuje sa pri každom štarte, paralelne pre všetky zdroje
+- 📤📥 **Import/export zoznamu EPG zdrojov** — textová šablóna `Nazov = URL` (Nastavenia › EPG zdroje › Export/Import EPG), editovateľná v ľubovoľnom textovom editore
 
 ### ▶️ Player systém
 
@@ -223,10 +224,19 @@ https://api.allorigins.win/raw?url=
 
 ### ♿ Prístupnosť
 
-- ⌨️ Klávesová navigácia: `↑↓` kanály, `←→` sidebar↔content, `PageUp/Down` prepnutie kanála
+- ⌨️ Klávesová navigácia: `↑↓` kanály, `←→` sidebar↔topbar (zámok/CH/EPG/nastavenia), `PageUp/Down` prepnutie kanála
 - 📺 D-pad pre Smart TV / Leanback, `Home/End` skok na prvý/posledný
+- 🔒 Focus trap v Nastaveniach — Tab/Shift+Tab neopustí panel, pozadie je `inert` kým je otvorený
+- 🎮 Natívne preposielanie tlačidiel diaľkového ovládania (Späť/Info/Guide/Channel Up/Down) z Android natívnej vrstvy do WebView
 - 🏷️ ARIA labely a live regióny
 - 🔍 Focus-visible ring pre keyboard používateľov
+
+### ⚡ Výkon na slabšom Android TV/tablet hardvéri
+
+- Softvérové WebView renderovanie sa aplikuje iba na emulátoroch (detekcia cez `Build.FINGERPRINT`) — na reálnom hardvéri beží plná GPU akcelerácia
+- `backdrop-filter`/blur efekty a animácia šírky sidebar-u sú na Android platforme vypnuté (layout reflow a GPU blur sú pri stovkách kanálových kariet nákladné)
+- EPG zdroje sa sťahujú paralelne (`Promise.allSettled`), parsovanie viacerých XMLTV súborov uvoľňuje hlavné vlákno medzi jednotlivými zdrojmi
+- Pre staré/slabé Android TV odporúčaný "Natívny" prehrávač — hardvérové dekódovanie mimo WebView cez systémovú video appku (MX Player, VLC)
 
 ---
 
@@ -260,7 +270,7 @@ https://api.allorigins.win/raw?url=
 ```
 TCLVPlayer/
 ├── index.html                  # Jediny HTML vstupny bod
-├── app.js                      # Cela aplikacna logika (~940 riadkov)
+├── app.js                      # Cela aplikacna logika (~2200 riadkov)
 ├── styles.css                  # Vsetky styly (responsive, dark theme)
 ├── favicon.svg                 # App ikona (SVG)
 ├── package.json                # Electron + Capacitor zavislosti
@@ -290,7 +300,7 @@ TCLVPlayer/
 | Prostredie | Rozhranie | CORS riešenie |
 |:-----------|:----------|:--------------|
 | Electron (Windows) | `window.TCLVNative` | `onHeadersReceived` bypass |
-| Android / GoogleTV | `Capacitor.Plugins.TCLVPlayer` | Natívne HTTP |
+| Android / GoogleTV | `Capacitor.Plugins.TCLVPlayer` + `CapacitorHttp` | Natívny HTTP bridge (mimo WebView) |
 | Web (prehliadač) | `null` — graceful fallback | CORS proxy |
 
 ---
@@ -314,7 +324,7 @@ TCLVPlayer/
 
 | Balíček | Verzia | Licencia | Účel |
 |:--------|:-------|:---------|:-----|
-| `electron` | ^42 | MIT | Windows desktop shell |
+| `electron` | ^43 | MIT | Windows desktop shell |
 | `electron-builder` | ^26 | MIT | Windows build/packaging |
 | `@capacitor/core` + `android` + `cli` | ^8 | MIT | Android/GoogleTV bridge |
 | `hls.js` | ^1.5 | Apache-2.0 | HLS streaming |
