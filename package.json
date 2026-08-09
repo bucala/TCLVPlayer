@@ -44,7 +44,7 @@
     "@capacitor/core": "^8.3.4",
     "artplayer": "^5.2.5",
     "flv.js": "^1.6.2",
-    "hls.js": "^1.5.20",
+    "hls.js": "^1.6.17",
     "jplayer": "^2.9.2",
     "jquery": "^4.0.0",
     "mpegts.js": "^1.8.0",
