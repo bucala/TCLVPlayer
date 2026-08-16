@@ -44,11 +44,11 @@
     "@capacitor/core": "^8.3.4",
     "artplayer": "^5.2.5",
     "flv.js": "^1.6.2",
-    "hls.js": "^1.5.20",
+    "hls.js": "^1.7.0",
     "jplayer": "^2.9.2",
     "jquery": "^4.0.0",
     "mpegts.js": "^1.8.0",
-    "video.js": "^8.23.9"
+    "video.js": "^8.24.0"
   },
   "devDependencies": {
     "@capacitor/cli": "^8.4.1",
