@@ -1,7 +1,9 @@
-import { cp, mkdir, copyFile, rm } from "node:fs/promises";
+import { cp, mkdir, copyFile, rm, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import { createBridgePackage } from "./bridge-package.mjs";
 
-const outDir = join("dist", process.argv.includes("--vercel") ? "vercel" : "web");
+const browserBuild = process.argv.includes("--vercel");
+const outDir = join("dist", browserBuild ? "vercel" : "web");
 const files = [
   ["index.html", "index.html"],
   ["styles.css", "styles.css"],
@@ -36,4 +38,26 @@ for (const [source, target] of optionalCopies) {
   } catch {
     // Dependencies may not be installed yet; CDN fallback remains available.
   }
+}
+
+if (browserBuild) {
+  for (const file of ["bridge-client.js", "bridge-player.js", "bridge.css"]) {
+    await copyFile(join("web", file), join(outDir, file));
+  }
+  const hostNames = [
+    "state", "dom", "translations", "safeGet", "safeSet", "t", "detectLocalProxy", "detectCorsProxySync",
+    "canProxyStreams", "needsProxy", "isBlockedWebStream", "getStreamType", "playChannel", "playInSlot1",
+    "destroySlot1", "fetchWebSource", "translateUi", "setStreamStatus", "stopInternalPlayers", "showMessage",
+    "ensureVideoJs", "ensureArtPlayer", "ensureJPlayer", "ensureMpegts", "ensureFlvJs", "ensureHls",
+    "openSettings", "isMixedContent", "decodeWebSourceResponse",
+  ];
+  const host = hostNames.map(name => `get ${name}() { return ${name}; }, set ${name}(value) { ${name} = value; }`).join(",\n");
+  const app = await readFile("app.js", "utf8");
+  if (!/init\(\);\s*$/.test(app)) throw new Error("Cannot attach browser-only bridge before init");
+  await writeFile(join(outDir, "app.js"), app.replace(/init\(\);\s*$/, `window.TCLVWebPlayer({\n${host}\n});\ninit();\n`));
+  const html = await readFile("index.html", "utf8");
+  await writeFile(join(outDir, "index.html"), html
+    .replace('<link rel="stylesheet" href="./styles.css" />', '<link rel="stylesheet" href="./styles.css" />\n    <link rel="stylesheet" href="./bridge.css" />')
+    .replace('<script src="./app.js"></script>', '<script src="./bridge-client.js"></script>\n    <script src="./bridge-player.js"></script>\n    <script src="./app.js"></script>'));
+  await createBridgePackage(join(outDir, "downloads", "TCLV-Bridge.zip"));
 }

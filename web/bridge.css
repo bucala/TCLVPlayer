@@ -1,0 +1,10 @@
+.web-bridge-settings { display: grid; gap: 10px; }
+.web-bridge-settings [hidden] { display: none !important; }
+.web-bridge-settings select { width: 100%; min-height: 40px; padding: 8px; color: var(--text, #f4f4f5); background: #25252b; border: 1px solid #45454d; border-radius: 8px; }
+.web-bridge-settings form { display: grid; gap: 10px; }
+.web-bridge-settings button, .web-bridge-bar button { min-height: 36px; padding: 7px 10px; color: #f4f4f5; background: #35353d; border: 1px solid #55555d; border-radius: 8px; cursor: pointer; }
+.web-bridge-settings button:disabled { opacity: .6; cursor: wait; }
+.bridge-download { color: #b9c7ff; font-size: 13px; text-underline-offset: 3px; }
+.web-bridge-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 10px; font-size: 12px; color: #c9c9d1; background: #1b1b21; }
+.web-bridge-bar button { font-size: 12px; max-width: 65%; }
+@media (max-width: 480px) { .web-bridge-bar { padding: 4px 6px; gap: 6px; } }

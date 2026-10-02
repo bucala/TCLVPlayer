@@ -16,7 +16,7 @@
       ]
     },
     {
-      "source": "/(index.html|app.js|styles.css)",
+      "source": "/(index.html|app.js|styles.css|bridge-client.js|bridge-player.js|bridge.css)",
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
       ]

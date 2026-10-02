@@ -58,7 +58,7 @@ export default [
     },
   },
   {
-    files: ["scripts/*.mjs"],
+    files: ["scripts/*.mjs", "bridge/*.mjs"],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: "module",
@@ -66,10 +66,26 @@ export default [
         process: "readonly",
         console: "readonly",
         URL: "readonly",
+        Buffer: "readonly",
+        AbortController: "readonly",
+        fetch: "readonly",
         setTimeout: "readonly",
         clearTimeout: "readonly",
       },
     },
+  },
+  {
+    files: ["web/*.js"],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: "script",
+      globals: {
+        window: "readonly", document: "readonly", location: "readonly", fetch: "readonly",
+        URL: "readonly", AbortController: "readonly", setTimeout: "readonly", clearTimeout: "readonly",
+        queueMicrotask: "readonly",
+      },
+    },
+    rules: { "no-empty": ["error", { allowEmptyCatch: true }] },
   },
   {
     files: ["tests/**/*.test.js"],
@@ -87,6 +103,7 @@ export default [
         AbortController: "readonly",
         setTimeout: "readonly",
         clearTimeout: "readonly",
+        queueMicrotask: "readonly",
       },
     },
   },

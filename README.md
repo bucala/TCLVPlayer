@@ -41,7 +41,7 @@
 - **Jednoduche UI** — kanalovy panel bez hladania/skupin, 2-krokovy sidebar `full -> logo -> hidden`
 - **Logo zdroje** — fallback poradie: iptv-org API, tv-logo/tv-logos, Free-TV/IPTV, BKPepe icons, final Free-TV retry
 - **Direct link import** — URL playlisty z Google Drive a Dropbox sa prevedu na download link
-- **Lokálny proxy bridge** — `npm run proxy` pre priame streamovanie cez lokalnu siet z Vercel HTTPS
+- **Samostatný TCLV Bridge pre web** — Auto: priamo → spárovaný bridge na rovnakom počítači, bez video prenosu cez Vercel
 - **Bezpecnostny audit** — CSP, XSS ochrana, SSRF blokovanie, import validacia
 - **Privatne a offline** — ziadny backend, ziadne ucty, vsetky data zostavaju lokalne
 
@@ -58,7 +58,8 @@ npm install
 | Platforma | Príkaz | Výstup |
 |:----------|:-------|:-------|
 | 🌐 **Web** | `npm run web` | `http://127.0.0.1:3000` |
-| 🌐 **Web + proxy** | `npm run proxy` | Lokálny proxy na porte 3939 |
+| 🌐 **Web + bridge** | dvojklik `bridge/Start TCLV Bridge.cmd` | Lokálny bridge, párovanie v Nastavenia › Sieť |
+| 📦 **Bridge ZIP** | `npm run bridge:package` | `dist/bridge/TCLV-Bridge.zip`, bez npm závislostí |
 | 🖥️ **Windows** | `npm run windows` | Electron okno |
 | 📦 **Windows `.exe`** | `npm run windows:dist` | `dist/` — NSIS + portable |
 | 🤖 **Android setup** | `npm run android:setup` | Capacitor projekt |
@@ -67,7 +68,7 @@ npm install
 | 📂 **Android Studio** | `npm run android:studio` | Vygeneruje a otvorí Android Studio |
 | 📦 **Android debug APK** | `npm run android:apk` | `android/app/build/outputs/apk/debug/` |
 
-> **Tip:** Pre Vercel/HTTPS: spustite `npm run proxy` na lokalnom PC — streamy pojdu priamo cez vasu siet.
+> **Tip:** Pre HTTP/CORS streamy na webe spustite TCLV Bridge na tom istom počítači a spárujte ho v Nastavenia › Sieť. Existujúce Windows a Android aplikácie ho nepotrebujú.
 
 ---
 
@@ -162,14 +163,51 @@ npm run web
 # → http://127.0.0.1:3000
 ```
 
-Web prehráva video **priamo od poskytovateľa, nikdy cez Vercel proxy**. HTTPS
-streamy musia podporovať prehrávanie v prehliadači (pri HLS.js aj CORS).
-HTTP streamy alebo streamy bez CORS prehrávaj vo Windows/Android aplikácii,
-prípadne spusti `npm run proxy` na rovnakom počítači. HTTPS web lokálny bridge
-automaticky vyhľadá ešte pred načítaním playlistov a EPG.
+Web prehráva video **priamo od poskytovateľa alebo cez tvoj počítač, nikdy cez
+Vercel proxy**. V Nastavenia › Sieť má samostatnú voľbu webového videa:
+
+- **Auto: priamo → lokálny bridge** (predvolené): HTTPS skúsi priamo; pri
+  sieťovej/CORS chybe prepne na spárovaný bridge. HTTP na HTTPS stránke pošle
+  rovno cez bridge, pretože ho prehliadač priamo blokuje.
+- **Iba priamo**: bez lokálneho fallbacku.
+- **Iba lokálny bridge**: všetko video cez spárovaný bridge.
+
+**Jednoduché spustenie na Windows:**
+1. Na webe klikni **Stiahnuť TCLV Bridge (ZIP)** v Nastavenia › Sieť.
+2. Rozbaľ celý ZIP a dvojklikom spusti **Start TCLV Bridge.cmd**.
+3. Klikni **Nájsť bridge**, zadaj kód z jeho okna a klikni **Spárovať bridge**.
+4. Povoľ prístup k lokálnej sieti, ak ho prehliadač vyžiada. Po zamietnutí ho
+   treba povoliť v nastaveniach stránky; stránka ho nevie sama obísť.
+5. Nechaj okno bridge otvorené. Čakajúci stream sa po párovaní skúsi automaticky.
+
+Malý webový ZIP potrebuje **Node.js 22+**, ale nepotrebuje `npm install`, Git
+ani príkazy npm. V repozitári funguje aj `bridge/Start TCLV Bridge.cmd` alebo
+pôvodný alias `npm run proxy`. `npm run bridge:portable` na Windows vytvorí
+väčší lokálny ZIP s aktuálnym Node runtime; tento balík sa automaticky na
+Vercel neposiela. Bridge nevyžaduje inštaláciu ani nemení štart systému.
+
+Bridge a prehliadač musia bežať **na rovnakom počítači**, nie na inom zariadení
+v LAN. Pomocník počúva len na `127.0.0.1`, štandardne na prvom voľnom porte
+3939–3941. Povolené sú len presné origins produkčného webu a lokálneho vývoja
+na porte 3000. Pre testovací web môžeš explicitne doplniť
+`TCLV_BRIDGE_ORIGINS`; nepovoľuj nedôveryhodné stránky.
+
+Párovanie vytvorí origin-bound session na najviac 12 hodín, uloženú len
+v `sessionStorage` tejto karty. Reštart bridge vyžaduje nové párovanie.
+Video používa nepriehľadné lokálne media tickets namiesto URL s prihlasovacími
+údajmi; bridge neposiela svoj token, cookies ani browser Authorization
+poskytovateľovi. HLS varianty, segmenty, kľúče a init segmenty sa prepíšu na
+lokálne tickets, pričom relatívne cesty vychádzajú z posledného presmerovania.
+Každá destinácia má DNS/private-network kontrolu a pripnutú DNS odpoveď.
+Bridge podporuje byte ranges a zruší upstream, keď prehliadač ukončí sťahovanie.
+HLS manifesty majú limit 2 MiB, aj po rozbalení gzip/deflate/brotli.
+**Neprekóduje video**, neodstraňuje DRM ani geo-blokovanie. Manifesty s HLS
+premennými sú odmietnuté namiesto posielania segmentov nesprávnou cestou.
 
 Playlisty a EPG sa najprv načítajú priamo. Pri CORS/mixed-content chybe môže
-web použiť proxy nastavený v Nastavenia › Sieť. Vstavaný Vercel proxy prijíma
+web použiť spárovaný lokálny bridge, prípadne source proxy nastavený v
+Nastavenia › Sieť. Nastavenie zdrojového proxy ostáva oddelené od videa,
+vlastný proxy ani jeho vypnutie sa párovaním neprepíše. Vstavaný Vercel proxy prijíma
 iba M3U/XSPF playlisty a XMLTV EPG, nie HLS manifesty ani video segmenty.
 Limit je **3 MiB pred aj po rozbalení gzip**, časový limit sťahovania 15 sekúnd.
 Väčšie zdroje načítaj priamo, zo súboru, cez lokálny bridge alebo v natívnej aplikácii.
@@ -180,7 +218,9 @@ aktívneho sieťového playlistu vynúti nové stiahnutie. Vlastné nastavenie p
 vrátane vypnutia zostáva zachované pri ďalšom otvorení webu.
 
 **Vercel:** build command `npm run prepare:vercel`, output directory
-`dist/vercel`. Nasadí sa iba webový bundle a obmedzený `/api/proxy`;
+`dist/vercel`. Iba tento browser build obsahuje bridge integráciu a malý
+samostatný ZIP. `app.js`, `index.html`, `styles.css` aj štandardný `dist/web`
+pre natívne aplikácie zostávajú nezmenené. Nasadí sa iba webový bundle a obmedzený `/api/proxy`;
 natívne šablóny, testy a ďalšie zdrojové súbory sa verejne neservujú.
 Inštalácia `npm ci --omit=dev --ignore-scripts` vynecháva Electron,
 Android CLI a ostatné vývojové závislosti, ktoré webový hosting nepotrebuje.

@@ -9,12 +9,19 @@ Všetky významné zmeny v projekte sú dokumentované v tomto súbore.
 
 ## [Unreleased]
 
+### Added
+- Browser-only Auto/direct/local-bridge video modes, pairing UI, reconnect guidance, and automatic retry after pairing, including multiview.
+- Standalone TCLV Bridge ZIP and Windows double-click launcher, independent of the existing native applications.
+- Bridge authentication, origin allowlisting, opaque media tickets, HLS rewriting, checked redirects, pinned public DNS, range requests, and upstream cancellation.
+- Bridge/client/build regression coverage, including byte-for-byte unchanged native web assets.
+
 ### Changed
 - Web video plays directly from the provider or through the loopback bridge; the Vercel proxy no longer relays video, HLS manifests, or segments.
 - New web installations default to HTML5. Saved player selections and Windows/Android networking remain unchanged.
 - Playlist/EPG downloads try direct access first, share in-flight requests, and use a bounded browser cache (EPG: 6 hours; playlists: 15 minutes).
 - Local bridge detection completes before startup downloads and preserves custom or disabled proxy settings.
 - Vercel builds an isolated `dist/vercel` web bundle rather than serving the repository root.
+- Bridge integration is attached only to the browser build; shared player assets and Windows/Android code are untouched. Local `npm run web` serves that browser build.
 
 ### Security
 - Source-only proxy validates source URLs and response content, rejects cross-origin browser requests, bounds compressed/decompressed bodies to 3 MiB, and aborts downloads after 15 seconds.
