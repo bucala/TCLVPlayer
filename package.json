@@ -48,7 +48,7 @@
     "hls.js": "^1.5.20",
     "jplayer": "^2.9.2",
     "jquery": "^4.0.0",
-    "mpegts.js": "^1.8.0",
+    "mpegts.js": "^1.8.1",
     "video.js": "^8.23.9"
   },
   "devDependencies": {
