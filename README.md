@@ -59,7 +59,8 @@ npm install
 |:----------|:-------|:-------|
 | 🌐 **Web** | `npm run web` | `http://127.0.0.1:3000` |
 | 🌐 **Web + bridge** | dvojklik `bridge/Start TCLV Bridge.cmd` | Lokálny bridge, párovanie v Nastavenia › Sieť |
-| 📦 **Bridge ZIP** | `npm run bridge:package` | `dist/bridge/TCLV-Bridge.zip`, bez npm závislostí |
+| 📦 **Windows Bridge ZIP** | `npm run bridge:portable` | `dist/bridge/TCLV-Bridge-Windows-portable.zip`, vrátane Node.js |
+| 📦 **Bridge zdrojový ZIP** | `npm run bridge:package` | `dist/bridge/TCLV-Bridge.zip`, pre vývojárov s Node.js 22+ |
 | 🖥️ **Windows** | `npm run windows` | Electron okno |
 | 📦 **Windows `.exe`** | `npm run windows:dist` | `dist/` — NSIS + portable |
 | 🤖 **Android setup** | `npm run android:setup` | Capacitor projekt |
@@ -173,18 +174,23 @@ Vercel proxy**. V Nastavenia › Sieť má samostatnú voľbu webového videa:
 - **Iba lokálny bridge**: všetko video cez spárovaný bridge.
 
 **Jednoduché spustenie na Windows:**
-1. Na webe klikni **Stiahnuť TCLV Bridge (ZIP)** v Nastavenia › Sieť.
-2. Rozbaľ celý ZIP a dvojklikom spusti **Start TCLV Bridge.cmd**.
+1. Na webe klikni **Stiahnuť TCLV Bridge pre Windows (ZIP)** v Nastavenia › Sieť.
+2. Klikni pravým tlačidlom na ZIP a zvoľ **Rozbaliť všetko**.
+   Až v rozbalenom priečinku `TCLV-Bridge` dvojklikom spusti **Start TCLV Bridge.cmd**,
+   nie priamo v archíve. Všetky rozbalené súbory nechaj spolu.
 3. Klikni **Nájsť bridge**, zadaj kód z jeho okna a klikni **Spárovať bridge**.
 4. Povoľ prístup k lokálnej sieti, ak ho prehliadač vyžiada. Po zamietnutí ho
    treba povoliť v nastaveniach stránky; stránka ho nevie sama obísť.
 5. Nechaj okno bridge otvorené. Čakajúci stream sa po párovaní skúsi automaticky.
 
-Malý webový ZIP potrebuje **Node.js 22+**, ale nepotrebuje `npm install`, Git
-ani príkazy npm. V repozitári funguje aj `bridge/Start TCLV Bridge.cmd` alebo
-pôvodný alias `npm run proxy`. `npm run bridge:portable` na Windows vytvorí
-väčší lokálny ZIP s aktuálnym Node runtime; tento balík sa automaticky na
-Vercel neposiela. Bridge nevyžaduje inštaláciu ani nemení štart systému.
+Webový ZIP pre **64-bitový Windows obsahuje Node.js**, jeho licenciu a verziu.
+Netreba inštalovať Node.js, Git ani spúšťať `npm install`.
+Build stiahne pevne určenú oficiálnu Windows verziu Node.js a pred zabalením
+overí SHA-256 podľa manifestu vydania; funguje aj na Linuxe/Verceli.
+`npm run bridge:portable` vytvorí rovnaký samostatný Windows balík lokálne.
+Menší `npm run bridge:package` vytvára zdrojový balík pre vývojárov s **Node.js 22+**.
+V repozitári funguje aj `bridge/Start TCLV Bridge.cmd` alebo pôvodný alias
+`npm run proxy`. Bridge nevyžaduje inštaláciu ani nemení štart systému.
 
 Bridge a prehliadač musia bežať **na rovnakom počítači**, nie na inom zariadení
 v LAN. Pomocník počúva len na `127.0.0.1`, štandardne na prvom voľnom porte
@@ -218,8 +224,10 @@ aktívneho sieťového playlistu vynúti nové stiahnutie. Vlastné nastavenie p
 vrátane vypnutia zostáva zachované pri ďalšom otvorení webu.
 
 **Vercel:** build command `npm run prepare:vercel`, output directory
-`dist/vercel`. Iba tento browser build obsahuje bridge integráciu a malý
-samostatný ZIP. `app.js`, `index.html`, `styles.css` aj štandardný `dist/web`
+`dist/vercel`. Iba tento browser build obsahuje bridge integráciu a
+samostatný Windows ZIP s runtime. Testovací prepínač `--source-bridge` vynechá
+sťahovanie runtime; bežný produkčný build ho vždy zahŕňa.
+`app.js`, `index.html`, `styles.css` aj štandardný `dist/web`
 pre natívne aplikácie zostávajú nezmenené. Nasadí sa iba webový bundle a obmedzený `/api/proxy`;
 natívne šablóny, testy a ďalšie zdrojové súbory sa verejne neservujú.
 Inštalácia `npm ci --omit=dev --ignore-scripts` vynecháva Electron,

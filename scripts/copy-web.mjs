@@ -59,5 +59,8 @@ if (browserBuild) {
   await writeFile(join(outDir, "index.html"), html
     .replace('<link rel="stylesheet" href="./styles.css" />', '<link rel="stylesheet" href="./styles.css" />\n    <link rel="stylesheet" href="./bridge.css" />')
     .replace('<script src="./app.js"></script>', '<script src="./bridge-client.js"></script>\n    <script src="./bridge-player.js"></script>\n    <script src="./app.js"></script>'));
-  await createBridgePackage(join(outDir, "downloads", "TCLV-Bridge.zip"));
+  // Tests can omit the large download; the normal Vercel build is self-contained.
+  await createBridgePackage(join(outDir, "downloads", "TCLV-Bridge.zip"), {
+    runtime: !process.argv.includes("--source-bridge"),
+  });
 }

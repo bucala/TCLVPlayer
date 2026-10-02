@@ -1,16 +1,18 @@
 TCLV Bridge, standalone helper for the WEB player only
 
-Windows:
-1. Extract the complete folder.
-2. Double-click "Start TCLV Bridge.cmd".
-3. In the web player, open Settings > Network > Pair bridge.
-4. Enter the pairing code shown in the bridge window.
-5. If your browser asks for access to the local network, allow it for TCLVPlayer.
-6. Leave the bridge window open while watching.
+Windows (64-bit):
+1. Right-click the downloaded ZIP and choose "Extract all".
+2. Open the extracted TCLV-Bridge folder, not the folder inside the ZIP.
+3. Double-click "Start TCLV Bridge.cmd". Keep all extracted files together.
+4. In the web player, open Settings > Network > Find bridge.
+5. Enter the pairing code shown in the bridge window and click Pair bridge.
+6. If your browser asks for access to the local network, allow it for TCLVPlayer.
+7. Leave the bridge window open while watching.
 
-The portable Windows package includes a Node.js runtime. The smaller source
-package requires Node.js 22 or newer from https://nodejs.org/. No npm commands
-or dependency installation are needed.
+The ZIP downloaded from the web player includes the Windows Node.js runtime.
+You do not need to install Node.js, npm or other dependencies.
+The optional developer source-only package requires Node.js 22 or newer
+from https://nodejs.org/.
 
 Other systems: run "node start.mjs". The browser and helper must run on the
 same computer. This is not an Android service or a LAN proxy.

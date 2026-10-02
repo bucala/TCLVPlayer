@@ -12,8 +12,8 @@ window.TCLVWebPlayer = function(host) {
     sk: {
       bridgeMode: "Webové video", bridgeAuto: "Auto: priamo → lokálny bridge", bridgeDirect: "Iba priamo",
       bridgeOnly: "Iba lokálny bridge", bridgeConnect: "Nájsť bridge", bridgePair: "Spárovať bridge",
-      bridgeDisconnect: "Odpojiť", bridgeCode: "Párovací kód z okna bridge", bridgeDownload: "Stiahnuť TCLV Bridge (ZIP)",
-      bridgeInstall: "Rozbaľte ZIP a dvojklikom spustite Start TCLV Bridge.cmd. Vyžaduje Node.js 22+. Pri párovaní nechajte okno bridge otvorené.",
+      bridgeDisconnect: "Odpojiť", bridgeCode: "Párovací kód z okna bridge", bridgeDownload: "Stiahnuť TCLV Bridge pre Windows (ZIP)",
+      bridgeInstall: "ZIP obsahuje všetko, Node.js netreba inštalovať. Kliknite pravým na ZIP › Rozbaliť všetko. Až v rozbalenom priečinku spustite Start TCLV Bridge.cmd. Nie priamo v ZIP. Okno bridge nechajte otvorené.",
       bridgePrivacy: "Poskytovateľ → tento počítač → prehliadač. Bridge ani video neprechádzajú cez Vercel.",
       bridgePermission: "Ak prehliadač žiada prístup k lokálnej sieti, povoľte ho pre TCLVPlayer. Po zamietnutí zmeňte povolenie lokálnej siete v nastaveniach stránky a skúste znovu. Bridge musí bežať na tom istom počítači.",
       bridgeMissing: "Bridge nie je pripojený. Spustite ho a kliknite Nájsť bridge.",
@@ -29,8 +29,8 @@ window.TCLVWebPlayer = function(host) {
     en: {
       bridgeMode: "Web video", bridgeAuto: "Auto: direct → local bridge", bridgeDirect: "Direct only",
       bridgeOnly: "Local bridge only", bridgeConnect: "Find bridge", bridgePair: "Pair bridge",
-      bridgeDisconnect: "Disconnect", bridgeCode: "Pairing code from the bridge window", bridgeDownload: "Download TCLV Bridge (ZIP)",
-      bridgeInstall: "Extract the ZIP and double-click Start TCLV Bridge.cmd. Requires Node.js 22+. Keep the bridge window open while pairing.",
+      bridgeDisconnect: "Disconnect", bridgeCode: "Pairing code from the bridge window", bridgeDownload: "Download TCLV Bridge for Windows (ZIP)",
+      bridgeInstall: "The ZIP includes everything; no Node.js installation needed. Right-click the ZIP > Extract all. Run Start TCLV Bridge.cmd from the extracted folder, not inside the ZIP. Keep its window open.",
       bridgePrivacy: "Provider → this computer → browser. Neither the bridge nor video goes through Vercel.",
       bridgePermission: "If your browser asks for local-network access, allow it for TCLVPlayer. If denied, change the local-network permission in site settings and retry. The bridge must run on the same computer.",
       bridgeMissing: "Bridge is not connected. Start it and click Find bridge.",

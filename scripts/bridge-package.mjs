@@ -2,8 +2,54 @@ import { readFile, mkdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { deflateRawSync } from "node:zlib";
+import { createHash } from "node:crypto";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
+export const WINDOWS_NODE_VERSION = "v24.16.0";
+const RELEASE_URL = `https://nodejs.org/dist/${WINDOWS_NODE_VERSION}/`;
+const MAX_RUNTIME_BYTES = 120 * 1024 * 1024;
+
+async function download(url, maximum, request) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 120000);
+  try {
+    const response = await request(url, { signal: controller.signal, redirect: "error" });
+    if (!response.ok || !response.body || Number(response.headers.get("content-length")) > maximum) {
+      await response.body?.cancel().catch(() => {});
+      throw new Error("Could not download the official Windows runtime");
+    }
+    const reader = response.body.getReader();
+    const chunks = [];
+    let size = 0;
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        size += value.length;
+        if (size > maximum) throw new Error("Official runtime download exceeded its size limit");
+        chunks.push(Buffer.from(value));
+      }
+    } catch (error) {
+      await reader.cancel().catch(() => {});
+      throw error;
+    } finally { reader.releaseLock(); }
+    return Buffer.concat(chunks, size);
+  } finally { clearTimeout(timer); }
+}
+
+export async function downloadWindowsRuntime({ request = fetch } = {}) {
+  const [checksums, executable, license] = await Promise.all([
+    download(RELEASE_URL + "SHASUMS256.txt", 128 * 1024, request),
+    download(RELEASE_URL + "win-x64/node.exe", MAX_RUNTIME_BYTES, request),
+    download(`https://raw.githubusercontent.com/nodejs/node/${WINDOWS_NODE_VERSION}/LICENSE`, 2 * 1024 * 1024, request),
+  ]);
+  const expected = checksums.toString("utf8").match(/^([a-f0-9]{64})\s+win-x64\/node\.exe\s*$/m)?.[1];
+  const actual = createHash("sha256").update(executable).digest("hex");
+  if (!expected || actual !== expected || executable.subarray(0, 2).toString() !== "MZ") {
+    throw new Error("Official Windows runtime failed checksum verification");
+  }
+  return { executable, license, version: WINDOWS_NODE_VERSION };
+}
 const crcTable = Array.from({ length: 256 }, (_, index) => {
   let crc = index;
   for (let bit = 0; bit < 8; bit++) crc = (crc >>> 1) ^ (crc & 1 ? 0xedb88320 : 0);
@@ -15,19 +61,15 @@ function crc32(bytes) {
   return (crc ^ 0xffffffff) >>> 0;
 }
 
-export async function createBridgePackage(destination, { runtime = false } = {}) {
+export async function createBridgePackage(destination, { runtime = false, loadRuntime = downloadWindowsRuntime } = {}) {
   const files = ["start.mjs", "server.mjs", "security.mjs", "Start TCLV Bridge.cmd", "README.txt"];
   const entries = await Promise.all(files.map(async name => ({ name: "TCLV-Bridge/" + name, data: await readFile(resolve(root, "bridge", name)) })));
   entries.push({ name: "TCLV-Bridge/LICENSE", data: await readFile(resolve(root, "LICENSE")) });
   if (runtime) {
-    if (process.platform !== "win32") throw new Error("Portable Windows runtime packaging must run on Windows");
-    entries.push({ name: "TCLV-Bridge/node.exe", data: await readFile(process.execPath) });
-    const license = await fetch(`https://raw.githubusercontent.com/nodejs/node/${process.version}/LICENSE`);
-    if (!license.ok || Number(license.headers.get("content-length")) > 2 * 1024 * 1024) throw new Error("Could not obtain the matching Node.js license");
-    const licenseData = Buffer.from(await license.arrayBuffer());
-    if (licenseData.length > 2 * 1024 * 1024) throw new Error("Unexpected Node.js license size");
-    entries.push({ name: "TCLV-Bridge/NODE-LICENSE", data: licenseData });
-    entries.push({ name: "TCLV-Bridge/NODE-VERSION.txt", data: Buffer.from(process.version + "\n") });
+    const windows = await loadRuntime();
+    entries.push({ name: "TCLV-Bridge/node.exe", data: windows.executable });
+    entries.push({ name: "TCLV-Bridge/NODE-LICENSE", data: windows.license });
+    entries.push({ name: "TCLV-Bridge/NODE-VERSION.txt", data: Buffer.from(windows.version + "\n") });
   }
   const localParts = [];
   const centralParts = [];

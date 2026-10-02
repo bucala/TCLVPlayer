@@ -16,6 +16,8 @@ Všetky významné zmeny v projekte sú dokumentované v tomto súbore.
 - Bridge/client/build regression coverage, including byte-for-byte unchanged native web assets.
 
 ### Changed
+- The web bridge download now includes a pinned, SHA-256-verified Windows Node.js runtime and its matching license, including when built on Linux/Vercel.
+- Bridge setup and the launcher explain Extract all and detect incomplete ZIP extraction; Windows users no longer need to install Node.js.
 - Web video plays directly from the provider or through the loopback bridge; the Vercel proxy no longer relays video, HLS manifests, or segments.
 - New web installations default to HTML5. Saved player selections and Windows/Android networking remain unchanged.
 - Playlist/EPG downloads try direct access first, share in-flight requests, and use a bounded browser cache (EPG: 6 hours; playlists: 15 minutes).
