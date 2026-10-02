@@ -76,9 +76,39 @@ export default [
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: "module",
+      globals: {
+        fetch: "readonly",
+        Response: "readonly",
+        ReadableStream: "readonly",
+        URL: "readonly",
+        Blob: "readonly",
+        TextEncoder: "readonly",
+        TextDecoder: "readonly",
+        AbortController: "readonly",
+        setTimeout: "readonly",
+        clearTimeout: "readonly",
+      },
     },
   },
   {
-    ignores: ["dist/", "android/", "node_modules/", "api/"],
+    files: ["api/*.js"],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: "module",
+      globals: {
+        fetch: "readonly",
+        URL: "readonly",
+        Buffer: "readonly",
+        AbortController: "readonly",
+        setTimeout: "readonly",
+        clearTimeout: "readonly",
+      },
+    },
+    rules: {
+      "no-empty": ["error", { allowEmptyCatch: true }],
+    },
+  },
+  {
+    ignores: ["dist/", "android/", "node_modules/", ".codex-worktrees/"],
   },
 ];

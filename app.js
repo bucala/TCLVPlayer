@@ -40,8 +40,14 @@ function exportableSourceRecord(item) {
 
 const translations = {
   sk: {
+    webNetworkHint: "Video ide priamo od poskytovateľa, nikdy cez Vercel. Proxy slúži len pre playlisty a EPG. Pre HTTP/CORS streamy použite lokálny proxy alebo Windows/Android aplikáciu.",
+    webStreamHint: "Web neposiela video cez Vercel. Tento stream potrebuje HTTPS/CORS alebo lokálny proxy (npm run proxy). Použite prípadne Windows/Android aplikáciu.",
+    sourceTooLarge: "Zdroj prekračuje 3 MiB limit Vercel proxy. Načítajte ho priamo, zo súboru, cez lokálny proxy alebo v natívnej aplikácii.",
     tagline: "Jednoduchy IPTV prehravac", openPlaylist: "Playlist", openEpg: "EPG", load: "Nacitat", loadEpg: "Nacitat EPG", guide: "Program", noChannels: "Nacitajte M3U/M3U8 alebo XSPF playlist v Nastaveniach.", noEpg: "EPG este nie je nacitane.", noProgram: "Program nie je dostupny", now: "Teraz", next: "Nasleduje", html5Notice: "HTML5 video prehravac je aktivny. Niektore HLS streamy (.m3u8) potrebuju nativnu podporu prehliadaca.", optionalMissing: "Tento player nie je pribaleny. Nacitajte jeho kniznicu alebo pouzite HTML5.",  loadError: "Nepodarilo sa nacitat zdroj.", playlistLoaded: "Playlist nacitany", epgLoaded: "EPG nacitane", logoTitle: "Vybrat logo", settingsPlayer: "Prehrávač & Jazyk", labelPlayer: "Prehrávač", labelLanguage: "Jazyk", settingsPlaylists: "Playlisty", addPlaylist: "Pridať URL", settingsEpg: "EPG zdroje", weakTvPlayerHint: "Na starších/pomalších Android TV odporúčame prehrávač \"Natívny\" — spustí stream v systémovej video appke (napr. MX Player, VLC) s hardvérovým dekódovaním namiesto prehrávania v appke.", addEpg: "Pridať EPG", importEpgList: "Import EPG", exportEpgList: "Export EPG", epgListImported: "EPG zdroje importované", epgListExported: "Zoznam EPG exportovaný", epgListEmpty: "Súbor neobsahuje žiadne platné EPG riadky (Nazov = URL).", epgHint: "Všetky zdroje sa načítajú a zlúčia.", settingsNetwork: "Sieť", labelCorsProxy: "CORS proxy (len web)", corsHint: "Na Verceli sa automaticky použije vstavaný proxy. Electron a Android ho nepotrebujú.", searchEpg: "Hladat v programe", corsNeeded: "CORS chyba — nastavte CORS proxy v Nastaveniach > Sieť.", proxyBlocked: "Proxy blokuje požiadavku. Skúste iný CORS proxy.", streamUnavailable: "Stream nie je dostupný — server odmietol pripojenie alebo je geo-blokovaný.", clickToPlay: "Kliknite na video pre spustenie prehrávania.", local: "lokálny", network: "sieťový", epgAutoDetected: "EPG zdroje automaticky detegované z playlistu", proxyChanged: "CORS proxy uložený. Znovu načítavam EPG…", qualityNative: "Natívna", qualityHigh: "Vysoká (1080p)", qualityMedium: "Stredná (720p)", qualityLow: "Nízka (360p)", labelQuality: "Kvalita videa", searchChannels: "Hľadať kanály", groupAll: "Všetky", groupFavorites: "Obľúbené", settingsXtream: "Xtream Codes API", xtreamHint: "Prihlasovacie údaje od IPTV poskytovateľa.", addXtream: "Načítať", xtreamLoading: "Načítavanie Xtream playlistu…", settingsBackup: "Export / Import", backupHint: "Zálohovanie a obnovenie nastavení, playlistov a obľúbených.", exportSettings: "Exportovať", importSettings: "Importovať", settingsImported: "Nastavenia obnovené.", catchupAvailable: "Archív dostupný", catchupTitle: "Archív", catchupUnavailable: "Archív nie je dostupný pre tento kanál.", rtmpUnsupported: "RTMP/RTSP streamy nie sú podporované v prehliadači. Použite natívnu aplikáciu (Android/Electron).", reconnecting: "Opätovné pripájanie…", localProxyFound: "Lokálny proxy nájdený — streamy pôjdu priamo bez Vercel proxy.", localProxyHint: "Tip: Spustite 'npm run proxy' na lokálnom PC — streamy pôjdu priamo cez vašu sieť.", locked: "Obrazovka zamknutá", unlocked: "Obrazovka odomknutá", autostartOn: "Automatický štart zapnutý", autostartOff: "Automatický štart vypnutý", backgroundPlaybackOn: "Prehrávanie na pozadí zapnuté", backgroundPlaybackOff: "Prehrávanie na pozadí vypnuté", holdLockHint: "Podržte zámok 2 sekundy",   },
   en: {
+    webNetworkHint: "Video comes directly from the provider, never through Vercel. The proxy is only for playlists and EPG. For HTTP/CORS streams use the local proxy or Windows/Android app.",
+    webStreamHint: "The web player never sends video through Vercel. This stream needs HTTPS/CORS or the local proxy (npm run proxy). Alternatively use the Windows/Android app.",
+    sourceTooLarge: "The source exceeds the 3 MiB Vercel proxy limit. Load it directly, from a file, through the local proxy, or in the native app.",
     tagline: "Simple IPTV player", openPlaylist: "Playlist", openEpg: "EPG", load: "Load", loadEpg: "Load EPG", guide: "Guide", noChannels: "Load an M3U/M3U8 or XSPF playlist in Settings.", noEpg: "EPG is not loaded yet.", noProgram: "Program is not available", now: "Now", next: "Next", html5Notice: "HTML5 video player is active. Some HLS streams (.m3u8) need native browser support.", optionalMissing: "This player is not bundled. Load its library or use HTML5.",  loadError: "Could not load the source.", playlistLoaded: "Playlist loaded", epgLoaded: "EPG loaded", logoTitle: "Choose logo", settingsPlayer: "Player & Language", labelPlayer: "Player", labelLanguage: "Language", settingsPlaylists: "Playlists", addPlaylist: "Add URL", settingsEpg: "EPG sources", weakTvPlayerHint: "On older/slower Android TVs we recommend the \"Native\" player — it launches the stream in a system video app (e.g. MX Player, VLC) with hardware decoding instead of playing inside the app.", addEpg: "Add EPG", importEpgList: "Import EPG", exportEpgList: "Export EPG", epgListImported: "EPG sources imported", epgListExported: "EPG list exported", epgListEmpty: "The file has no valid EPG lines (Name = URL).", epgHint: "All sources are loaded and merged.", settingsNetwork: "Network", labelCorsProxy: "CORS proxy (web only)", corsHint: "Built-in proxy is used automatically on Vercel. Electron and Android do not need it.", searchEpg: "Search programs", corsNeeded: "CORS error — set a CORS proxy in Settings > Network.", proxyBlocked: "Proxy is blocking the request. Try a different CORS proxy.", streamUnavailable: "Stream is unavailable — server refused or geo-blocked.", clickToPlay: "Click the video to start playback.", local: "local", network: "network", epgAutoDetected: "EPG sources auto-detected from playlist", proxyChanged: "CORS proxy saved. Reloading EPG…", qualityNative: "Native", qualityHigh: "High (1080p)", qualityMedium: "Medium (720p)", qualityLow: "Low (360p)", labelQuality: "Video quality", searchChannels: "Search channels", groupAll: "All", groupFavorites: "Favorites", settingsXtream: "Xtream Codes API", xtreamHint: "Enter credentials from your IPTV provider.", addXtream: "Load", xtreamLoading: "Loading Xtream playlist…", settingsBackup: "Export / Import", backupHint: "Back up and restore all settings, playlists and favourites.", exportSettings: "Export", importSettings: "Import", settingsImported: "Settings restored.", catchupAvailable: "Archive available", catchupTitle: "Archive", catchupUnavailable: "Archive not available for this channel.", rtmpUnsupported: "RTMP/RTSP streams are not supported in the browser. Use the native app (Android/Electron).", reconnecting: "Reconnecting…", localProxyFound: "Local proxy found — streams will bypass Vercel proxy.", localProxyHint: "Tip: Run 'npm run proxy' on your local PC — streams will go directly through your network.", locked: "Screen locked", unlocked: "Screen unlocked", autostartOn: "Autostart enabled", autostartOff: "Autostart disabled", backgroundPlaybackOn: "Background playback enabled", backgroundPlaybackOff: "Background playback disabled", holdLockHint: "Hold lock for 2 seconds",   }
 };
 
@@ -66,32 +72,30 @@ var LOCAL_PROXY_PORTS = [3939, 3940, 3941];
 function detectCorsProxySync() {
   var platform = getPlatform();
   if (platform === 'electron' || platform === 'android' || platform === 'web-http') return '';
-  if (platform === 'web-https') return location.origin + '/api/proxy?url=';
+  if (platform === 'web-https') return safeGet("tclv.corsProxy", location.origin + '/api/proxy?url=');
   return safeGet("tclv.corsProxy", "");
 }
 async function detectLocalProxy() {
-  if (getPlatform() !== 'web-https') return;
-  for (var i = 0; i < LOCAL_PROXY_PORTS.length; i++) {
-    var base = 'http://127.0.0.1:' + LOCAL_PROXY_PORTS[i];
+  if (getPlatform() !== 'web-https' || safeGet('tclv.corsProxy', null) === '') return;
+  var configured = state.corsProxy;
+  if (configured && !usingVercelProxy() && !canProxyStreams()) return;
+  var results = await Promise.all(LOCAL_PROXY_PORTS.map(async function(port) {
+    var base = 'http://127.0.0.1:' + port;
+    var ctrl = new AbortController();
+    var timer = setTimeout(function() { ctrl.abort(); }, 750);
     try {
-      var ctrl = new AbortController();
-      var timer = setTimeout(function() { ctrl.abort(); }, 1500);
       var resp = await fetch(base + '/ping', { signal: ctrl.signal });
-      clearTimeout(timer);
-      if (resp.ok) {
-        var proxyUrl = base + '/proxy?url=';
-        state.corsProxy = proxyUrl;
-        safeSet('tclv.localProxy', proxyUrl);
-        if (dom.corsProxyInput) dom.corsProxyInput.value = proxyUrl;
-        showMessage(t('localProxyFound'));
-        return;
-      }
-    } catch {}
-  }
-  safeSet('tclv.localProxy', '');
-  var fallback = location.origin + '/api/proxy?url=';
-  state.corsProxy = fallback;
-  if (dom.corsProxyInput) dom.corsProxyInput.value = fallback;
+      return resp.ok ? base + '/proxy?url=' : '';
+    } catch { return ''; }
+    finally { clearTimeout(timer); }
+  }));
+  if (state.corsProxy !== configured) return;
+  var localProxy = results.find(Boolean) || '';
+  safeSet('tclv.localProxy', localProxy);
+  if (!localProxy) return;
+  state.corsProxy = localProxy;
+  if (dom.corsProxyInput) dom.corsProxyInput.value = localProxy;
+  showMessage(t('localProxyFound'));
 }
 
 function platformPlayerKey(platform) {
@@ -100,14 +104,14 @@ function platformPlayerKey(platform) {
 function fallbackPlayer(platform) {
   if (platform === 'android') return 'html5';
   if (platform === 'electron') return 'html5';
-  return 'artplayer';
+  return 'html5';
 }
 function saveCurrentPlayer() {
   safeSet(platformPlayerKey(), state.player);
 }
 function platformPlayersSnapshot() {
   return {
-    web: safeGet('tclv.player.web-https', safeGet('tclv.player.web-http', 'artplayer')),
+    web: safeGet('tclv.player.web-https', safeGet('tclv.player.web-http', 'html5')),
     webHttp: safeGet('tclv.player.web-http', ''),
     webHttps: safeGet('tclv.player.web-https', ''),
     windows: safeGet('tclv.player.electron', 'html5'),
@@ -587,6 +591,14 @@ async function playInSlot1(channel) {
   destroySlot1();
   if (!dom.video2) return;
   var url = channel.url;
+  if (dom.playerMessage2) dom.playerMessage2.style.display = 'none';
+  if (isBlockedWebStream(url)) {
+    if (dom.playerMessage2) {
+      dom.playerMessage2.textContent = t('webStreamHint');
+      dom.playerMessage2.style.display = 'block';
+    }
+    return;
+  }
   var type = getStreamType(url);
   try {
     if (type === 'hls') {
@@ -1215,6 +1227,7 @@ function showMessage(message, duration) {
 function hideMessage() { clearTimeout(_messageTimer); dom.playerMessage.style.display = 'none'; dom.playerMessage.textContent = ''; }
 function streamUrl(url) {
   if (needsProxy(url)) return proxyUrl(url);
+  if (isBlockedWebStream(url)) throw new Error(t('webStreamHint'));
   return url;
 }
 function hlsConfig(url, forceProxy) {
@@ -1243,16 +1256,19 @@ function hlsConfig(url, forceProxy) {
     cfg.maxBufferLength = 20;
     cfg.lowLatencyMode = false;
   }
-  if (forceProxy || needsProxy(url)) {
+  if ((forceProxy && canProxyStreams()) || needsProxy(url) || getPlatform() === 'web-https') {
     cfg.xhrSetup = function(xhr, u) {
-      xhr.open('GET', proxyUrl(u), true);
-      Object.defineProperty(xhr, 'responseURL', { get: function() { return u; } });
+      if (isBlockedWebStream(u)) throw new Error(t('webStreamHint'));
+      if ((forceProxy && canProxyStreams()) || needsProxy(u)) {
+        xhr.open('GET', proxyUrl(u), true);
+        Object.defineProperty(xhr, 'responseURL', { get: function() { return u; } });
+      }
     };
   }
   return cfg;
 }
 function canUseProxyFallback(url, forceProxy) {
-  return !forceProxy && getPlatform() === 'web-https' && state.corsProxy && /^https?:\/\//i.test(String(url || ''));
+  return !forceProxy && getPlatform() === 'web-https' && canProxyStreams() && /^https?:\/\//i.test(String(url || ''));
 }
 function tryHlsPlayback(url, forceProxy) {
   destroyHls();
@@ -1505,6 +1521,14 @@ function setPlayerActive(active) {
   syncAndroidPlaybackActive(active);
 }
 function playChannel(channel) {
+  if (isBlockedWebStream(channel.url)) {
+    stopInternalPlayers();
+    dom.video.removeAttribute('src'); dom.video.load();
+    setPlayerActive(false);
+    setStreamStatus(channel.id, 'error');
+    showMessage(t('webStreamHint'), 0);
+    return;
+  }
   hideMessage(); safeSet('tclv.lastChannel', channel.id); setPlayerActive(true);
   delete state.streamStatus[channel.id]; updateChannelStatusDot(channel.id);
   var expectedId = channel.id;
@@ -1563,11 +1587,30 @@ function getPlatform() {
 function needsProxy(url) {
   var platform = getPlatform();
   if (platform === 'electron' || platform === 'android' || platform === 'web-http') return false;
-  return state.corsProxy && isMixedContent(url);
+  return canProxyStreams() && isMixedContent(url);
 }
 function isMixedContent(url) { return location.protocol === 'https:' && String(url || '').startsWith('http://'); }
-function usingVercelProxy() { return getPlatform() === 'web-https' && state.corsProxy && state.corsProxy.includes('/api/proxy'); }
-function streamErrorMsg() { return t('streamUnavailable') + (usingVercelProxy() ? ' ' + t('localProxyHint') : ''); }
+function usingVercelProxy() {
+  if (isNativePlatform() || !state.corsProxy) return false;
+  try { return new URL(state.corsProxy, location.origin).pathname === '/api/proxy'; } catch { return false; }
+}
+function canProxyStreams() {
+  if (isNativePlatform() || !state.corsProxy) return false;
+  try {
+    var url = new URL(state.corsProxy, location.origin);
+    return ['http:', 'https:'].includes(url.protocol) &&
+      ['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname) && url.pathname === '/proxy';
+  } catch { return false; }
+}
+function isBlockedWebStream(url) {
+  if (isNativePlatform()) return false;
+  try {
+    var parsed = new URL(url, location.origin);
+    if (parsed.origin === location.origin && parsed.pathname === '/api/proxy') return true;
+  } catch {}
+  return getPlatform() === 'web-https' && isMixedContent(url) && !canProxyStreams();
+}
+function streamErrorMsg() { return t('streamUnavailable') + (!isNativePlatform() ? ' ' + t('webStreamHint') : ''); }
 function proxyUrl(url) { if (isNativePlatform() || !state.corsProxy) return url; return state.corsProxy + encodeURIComponent(url); }
 function normalizeDownloadUrl(url) {
   var raw = String(url || '').trim();
@@ -1623,9 +1666,92 @@ async function fetchViaCapacitorHttp(url) {
   if (isGz) return decodeGzipBase64(response.data);
   return typeof response.data === 'string' ? response.data : JSON.stringify(response.data);
 }
-async function loadTextFromUrl(url) {
-  var originalUrl = String(url || '').trim();
-  url = normalizeDownloadUrl(originalUrl);
+var WEB_SOURCE_CACHE = 'tclv.sources.v1';
+var MAX_WEB_SOURCE_CACHE_BYTES = 8 * 1024 * 1024;
+var MAX_WEB_SOURCE_CACHE_ENTRIES = 8;
+var webSourceMemory = new Map();
+var pendingWebSources = new Map();
+async function sourceCacheKey(url) {
+  if (!window.caches || !window.crypto?.subtle) return null;
+  var digest = await window.crypto.subtle.digest('SHA-256', new globalThis.TextEncoder().encode(url));
+  var hash = Array.from(new Uint8Array(digest)).map(function(byte) { return byte.toString(16).padStart(2, '0'); }).join('');
+  return location.origin + '/.tclv-source-cache/' + hash;
+}
+async function readWebSourceCache(url) {
+  var cached = webSourceMemory.get(url);
+  if (cached && cached.expires > Date.now()) return cached.text;
+  webSourceMemory.delete(url);
+  try {
+    var key = await sourceCacheKey(url);
+    if (!key) return null;
+    var cache = await window.caches.open(WEB_SOURCE_CACHE);
+    var response = await cache.match(key);
+    if (!response) return null;
+    var expires = Number(response.headers.get('X-TCLV-Expires'));
+    if (expires <= Date.now() || !expires) { await cache.delete(key); return null; }
+    var text = await response.text();
+    rememberWebSource(url, { text: text, expires: expires });
+    return text;
+  } catch { return null; }
+}
+function rememberWebSource(url, entry) {
+  webSourceMemory.delete(url);
+  webSourceMemory.set(url, entry);
+  if (webSourceMemory.size > MAX_WEB_SOURCE_CACHE_ENTRIES) webSourceMemory.delete(webSourceMemory.keys().next().value);
+}
+async function writeWebSourceCache(url, text) {
+  if (!text || text.length > MAX_WEB_SOURCE_CACHE_BYTES || new Blob([text]).size > MAX_WEB_SOURCE_CACHE_BYTES) return;
+  var epg = /<tv(?:\s|>)/i.test(text.slice(0, 2048));
+  var expires = Date.now() + (epg ? 6 * 60 * 60 * 1000 : 15 * 60 * 1000);
+  rememberWebSource(url, { text: text, expires: expires });
+  try {
+    var key = await sourceCacheKey(url);
+    if (!key) return;
+    var cache = await window.caches.open(WEB_SOURCE_CACHE);
+    await cache.delete(key);
+    await cache.put(key, new Response(text, { headers: { 'X-TCLV-Expires': String(expires) } }));
+    var keys = await cache.keys();
+    for (var i = 0; i < keys.length - MAX_WEB_SOURCE_CACHE_ENTRIES; i++) await cache.delete(keys[i]);
+  } catch {}
+}
+async function decodeWebSourceResponse(response) {
+  var bytes = new Uint8Array(await response.arrayBuffer());
+  if (bytes[0] === 0x1f && bytes[1] === 0x8b) {
+    if (typeof DecompressionStream === 'undefined') throw new Error(t('loadError'));
+    return new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
+  }
+  return new globalThis.TextDecoder().decode(bytes);
+}
+async function fetchWebSource(url, options) {
+  if (!isMixedContent(url)) {
+    var direct;
+    try { direct = await fetch(url, { cache: options.forceReload ? 'reload' : 'no-cache' }); } catch {}
+    if (direct) {
+      if (!direct.ok) throw new Error(direct.status + ' ' + direct.statusText);
+      return decodeWebSourceResponse(direct);
+    }
+  }
+  if (!state.corsProxy) throw new Error(t('corsNeeded'));
+  var target = proxyUrl(url);
+  if (usingVercelProxy()) {
+    var parsed = new URL(target, location.origin);
+    parsed.searchParams.set('resource', 'source');
+    if (options.forceReload) parsed.searchParams.set('refresh', '1');
+    target = parsed.href;
+  }
+  var response;
+  try { response = await fetch(target, { cache: options.forceReload ? 'reload' : 'default' }); } catch {}
+  if (response?.ok) return decodeWebSourceResponse(response);
+  if (!usingVercelProxy() && !canProxyStreams()) {
+    try { response = await fetch(state.corsProxy + url); } catch {}
+    if (response?.ok) return decodeWebSourceResponse(response);
+  }
+  if (response?.status === 413) throw new Error(t('sourceTooLarge'));
+  if (response?.status === 403 || response?.status === 415) throw new Error(t('proxyBlocked'));
+  throw new Error(t('loadError') + ' (' + (response?.status || 'network') + ')');
+}
+async function loadTextFromUrl(url, options = {}) {
+  url = normalizeDownloadUrl(String(url || '').trim());
   function decode(r, u) { if (u.endsWith('.gz') && typeof DecompressionStream !== 'undefined') return new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).text(); return r.text(); }
   if (getPlatform() === 'android' && window.Capacitor?.Plugins?.CapacitorHttp) {
     // Android's WebView still enforces CORS on fetch()/XHR even though this
@@ -1636,23 +1762,24 @@ async function loadTextFromUrl(url) {
     // performs the request outside the WebView and isn't subject to CORS.
     return await fetchViaCapacitorHttp(url);
   }
-  if (isNativePlatform() || (!state.corsProxy && !isMixedContent(url))) {
-    var response; try { response = await fetch(url); } catch (err) { if (!isNativePlatform()) throw new Error(t('corsNeeded'), { cause: err }); throw err; }
+  if (isNativePlatform()) {
+    var response = await fetch(url);
     if (!response.ok) throw new Error(response.status + ' ' + response.statusText);
     return decode(response, url);
   }
-  if (!state.corsProxy) throw new Error(t('corsNeeded'));
-  var encodedUrl = state.corsProxy + encodeURIComponent(url);
-  var resp;
-  try { resp = await fetch(encodedUrl); } catch { resp = null; }
-  if (resp && resp.ok) return decode(resp, url);
-  var rawUrl = state.corsProxy + url;
-  var resp2;
-  try { resp2 = await fetch(rawUrl); } catch { resp2 = null; }
-  if (resp2 && resp2.ok) return decode(resp2, url);
-  var status = resp?.status || resp2?.status || 0;
-  if (status === 403) throw new Error('Proxy 403 — ' + t('proxyBlocked'));
-  throw new Error((status || 'Network error') + ' — ' + (url.split('/').pop() || url));
+  var pendingKey = url + (options.forceReload ? ':refresh' : '');
+  if (pendingWebSources.has(pendingKey)) return pendingWebSources.get(pendingKey);
+  var pending = (async function() {
+    if (!options.forceReload) {
+      var cached = await readWebSourceCache(url);
+      if (cached !== null) return cached;
+    }
+    var text = await fetchWebSource(url, options);
+    await writeWebSourceCache(url, text);
+    return text;
+  })();
+  pendingWebSources.set(pendingKey, pending);
+  try { return await pending; } finally { pendingWebSources.delete(pendingKey); }
 }
 async function loadPlaylistText(text, sourceName = '') { try { const isXspf = sourceName.toLowerCase().endsWith('.xspf') || text.includes('<playlist'); const channels = isXspf ? parseXspf(text) : parseM3U(text); state.channels = channels; state.selectedChannelId = safeGet('tclv.lastChannel') || channels[0]?.id || null; renderAll(); if (state.selectedChannelId) showSwitchOverlay(selectedChannel()); showMessage(`${t('playlistLoaded')}: ${channels.length}`); } catch (error) { showMessage(`${t('loadError')} ${error.message || ''}`); } }
 async function loadEpgText(text) { try { state.epg = parseXmlTv(text); renderAll(); showMessage(`${t('epgLoaded')}: ${state.epg.size}`); } catch (error) { showMessage(`${t('loadError')} ${error.message || ''}`); } }
@@ -1679,7 +1806,7 @@ async function activatePlaylist(id, options = {}) {
   var needsFetch = item.source && item.origin !== 'local';
   if (needsFetch && (!item.text || options.forceReload)) {
     try {
-      item.text = await loadTextFromUrl(item.source);
+      item.text = await loadTextFromUrl(item.source, { forceReload: options.forceReload });
       item.type = playlistTypeFromSource(item.source, item.text);
     } catch (err) { showMessage(t('loadError') + ' ' + (err.message || '')); }
   }
@@ -2192,7 +2319,61 @@ async function reloadEpgSources(options = {}) {
     toggleEpg();
   }
 }
-function init() { initLogoIndex(); bindEvents(); state.player = dom.playerSelect.value = state.player; state.language = translations[state.language] ? state.language : 'sk'; state.corsProxy = detectCorsProxySync(); if (dom.corsProxyInput) dom.corsProxyInput.value = state.corsProxy; detectLocalProxy(); var platform = getPlatform(); document.documentElement.dataset.platform = platform; if (platform === 'android') { try { if (window.screen?.orientation?.lock) window.screen.orientation.lock('any').catch(function() {}); } catch {} } if (platform === 'electron' || platform === 'android') { var netSection = dom.corsProxyInput?.closest('.settings-section'); if (netSection) netSection.style.display = 'none'; } else if (platform === 'web-http') { var corsHintEl = dom.corsProxyInput?.closest('.settings-section')?.querySelector('.settings-hint'); if (corsHintEl) corsHintEl.textContent = 'HTTP — priame prehrávanie bez proxy.'; } if (!isNativePlatform()) { dom.playerSelect.querySelectorAll('.native-only').forEach(function(opt) { opt.disabled = true; opt.hidden = true; }); } initCustomSelects(); if (dom.pipButton && (document.pictureInPictureEnabled || platform === 'android')) dom.pipButton.removeAttribute('hidden'); if (dom.lockButton && (platform === 'android')) dom.lockButton.removeAttribute('hidden'); if (dom.autostartCheck) dom.autostartCheck.checked = state.autostart; if (dom.autostartToggle) dom.autostartToggle.classList.toggle('active', state.autostart); if (dom.backgroundPlaybackCheck) dom.backgroundPlaybackCheck.checked = state.backgroundPlayback; if (dom.backgroundPlaybackToggle) dom.backgroundPlaybackToggle.classList.toggle('active', state.backgroundPlayback); if (platform === 'android') syncBackgroundPlaybackNative(); setPlayerActive(false); renderSourceLists(); if (state.playlists.length && state.activePlaylistId) { activatePlaylist(state.activePlaylistId).then(function() { if (!state.channels.length && state.playlists.length) { setTimeout(function() { activatePlaylist(state.activePlaylistId, { forceReload: true }).then(function() { if (platform === 'android') ensureEpgLoadedForActivePlaylist(); }); }, 3000); } if (platform === 'android') ensureEpgLoadedForActivePlaylist(); }); } else if (state.playlists.length && !state.activePlaylistId) { state.activePlaylistId = state.playlists[0].id; safeSet('tclv.activePlaylistId', state.activePlaylistId); activatePlaylist(state.activePlaylistId).then(function() { if (platform === 'android') ensureEpgLoadedForActivePlaylist(); }); } else { renderAll(); if (state.epgSources.length) reloadEpgSources(platform === 'android' ? { showOnLoad: false } : {}); } setSidebarMode(state.sidebarMode); setInterval(refreshChannelProgress, 60 * 1000); }
+async function init() {
+  initLogoIndex(); bindEvents();
+  state.player = dom.playerSelect.value = state.player;
+  state.language = translations[state.language] ? state.language : 'sk';
+  state.corsProxy = detectCorsProxySync();
+  if (dom.corsProxyInput) dom.corsProxyInput.value = state.corsProxy;
+  var platform = getPlatform();
+  document.documentElement.dataset.platform = platform;
+  if (platform === 'android') {
+    try { if (window.screen?.orientation?.lock) window.screen.orientation.lock('any').catch(function() {}); } catch {}
+  }
+  if (platform === 'electron' || platform === 'android') {
+    var netSection = dom.corsProxyInput?.closest('.settings-section');
+    if (netSection) netSection.style.display = 'none';
+  } else if (platform === 'web-http') {
+    var corsHintEl = dom.corsProxyInput?.closest('.settings-section')?.querySelector('.settings-hint');
+    if (corsHintEl) corsHintEl.textContent = 'HTTP — priame prehrávanie bez proxy.';
+  }
+  if (!isNativePlatform()) {
+    dom.playerSelect.querySelectorAll('.native-only').forEach(function(opt) { opt.disabled = true; opt.hidden = true; });
+  }
+  initCustomSelects();
+  if (dom.pipButton && (document.pictureInPictureEnabled || platform === 'android')) dom.pipButton.removeAttribute('hidden');
+  if (dom.lockButton && (platform === 'android')) dom.lockButton.removeAttribute('hidden');
+  if (dom.autostartCheck) dom.autostartCheck.checked = state.autostart;
+  if (dom.autostartToggle) dom.autostartToggle.classList.toggle('active', state.autostart);
+  if (dom.backgroundPlaybackCheck) dom.backgroundPlaybackCheck.checked = state.backgroundPlayback;
+  if (dom.backgroundPlaybackToggle) dom.backgroundPlaybackToggle.classList.toggle('active', state.backgroundPlayback);
+  if (platform === 'android') syncBackgroundPlaybackNative();
+  setPlayerActive(false); renderSourceLists();
+  await detectLocalProxy();
+  if (state.playlists.length && state.activePlaylistId) {
+    activatePlaylist(state.activePlaylistId).then(function() {
+      if (!state.channels.length && state.playlists.length) {
+        setTimeout(function() {
+          activatePlaylist(state.activePlaylistId, { forceReload: true }).then(function() {
+            if (platform === 'android') ensureEpgLoadedForActivePlaylist();
+          });
+        }, 3000);
+      }
+      if (platform === 'android') ensureEpgLoadedForActivePlaylist();
+    });
+  } else if (state.playlists.length && !state.activePlaylistId) {
+    state.activePlaylistId = state.playlists[0].id;
+    safeSet('tclv.activePlaylistId', state.activePlaylistId);
+    activatePlaylist(state.activePlaylistId).then(function() {
+      if (platform === 'android') ensureEpgLoadedForActivePlaylist();
+    });
+  } else {
+    renderAll();
+    if (state.epgSources.length) reloadEpgSources(platform === 'android' ? { showOnLoad: false } : {});
+  }
+  setSidebarMode(state.sidebarMode);
+  setInterval(refreshChannelProgress, 60 * 1000);
+}
 function refreshChannelProgress() {
   if (state.epgVisible) renderGuide();
   var byId = new Map();

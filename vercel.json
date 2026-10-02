@@ -1,13 +1,30 @@
 {
-  "rewrites": [
-    { "source": "/api/proxy", "destination": "/api/proxy" }
-  ],
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "installCommand": "npm ci --omit=dev --ignore-scripts",
+  "buildCommand": "npm run prepare:vercel",
+  "outputDirectory": "dist/vercel",
+  "functions": {
+    "api/proxy.js": {
+      "maxDuration": 20
+    }
+  },
   "headers": [
     {
-      "source": "/api/(.*)",
+      "source": "/",
       "headers": [
-        { "key": "Access-Control-Allow-Origin", "value": "*" },
-        { "key": "Access-Control-Allow-Methods", "value": "GET, OPTIONS" }
+        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/(index.html|app.js|styles.css)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/vendor/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=3600" }
       ]
     }
   ]

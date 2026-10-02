@@ -6,6 +6,7 @@
   "main": "native/electron/main.js",
   "scripts": {
     "prepare:web": "node scripts/copy-web.mjs",
+    "prepare:vercel": "node scripts/copy-web.mjs --vercel",
     "web": "npx http-server . -p 3000 -c-1",
     "proxy": "node scripts/local-proxy.mjs",
     "windows": "npm run prepare:web && electron .",

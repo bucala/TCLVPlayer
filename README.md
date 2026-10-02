@@ -162,10 +162,32 @@ npm run web
 # → http://127.0.0.1:3000
 ```
 
-Pri načítavaní URL playlistov alebo EPG vo web verzii nastav **CORS proxy** v Nastavenia › Sieť:
-```
-https://api.allorigins.win/raw?url=
-```
+Web prehráva video **priamo od poskytovateľa, nikdy cez Vercel proxy**. HTTPS
+streamy musia podporovať prehrávanie v prehliadači (pri HLS.js aj CORS).
+HTTP streamy alebo streamy bez CORS prehrávaj vo Windows/Android aplikácii,
+prípadne spusti `npm run proxy` na rovnakom počítači. HTTPS web lokálny bridge
+automaticky vyhľadá ešte pred načítaním playlistov a EPG.
+
+Playlisty a EPG sa najprv načítajú priamo. Pri CORS/mixed-content chybe môže
+web použiť proxy nastavený v Nastavenia › Sieť. Vstavaný Vercel proxy prijíma
+iba M3U/XSPF playlisty a XMLTV EPG, nie HLS manifesty ani video segmenty.
+Limit je **3 MiB pred aj po rozbalení gzip**, časový limit sťahovania 15 sekúnd.
+Väčšie zdroje načítaj priamo, zo súboru, cez lokálny bridge alebo v natívnej aplikácii.
+
+Web ukladá zdroje do súkromnej cache prehliadača: EPG na 6 hodín, playlisty
+na 15 minút (najviac 8 zdrojov, každý do 8 MiB). Kliknutie na aktiváciu už
+aktívneho sieťového playlistu vynúti nové stiahnutie. Vlastné nastavenie proxy
+vrátane vypnutia zostáva zachované pri ďalšom otvorení webu.
+
+**Vercel:** build command `npm run prepare:vercel`, output directory
+`dist/vercel`. Nasadí sa iba webový bundle a obmedzený `/api/proxy`;
+natívne šablóny, testy a ďalšie zdrojové súbory sa verejne neservujú.
+Inštalácia `npm ci --omit=dev --ignore-scripts` vynecháva Electron,
+Android CLI a ostatné vývojové závislosti, ktoré webový hosting nepotrebuje.
+Proxy vyžaduje same-origin požiadavky a parameter `resource=source`.
+Spoločná CDN cache je povolená len pre verejné HTTPS zdroje bez query
+na `raw.githubusercontent.com` a `iptv-org.github.io`; súkromné/provider
+URL a odpovede so session cookies sa do spoločnej cache neukladajú.
 
 > Electron a Android CORS proxy ignorujú — každý má vlastný natívny bypass (Electron: `onHeadersReceived` injektuje `Access-Control-Allow-Origin`; Android: textové zdroje — EPG/playlisty — idú cez natívny `CapacitorHttp` bridge mimo WebView, kde CORS vôbec neplatí).
 
@@ -192,7 +214,7 @@ https://api.allorigins.win/raw?url=
 - 🤖 Auto-detekcia EPG z M3U `x-tvg-url` hlavičky
 - 💬 Overlay s aktuálnym/nasledujúcim programom pri prepnutí kanála
 - 🔎 Vyhľadávanie v EPG podľa názvu programu
-- 💾 EPG text sa neuľkladá do `localStorage` (prevencia 5 MB crashu) — refetchuje sa pri každom štarte, paralelne pre všetky zdroje
+- 💾 EPG text sa neukladá do `localStorage` (prevencia 5 MB crashu); web používa 6-hodinovú Cache Storage, natívne aplikácie naďalej načítajú zdroje pri štarte
 - 📤📥 **Import/export zoznamu EPG zdrojov** — textová šablóna `Nazov = URL` (Nastavenia › EPG zdroje › Export/Import EPG), editovateľná v ľubovoľnom textovom editore
 
 ### ▶️ Player systém
@@ -204,13 +226,13 @@ https://api.allorigins.win/raw?url=
 - 🎧 **jPlayer** — samostatna HTML5 media volba cez jQuery plugin, lazy-load
 - 🎥 **HLS kvalita** — floating dropdown pre výber kvality (Natívna / 360p / 720p / 1080p)
 - 🖼️ **Picture-in-Picture** — ovládanie v hornom menu nad videom
-- 🔄 **Try-direct-first** — proxy len keď je nutné (CORS chyba)
+- 🔄 **Try-direct-first** — playlist/EPG proxy len pri CORS chybe; video proxy iba cez lokálny bridge, nikdy cez Vercel
 - 🔇 **Muted autoplay** — video sa spustí stlmené, po úspechu odtlmí
 
 ### 🛡️ Bezpečnosť a CORS
 
 - **Electron** — `onHeadersReceived` injektuje `Access-Control-Allow-Origin: *`, žiadny proxy potrebný
-- **Web** — konfigurovateľný CORS proxy s dual-stratégiou (encoded + raw fallback)
+- **Web** — priame video, lokálny bridge pre nekompatibilné streamy, obmedzený a cachovaný playlist/EPG proxy
 - `contextIsolation: true`, `nodeIntegration: false`, `sandbox: true`
 - HTML escaping, logo URL sanitizácia (`https?://` a `data:image/` iba)
 - Logo metadata cez `iptv-org/api` endpointy `channels.json` a `logos.json`, plus GitHub fallback indexy
@@ -285,13 +307,15 @@ TCLVPlayer/
 │   ├── icon.png                # App ikona 512px
 │   └── icon.svg                # App ikona vektorova
 ├── api/
-│   └── proxy.js                # Vercel serverless CORS proxy (streaming, SSRF ochrana)
+│   └── proxy.js                # Obmedzený playlist/EPG proxy (bez videa, SSRF ochrana)
 ├── scripts/
 │   ├── copy-web.mjs            # Build: kopirovanie web bundlu + vendor libs
 │   ├── local-proxy.mjs         # Lokalny HTTP proxy pre Vercel HTTPS bridge
 │   └── apply-android-template.mjs
 ├── tests/
-│   └── parsers.test.js         # Unit testy (vitest)
+│   ├── parsers.test.js         # Parser unit testy (vitest)
+│   ├── proxy.test.js           # Serverové limity, cache a blokovanie videa
+│   └── web-network.test.js     # Web routing, lokálny bridge a cache zdrojov
 └── eslint.config.js            # ESLint konfiguracia
 ```
 

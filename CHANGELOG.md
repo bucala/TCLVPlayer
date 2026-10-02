@@ -7,6 +7,24 @@ Všetky významné zmeny v projekte sú dokumentované v tomto súbore.
 
 ---
 
+## [Unreleased]
+
+### Changed
+- Web video plays directly from the provider or through the loopback bridge; the Vercel proxy no longer relays video, HLS manifests, or segments.
+- New web installations default to HTML5. Saved player selections and Windows/Android networking remain unchanged.
+- Playlist/EPG downloads try direct access first, share in-flight requests, and use a bounded browser cache (EPG: 6 hours; playlists: 15 minutes).
+- Local bridge detection completes before startup downloads and preserves custom or disabled proxy settings.
+- Vercel builds an isolated `dist/vercel` web bundle rather than serving the repository root.
+
+### Security
+- Source-only proxy validates source URLs and response content, rejects cross-origin browser requests, bounds compressed/decompressed bodies to 3 MiB, and aborts downloads after 15 seconds.
+- Only known public, query-free sources can use shared CDN caching; provider credentials and session-specific responses remain private.
+
+### Tests
+- Added proxy and web-network regression tests. ESLint covers the API, and local checks exclude nested worktrees.
+
+---
+
 ## [1.2.0] — 2026-07-18
 
 ### Android TV/tablet stability, EPG reliability, Material 3 retheme

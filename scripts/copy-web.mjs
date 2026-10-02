@@ -1,7 +1,7 @@
 import { cp, mkdir, copyFile, rm } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
-const outDir = join("dist", "web");
+const outDir = join("dist", process.argv.includes("--vercel") ? "vercel" : "web");
 const files = [
   ["index.html", "index.html"],
   ["styles.css", "styles.css"],
