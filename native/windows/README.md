@@ -1,33 +1,7 @@
-# Windows 11 shell
+# Windows
 
-Windows uses Electron as the native shell. The app loads the shared `index.html` UI and exposes a small safe bridge as `window.TCLVNative`.
+`npm ci`, then `npm run windows` or `npm run windows:dist`.
 
-## Setup
+Electron has sandbox/context isolation, verified sender IPC, restricted navigation and permissions. External VLC/mpv processes are launched with separate arguments, confirmed asynchronously and stopped when returning to embedded playback.
 
-```powershell
-npm install
-npm run windows
-```
-
-## Build
-
-```powershell
-npm run windows:dist
-```
-
-## MPV and VLC
-
-TCLVPlayer starts external players with the stream URL as the first argument.
-
-Default executable names:
-
-- `mpv`
-- `vlc`
-
-If they are not on `PATH`, set:
-
-```powershell
-$env:TCLV_MPV_PATH="C:\Program Files\mpv\mpv.exe"
-$env:TCLV_VLC_PATH="C:\Program Files\VideoLAN\VLC\vlc.exe"
-npm run windows
-```
+Optional per-process variables: `TCLV_VLC_PATH`, `TCLV_MPV_PATH`, pointing to the actual executable when it is not on PATH. Sources live in the device IndexedDB/Electron userData and leave only through explicit local file export. Do not copy userData, backups or provider playlists into this source tree.

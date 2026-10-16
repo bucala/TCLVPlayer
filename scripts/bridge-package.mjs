@@ -5,7 +5,7 @@ import { deflateRawSync } from "node:zlib";
 import { createHash } from "node:crypto";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
-export const WINDOWS_NODE_VERSION = "v24.16.0";
+export const WINDOWS_NODE_VERSION = "v24.19.0";
 const RELEASE_URL = `https://nodejs.org/dist/${WINDOWS_NODE_VERSION}/`;
 const MAX_RUNTIME_BYTES = 120 * 1024 * 1024;
 

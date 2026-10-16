@@ -2,35 +2,93 @@
 
 Všetky významné zmeny v projekte sú dokumentované v tomto súbore.
 
-> Formát je založený na [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)  
-> Projekt používa [Sémantické verziovanie](https://semver.org/).
-
----
+> Formát je založený na [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+>
+> Projekt používa [sémantické verziovanie](https://semver.org/).
 
 ## [Unreleased]
 
-### Added
-- Browser-only Auto/direct/local-bridge video modes, pairing UI, reconnect guidance, and automatic retry after pairing, including multiview.
-- Standalone TCLV Bridge ZIP and Windows double-click launcher, independent of the existing native applications.
-- Bridge authentication, origin allowlisting, opaque media tickets, HLS rewriting, checked redirects, pinned public DNS, range requests, and upstream cancellation.
-- Bridge/client/build regression coverage, including byte-for-byte unchanged native web assets.
+Zatiaľ bez ďalších zmien.
 
-### Changed
-- The web bridge download now includes a pinned, SHA-256-verified Windows Node.js runtime and its matching license, including when built on Linux/Vercel.
-- Bridge setup and the launcher explain Extract all and detect incomplete ZIP extraction; Windows users no longer need to install Node.js.
-- Web video plays directly from the provider or through the loopback bridge; the Vercel proxy no longer relays video, HLS manifests, or segments.
-- New web installations default to HTML5. Saved player selections and Windows/Android networking remain unchanged.
-- Playlist/EPG downloads try direct access first, share in-flight requests, and use a bounded browser cache (EPG: 6 hours; playlists: 15 minutes).
-- Local bridge detection completes before startup downloads and preserves custom or disabled proxy settings.
-- Vercel builds an isolated `dist/vercel` web bundle rather than serving the repository root.
-- Bridge integration is attached only to the browser build; shared player assets and Windows/Android code are untouched. Local `npm run web` serves that browser build.
+---
 
-### Security
-- Source-only proxy validates source URLs and response content, rejects cross-origin browser requests, bounds compressed/decompressed bodies to 3 MiB, and aborts downloads after 15 seconds.
-- Only known public, query-free sources can use shared CDN caching; provider credentials and session-specific responses remain private.
+## [1.3.0] — 2026-10-16
 
-### Tests
-- Added proxy and web-network regression tests. ESLint covers the API, and local checks exclude nested worktrees.
+Implementácia komplexného auditu A01–A18, natívne Android prehrávanie a úpravy výkonu aj ovládania. Podrobná mapa nálezov a overení: [IMPLEMENTATION.md](IMPLEMENTATION.md).
+
+### Android
+
+- Pridaný integrovaný Media3/ExoPlayer ako predvolený Android prehrávač s hardvérovým dekódovaním a fallbackom dekodéra. Obraz je priamo v aplikácii; externé prehrávače zostávajú voliteľné.
+- Prehrávanie vlastní foreground `MediaSessionService`, takže pri zapnutej voľbe pokračuje na pozadí a pri zhasnutí displeja nezávisle od WebView. Vypnutie voľby pozastaví interný prehrávač pri opustení aplikácie.
+- Systémový mediálny panel obsahuje názov/logá kanála, play/pause a dostupné predchádzajúce/nasledujúce kanály. Pridaná integrácia zamknutej obrazovky, Bluetooth, audio focusu a odpojenia slúchadiel; prístup k session je obmedzený na dôveryhodné ovládače.
+- Manuálny obraz v obraze (PiP) z Nastavení, opätovné pripojenie k službe po obnove Activity a synchronizácia ovládania pri návrate do aplikácie.
+- Natívny video povrch sleduje polohu prehrávača; pri otvorení nastavení/detailu sa skryje. Výber natívnej kvality je v Nastaveniach, aby ho povrch neprekrýval. Zachované podržanie na odomknutie obrazu.
+- Buffer má cieľ 16 MiB a 5–20 sekúnd; na low-RAM zariadeniach 8 MiB a automatickú preferenciu najviac 720p, ak je variant dostupný. Kvalitu možno zmeniť ručne. Natívny režim používa jeden video obraz; dva webové sloty ostávajú vo webových prehrávačoch.
+- Odstránený manuálny neobmedzený wake lock; sieťové prebúdzanie spravuje prehrávač. Aktualizovaná obsluha systémového Back vrátane Android predictive Back.
+- Export cez Storage Access Framework uchováva dáta samostatne pre každé volanie. Automatické cloudové zálohy a prenos súkromných dát zariadenia sú v manifest/resources vylúčené.
+- Generovaný Android projekt používa Media3 1.11.1, minSdk 24 a targetSdk 36. `versionName` pochádza z package.json; `versionCode = major * 1000000 + minor * 1000 + patch` (1.3.0 → 1003000).
+
+### Diaľkový ovládač a prístupnosť
+
+- Zjednotená D-pad obsluha bez dvojitého posunu fokusu. Android smerové udalosti smerujú na aktívny DOM prvok; hardvérové OK zostáva skutočnou browser udalosťou pre vstupy a výber súborov.
+- Fokus sa zachováva pri obnove zoznamov; Home/End fungujú aj vo virtualizovanom zozname. Natívne ovládanie odovzdá šípky späť navigácii aplikácie.
+- Dialógy a nastavenia izolujú fokus, blokujú ovládanie pozadia a po zatvorení obnovia pôvodný prvok. Back najprv zatvára otvorenú vrstvu UI.
+- Obľúbené a archív sú samostatné akcie bez nechceného spustenia kanála. Prepínače pozadia/autostartu majú prístupné stavy a ovládanie.
+
+### Súkromné dáta a zálohy
+
+- Lokálne playlisty a EPG vrátane pôvodného obsahu prežijú reštart v súkromnej IndexedDB; doplnená migrácia starších dát.
+- Úplná súborová JSON záloha v2 obsahuje dostupný zdrojový text, pôvodné URL/prihlasovacie údaje, aktívny playlist, obľúbené, jazyk, prehrávače a proxy nastavenia. Heslá sa pri exporte nenahrádzajú nepoužiteľnými zástupnými hodnotami.
+- Import v1/v2 pred uložením validuje schému, typy, URL, unikátne ID a povolené prehrávače; neplatný import nemení existujúce dáta. Opravené obnovenie vypnutého proxy a neplatného aktívneho ID.
+- Prenos medzi zariadeniami prebieha iba explicitným lokálnym exportom/importom súboru. Repozitár neobsahuje používateľské playlisty, stanice ani prihlasovacie údaje.
+- Rozšírený `.gitignore` pre súkromné adresáre, playlisty, zálohy, podpisové kľúče, testovacie výstupy a binárne balíky. `privacy:check` kontroluje sledované/staged súbory; testy používajú syntetické zdroje `.example`.
+
+### Playlisty, EPG a výkon
+
+- Staršia odpoveď pri súbežnom načítaní už neprepíše novší výber playlistu. Odstránenie aktívneho playlistu správne aktivuje ďalší alebo zastaví prehrávanie, ak neostáva žiadny.
+- Výber kanála sa overuje voči aktuálnemu playlistu a pamätá samostatne pre každý zdroj.
+- Pravidelná obnova playlistov po 15 minútach a EPG po 6 hodinách aj počas dlhej relácie; opätovná aktivácia aktívneho sieťového playlistu vynúti refresh. Pri chybe zostáva posledný použiteľný obsah.
+- XMLTV SAX parser beží vo worker vlákne, nezískava externé XML entity, filtruje relevantné kanály a časové obdobie a vytvára indexy pre vyhľadávanie programov. Súbežné parsovania rovnakého zdroja zdieľajú úlohu.
+- Kanály a EPG používajú virtualizované riadky; parser generuje unikátne ID lineárne aj pri opakovaných názvoch. Aplikácia aj testy používajú jeden produkčný parser vrátane catchup metadát.
+- Najviac dve súbežné EPG sťahovania, limit zdroja 64 MiB pred aj po gzip dekompresii, timeout 45 sekúnd a limit importu zálohy 256 MiB.
+- Obmedzené logo fallbacky, lazy loading a preferencia provider/cache loga; verejné logo indexy sa nesťahujú na prázdnej úvodnej obrazovke. Zredukované náročné animácie.
+- Asset loader zdieľa rozpracované načítanie a po chybe umožní opakovanie. Opravené HLS menu kvality, kompatibilita jPlayer s jQuery 3.7.1 a kopírovanie MPEG-TS knižnice/fontu Video.js.
+- Opravené rušenie druhého video slotu vrátane fatálnej HLS chyby tak, aby nezrušilo platný bridge fallback.
+
+### Windows
+
+- Electron sandbox, context isolation a vypnutý Node v renderer vrstve; kontrola pôvodu/frame IPC, zákaz cudzích navigácií, popupov a pripojenia webview, obmedzené permissions.
+- Jedna inštancia aplikácie, zotavenie po zlyhaní renderer procesu a CORS úprava obmedzená na media/XHR požiadavky okna aplikácie.
+- VLC/mpv sa spúšťajú asynchrónne bez shellu s oddelenými argumentmi a potvrdením výsledku. Podporované `TCLV_VLC_PATH`/`TCLV_MPV_PATH`; vlastné procesy sa ukončia pri prepnutí alebo zatvorení aplikácie.
+- Distribučný zoznam súborov vylučuje nepotrebné `node_modules` a súkromné dáta; overený `app.asar` má 53 súborov, približne 2,6 MiB.
+
+### Web, bridge a bezpečnosť
+
+- Browser režimy Auto/direct/local-bridge, párovanie, pokyny na opätovné pripojenie a automatické zopakovanie prehrávania po spárovaní vrátane multiview.
+- Samostatný Windows TCLV Bridge ZIP s launcherom a pripnutým, SHA-256 overeným Node.js 24.19.0 runtime/licenciou; Node netreba inštalovať. Launcher overuje úplné rozbalenie ZIP.
+- Bridge používa loopback, autentifikáciu/povolené origins, nepriehľadné media tickets, HLS prepisovanie, overené presmerovania a DNS, range požiadavky a rušenie upstreamu.
+- Video ide priamo od poskytovateľa alebo cez lokálny bridge; Vercel proxy neprenáša video. Vzdialený source proxy je predvolene vypnutý; lokálny spárovaný bridge funguje aj pri vypnutom vzdialenom proxy.
+- Serverový source-only proxy pripína overenú verejnú DNS adresu pre každé spojenie/presmerovanie, odmieta cudzie browser origins a obmedzuje obsah na 3 MiB a 15 sekúnd. Limity sú 30 požiadaviek/minútu na klienta a 8 súbežných požiadaviek na proces.
+- Zdieľaná CDN cache je len pre známe verejné zdroje bez query; odpovede s poskytovateľskými údajmi ostávajú súkromné. Odstránené raw URL z EPG varovaní v konzole.
+- CSP v HTML aj hosting konfigurácii, referrer policy a lokálne pribalené player knižnice bez runtime `@latest` CDN alebo Google Fonts. Build zlyhá pri chýbajúcom povinnom assete.
+- Browser build je izolovaný v `dist/vercel`; bridge integrácia sa pripája iba k nemu. Nový webový profil používa HTML5 a uložená voľba sa zachováva.
+
+### Zostavenie, závislosti a dokumentácia
+
+- Aktualizované závislosti vrátane Capacitor 8.5.3, Electron 43.8.0, HLS/Video.js, Undici, SAX a testovacích nástrojov; opravené tranzitívne závislosti Electron downloadera a Xcode UUID.
+- Node.js >=22.19, odporúčaný Node 24. CI používa Node 24, `npm ci`, GitHub Actions pripnuté na konkrétne commity, privacy guard, lint, audit, unit/browser kontroly a kontrolu release verzie.
+- Android release workflow vyžaduje existujúci súkromný signing kľúč zo Secrets a overí podpis pred publikovaním; bez neho zlyhá. Kľúče ani heslá sa neukladajú do zdrojov.
+- PowerShell update skripty kontrolujú návratové kódy externých príkazov a používajú `npm ci`. ESLint/Vitest konfigurácie majú explicitnú príponu `.mjs`.
+- Doplnené distribučné licencie a THIRDPARTY vrátane Blue Oak Model License 1.0.0 pre SAX a Apache-2.0 pre Media3; README a platformové návody opisujú finálne správanie, signing aj limity.
+
+### Overenie a zostávajúce obmedzenia
+
+- `npm run check`: 213 úspešných testov, 2 vynechané; kontrola verzie, privacy guard a lint prešli. `npm audit`: 0 zraniteľností celkovo aj v produkčných závislostiach.
+- Chromium integrácia prešla pre webový aj Vercel/bridge bundle vrátane skutočného worker parsovania, súbehu playlistov, 1000-kanálového zoznamu, fokusu, exportu/importu a fallbacku druhého slotu.
+- Vercel build vrátane bridge runtime prešiel; Android `assembleDebug`/`lintDebug` prešli a podpis aj verzia debug APK boli overené.
+- Windows x64 unpacked/portable build prešiel. Electron smoke test na Linuxe overil štart UI, worker a IPC. Testovací EXE je nepodpísaný a bez úpravy Windows ikony/metadát pri krížovom zostavení; APK má debug podpis. Binárne buildy nie sú súčasťou commitu ani publikovaného release.
+- Úplný NSIS installer v Linux prostredí vyžadoval nedostupné Wine; zostavenie zostáva nakonfigurované na Windows runneri. Fyzický Windows/Android TV, kodeky, napájanie, PiP a správanie konkrétneho firmvéru potrebujú overenie na zariadení.
+- Vzhľad systémovej mediálnej karty a hornej kapsuly určuje Android/výrobca. Produkčný Android release potrebuje pôvodný stabilný podpisový kľúč; limity celého hostingu treba riešiť distribuovanou kvótou hostingu.
 
 ---
 

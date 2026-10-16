@@ -1254,7 +1254,7 @@ html[data-platform="android"] .android-only { display: grid; }
 
 /* ─── Program detail modal ─────────────────────────────────────────────────── */
 
-#qualityControl { display: none !important; }
+
 
 html:not([data-platform="electron"]) .sidebar-toggle {
   display: none !important;
@@ -2393,3 +2393,20 @@ html[data-platform="android"] .sidebar,
 html[data-platform="android"] .sidebar-toggle {
   transition: none !important;
 }
+
+/* Stable D-pad focus, bounded channel DOM and inexpensive paint on TV. */
+.channel-card { flex-shrink: 0; contain: layout style; }
+.channel-spacer-top, .channel-spacer-bottom { flex-shrink: 0; pointer-events: none; }
+.channel-spacer-top[style="height: 0px;"], .channel-spacer-bottom[style="height: 0px;"] { display: none; }
+html[data-platform="android"] .channel-card,
+html[data-platform="android"] .program { transition: none; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0s !important; animation-duration: 0s !important; }
+}
+
+.channel-card:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+/* Native video is an OS surface above the WebView; its quality selector belongs in Settings. */
+.quality-control.native-quality { position: static; display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; }
+.quality-control.native-quality::before { content: attr(data-label); font-size: 13px; }
+.quality-control.native-quality select { min-width: 112px; height: 40px; }

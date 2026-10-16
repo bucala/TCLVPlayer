@@ -1,4 +1,4 @@
-import { cp, mkdir, copyFile, rm, readFile, writeFile } from "node:fs/promises";
+import { cp, mkdir, copyFile, rm, readFile, writeFile, readdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { createBridgePackage } from "./bridge-package.mjs";
 
@@ -9,7 +9,7 @@ const files = [
   ["styles.css", "styles.css"],
   ["app.js", "app.js"],
   ["favicon.svg", "favicon.svg"],
-];
+ ];
 
 await rm(outDir, { recursive: true, force: true });
 
@@ -19,24 +19,35 @@ for (const [source, target] of files) {
   await copyFile(source, destination);
 }
 
-const optionalCopies = [
+for (const name of ['LICENSE', 'THIRDPARTY.md']) await copyFile(new URL('../' + name, import.meta.url), join(outDir, name));
+for (const file of ['parsers.js', 'storage.js', 'epg-worker.js', 'android-player.js']) {
+  await mkdir(join(outDir, 'lib'), { recursive: true });
+  await copyFile(new URL('../lib/' + file, import.meta.url), join(outDir, 'lib', file));
+}
+const vendorCopies = [
+  ["node_modules/sax/lib/sax.js", "vendor/sax/sax.js"],
   ["node_modules/video.js/dist/video.min.js", "vendor/video.js/video.min.js"],
   ["node_modules/video.js/dist/video-js.min.css", "vendor/video.js/video-js.min.css"],
   ["node_modules/artplayer/dist/artplayer.js", "vendor/artplayer/artplayer.js"],
   ["node_modules/hls.js/dist/hls.min.js", "vendor/hls.js/hls.min.js"],
-  ["node_modules/mpegts.js/dist/mpegts.min.js", "vendor/mpegts.js/mpegts.min.js"],
+  ["node_modules/mpegts.js/dist/mpegts.js", "vendor/mpegts.js/mpegts.min.js"],
   ["node_modules/flv.js/dist/flv.min.js", "vendor/flv.js/flv.min.js"],
   ["node_modules/jquery/dist/jquery.min.js", "vendor/jquery/jquery.min.js"],
   ["node_modules/jplayer/dist/jplayer/jquery.jplayer.min.js", "vendor/jplayer/jquery.jplayer.min.js"],
 ];
 
-for (const [source, target] of optionalCopies) {
-  try {
-    const destination = join(outDir, target);
-    await mkdir(dirname(destination), { recursive: true });
-    await cp(source, destination, { force: true });
-  } catch {
-    // Dependencies may not be installed yet; CDN fallback remains available.
+for (const [source, target] of vendorCopies) {
+  const destination = join(outDir, target);
+  await mkdir(dirname(destination), { recursive: true });
+  // Every runtime asset is bundled; a missing dependency must fail the build.
+  await cp(new URL('../' + source, import.meta.url), destination, { force: true });
+}
+
+for (const name of ['video.js', 'artplayer', 'hls.js', 'mpegts.js', 'flv.js', 'jquery', 'jplayer', 'sax']) {
+  const folder = new URL('../node_modules/' + name + '/', import.meta.url);
+  for (const file of await readdir(folder)) if (/licen[cs]e|^notice|^copying/i.test(file)) {
+    const destination = join(outDir, 'vendor', 'licenses', name, file);
+    await mkdir(dirname(destination), { recursive: true }); await cp(new URL(file, folder), destination);
   }
 }
 

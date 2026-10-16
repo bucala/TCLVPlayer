@@ -6,7 +6,6 @@ import android.content.res.Configuration;
 import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.PowerManager;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.WindowInsets;
@@ -16,24 +15,37 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 
 import androidx.core.view.WindowCompat;
+import androidx.activity.OnBackPressedCallback;
+import androidx.media3.common.util.UnstableApi;
 
 import com.getcapacitor.BridgeActivity;
 
+@UnstableApi
 public class MainActivity extends BridgeActivity {
     private static final String PREFS = "tclv_player";
     private static final String KEY_BACKGROUND_PLAYBACK = "backgroundPlayback";
 
-    private PowerManager.WakeLock backgroundWakeLock;
-    private boolean backgroundPlaybackEnabled = false;
+    private TCLVPlayerPlugin nativePlayer;
+    public void setNativePlayer(TCLVPlayerPlugin plugin) { nativePlayer = plugin; }
+    private boolean backgroundPlaybackEnabled = true;
     private boolean playbackActive = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         registerPlugin(TCLVPlayerPlugin.class);
         super.onCreate(savedInstanceState);
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override public void handleOnBackPressed() {
+                WebView web = getBridge() == null ? null : getBridge().getWebView();
+                if (web == null) { moveTaskToBack(true); return; }
+                web.evaluateJavascript("typeof handleBackStep === 'function' && handleBackStep()", result -> {
+                    if (!"true".equals(result)) moveTaskToBack(true);
+                });
+            }
+        });
         safeConfigureWebView();
         backgroundPlaybackEnabled = getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .getBoolean(KEY_BACKGROUND_PLAYBACK, false);
+            .getBoolean(KEY_BACKGROUND_PLAYBACK, true);
         applyBackgroundPlaybackMode();
         safeEnableImmersiveFullscreen();
         getWindow().getDecorView().setOnSystemUiVisibilityChangeListener(
@@ -102,18 +114,15 @@ public class MainActivity extends BridgeActivity {
     }
 
     @Override
-    public void onPause() {
-        super.onPause();
-        if (backgroundPlaybackEnabled && playbackActive && getBridge() != null && getBridge().getWebView() != null) {
-            getBridge().getWebView().onResume();
-        }
-        applyBackgroundPlaybackMode();
+    public void onStop() {
+        super.onStop();
+        if (!backgroundPlaybackEnabled && !isInPictureInPictureMode() && nativePlayer != null) nativePlayer.pauseOnBackground();
     }
-
     @Override
-    public void onDestroy() {
-        releaseBackgroundWakeLock();
-        super.onDestroy();
+    public void onPictureInPictureModeChanged(boolean inPip, Configuration configuration) {
+        super.onPictureInPictureModeChanged(inPip, configuration);
+        if (getBridge() != null && getBridge().getWebView() != null) getBridge().getWebView().setVisibility(inPip ? View.INVISIBLE : View.VISIBLE);
+        if (nativePlayer != null) nativePlayer.pipChanged(inPip);
     }
 
     @Override
@@ -124,41 +133,30 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
-        if (event.getAction() == KeyEvent.ACTION_UP && dispatchTvKeyToWeb(event.getKeyCode())) {
-            return true;
-        }
-        return super.dispatchKeyEvent(event);
-    }
-
-    private boolean dispatchTvKeyToWeb(int keyCode) {
+        int code = event.getKeyCode();
         String key;
-        switch (keyCode) {
-            case KeyEvent.KEYCODE_BACK:
-                key = "Back";
-                break;
-            case KeyEvent.KEYCODE_CHANNEL_UP:
-                key = "ChannelUp";
-                break;
-            case KeyEvent.KEYCODE_CHANNEL_DOWN:
-                key = "ChannelDown";
-                break;
-            case KeyEvent.KEYCODE_GUIDE:
-                key = "Guide";
-                break;
-            case KeyEvent.KEYCODE_INFO:
-                key = "Info";
-                break;
-            default:
-                return false;
+        switch (code) {
+            case KeyEvent.KEYCODE_CHANNEL_UP: key = "ChannelUp"; break;
+            case KeyEvent.KEYCODE_CHANNEL_DOWN: key = "ChannelDown"; break;
+            case KeyEvent.KEYCODE_GUIDE: key = "Guide"; break;
+            case KeyEvent.KEYCODE_INFO: key = "Info"; break;
+            case KeyEvent.KEYCODE_DPAD_UP: key = "ArrowUp"; break;
+            case KeyEvent.KEYCODE_DPAD_DOWN: key = "ArrowDown"; break;
+            case KeyEvent.KEYCODE_DPAD_LEFT: key = "ArrowLeft"; break;
+            case KeyEvent.KEYCODE_DPAD_RIGHT: key = "ArrowRight"; break;
+            case KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE: key = "MediaPlayPause"; break;
+            default: return super.dispatchKeyEvent(event);
         }
-        WebView webView = getBridge() == null ? null : getBridge().getWebView();
-        if (webView == null) return false;
-        // Dispatched on document (not window): the app's keydown listener is
-        // registered on document, and a synthetic event targeted at window
-        // never bubbles down to it — window has no ancestors to bubble
-        // through, so document-level listeners would never see it.
-        String js = "document.dispatchEvent(new KeyboardEvent('keydown', { key: '" + key + "', keyCode: " + keyCode + ", bubbles: true }));";
-        webView.evaluateJavascript(js, null);
+        WebView web = getBridge() == null ? null : getBridge().getWebView();
+        if (web == null || isInPictureInPictureMode()) return super.dispatchKeyEvent(event);
+        // One physical keydown becomes exactly one focused DOM event. Consume keyup
+        // too, preventing Android's default spatial traversal from moving a second time.
+        if (event.getAction() == KeyEvent.ACTION_DOWN) {
+            if (key.startsWith("Arrow")) { if (nativePlayer != null) nativePlayer.hideControlsForRemote(); web.requestFocus(); }
+            String js = "(document.activeElement||document.body).dispatchEvent(new KeyboardEvent('keydown',{key:'" + key
+                + "',keyCode:" + code + ",bubbles:true,cancelable:true,repeat:" + (event.getRepeatCount() > 0) + "}));";
+            web.evaluateJavascript(js, null);
+        }
         return true;
     }
 
@@ -222,33 +220,8 @@ public class MainActivity extends BridgeActivity {
 
     private void applyBackgroundPlaybackMode() {
         runOnUiThread(() -> {
-            if (backgroundPlaybackEnabled && playbackActive) {
-                getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-                acquireBackgroundWakeLock();
-            } else {
-                getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-                releaseBackgroundWakeLock();
-            }
+            if (playbackActive) getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+            else getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         });
-    }
-
-    @SuppressWarnings("WakelockTimeout")
-    private void acquireBackgroundWakeLock() {
-        if (backgroundWakeLock != null && backgroundWakeLock.isHeld()) return;
-        PowerManager powerManager = (PowerManager) getSystemService(Context.POWER_SERVICE);
-        if (powerManager == null) return;
-        backgroundWakeLock = powerManager.newWakeLock(
-            PowerManager.PARTIAL_WAKE_LOCK,
-            "TCLVPlayer:BackgroundPlayback"
-        );
-        backgroundWakeLock.setReferenceCounted(false);
-        backgroundWakeLock.acquire();
-    }
-
-    private void releaseBackgroundWakeLock() {
-        if (backgroundWakeLock != null && backgroundWakeLock.isHeld()) {
-            backgroundWakeLock.release();
-        }
-        backgroundWakeLock = null;
     }
 }

@@ -295,10 +295,10 @@ window.TCLVWebPlayer = function(host) {
     original.destroySlot1();
   };
   host.fetchWebSource = async function(url, options) {
-    if (client.status !== "ready" || !host.state.corsProxy) return original.fetchWebSource(url, options);
+    if (client.status !== "ready") return original.fetchWebSource(url, options);
     if (!host.isMixedContent(url)) {
       let response;
-      try { response = await fetch(url, { cache: options.forceReload ? "reload" : "no-cache" }); } catch { /* Try the paired local bridge. */ }
+      try { response = await fetch(url, { signal: window.AbortSignal?.timeout?.(45000), cache: options.forceReload ? "reload" : "no-cache" }); } catch { /* Try the paired local bridge. */ }
       if (response) {
         if (!response.ok) throw new Error(response.status + " " + response.statusText);
         return host.decodeWebSourceResponse(response);

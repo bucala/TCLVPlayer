@@ -14,21 +14,36 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
-          node-version: 22
+          node-version: 24
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
+
+      - name: Private data guard
+        run: npm run privacy:check
+
+      - name: Dependency security
+        run: npm audit --audit-level=moderate
 
       - name: Lint
         run: npx eslint .
 
       - name: Unit tests
-        run: npx vitest run
+        run: npm test
+
+      - name: Browser integration
+        run: |
+          npx playwright install --with-deps chromium
+          npm run prepare:web
+          node scripts/copy-web.mjs --vercel --source-bridge
+          export CHROMIUM_PATH="$(node -e 'console.log(require("playwright").chromium.executablePath())')"
+          npm run test:browser
+          BROWSER_BUILD=vercel npm run test:browser
 
   validate:
     name: Validate & Build
@@ -36,15 +51,15 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
-          node-version: 22
+          node-version: 24
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Check JavaScript syntax
         shell: pwsh
@@ -59,7 +74,7 @@ jobs:
         run: npm run prepare:web
 
       - name: Upload web bundle
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: tclvplayer-web
           path: dist/web

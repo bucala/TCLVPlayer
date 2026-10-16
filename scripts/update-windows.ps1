@@ -30,9 +30,12 @@ Write-Host ""
 Write-Step "Stiahnutie najnovsich zmien z GitHubu..."
 try {
     git fetch origin | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "External command failed (exit $LASTEXITCODE)." }
     if ($ForceReset) {
         git reset --hard origin/main | Out-Null
+        if ($LASTEXITCODE -ne 0) { throw "External command failed (exit $LASTEXITCODE)." }
         git clean -fd | Out-Null
+        if ($LASTEXITCODE -ne 0) { throw "External command failed (exit $LASTEXITCODE)." }
         Write-OK "Git vynutene synchronizovany s origin/main"
     } else {
         $dirty = git status --porcelain
@@ -41,6 +44,7 @@ try {
             exit 1
         }
         git pull --ff-only origin main | Out-Null
+        if ($LASTEXITCODE -ne 0) { throw "External command failed (exit $LASTEXITCODE)." }
         Write-OK "Git aktualizovany cez fast-forward pull"
     }
 } catch {
@@ -48,13 +52,14 @@ try {
     exit 1
 }
 
-# --- 2. npm install ---
+# --- 2. npm ci ---
 Write-Step "Aktualizacia npm zavislosti..."
 try {
-    npm install --prefer-offline 2>&1 | Out-Null
-    Write-OK "npm install dokonceny"
+    npm ci --prefer-offline 2>&1 | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "External command failed (exit $LASTEXITCODE)." }
+    Write-OK "npm ci dokonceny"
 } catch {
-    Write-Fail "npm install zlyhalo."
+    Write-Fail "npm ci zlyhalo."
     exit 1
 }
 
@@ -62,6 +67,7 @@ try {
 Write-Step "Build web bundlu (copy-web.mjs)..."
 try {
     node scripts/copy-web.mjs
+    if ($LASTEXITCODE -ne 0) { throw "External command failed (exit $LASTEXITCODE)." }
     Write-OK "Web bundle pripraveny v dist/web/"
 } catch {
     Write-Fail "copy-web.mjs zlyhalo."
@@ -73,6 +79,7 @@ if ($BuildExe) {
     Write-Step "Build Windows .exe (NSIS + portable)..."
     try {
         npx electron-builder --win nsis portable
+        if ($LASTEXITCODE -ne 0) { throw "External command failed (exit $LASTEXITCODE)." }
         Write-OK ".exe subory su v priecinku dist/"
     } catch {
         Write-Fail "electron-builder zlyhalo."
@@ -84,6 +91,7 @@ if ($BuildExe) {
 if ($RunAfter) {
     Write-Step "Spustanie TCLVPlayer..."
     npx electron .
+    if ($LASTEXITCODE -ne 0) { throw "External command failed (exit $LASTEXITCODE)." }
 }
 
 Write-Host ""

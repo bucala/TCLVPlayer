@@ -15,62 +15,90 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Setup Java
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           distribution: temurin
           java-version: 21
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
-          node-version: 22
+          node-version: 24
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
+
+      - name: Validate
+        run: npm run check
 
       - name: Generate Android project
         run: npm run android:setup
+
+      - name: Configure release signing
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          test -n "$KEYSTORE_BASE64" && test -n "$STORE_PASSWORD" && test -n "$KEY_ALIAS" && test -n "$KEY_PASSWORD" || { echo 'Android signing secrets are required for an installable release.'; exit 1; }
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/tclv-release.jks"
+          printf 'TCLV_ANDROID_KEYSTORE=%s\n' "$RUNNER_TEMP/tclv-release.jks" >> "$GITHUB_ENV"
+          printf 'TCLV_ANDROID_STORE_PASSWORD=%s\n' "$STORE_PASSWORD" >> "$GITHUB_ENV"
+          printf 'TCLV_ANDROID_KEY_ALIAS=%s\n' "$KEY_ALIAS" >> "$GITHUB_ENV"
+          printf 'TCLV_ANDROID_KEY_PASSWORD=%s\n' "$KEY_PASSWORD" >> "$GITHUB_ENV"
 
       - name: Build release APK
         working-directory: android
         run: ./gradlew assembleRelease
 
+      - name: Verify APK signature
+        run: |
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose android/app/build/outputs/apk/release/app-release.apk
+
       - name: Prepare APK artifacts
         run: |
-          cp android/app/build/outputs/apk/release/app-release-unsigned.apk tclvplayer-android-unsigned.apk
-          zip tclvplayer-android-unsigned.apk.zip tclvplayer-android-unsigned.apk
+          cp android/app/build/outputs/apk/release/app-release.apk tclvplayer-android.apk
+          zip tclvplayer-android.apk.zip tclvplayer-android.apk
+
+      - name: Delete temporary signing material
+        if: always()
+        run: rm -f "$RUNNER_TEMP/tclv-release.jks"
 
       - name: Upload APK artifacts
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: android-apk
           path: |
-            tclvplayer-android-unsigned.apk
-            tclvplayer-android-unsigned.apk.zip
+            tclvplayer-android.apk
+            tclvplayer-android.apk.zip
 
   windows:
     name: Build Windows app
     runs-on: windows-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
-          node-version: 22
+          node-version: 24
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
+
+      - name: Validate
+        run: npm run check
 
       - name: Build Windows distributables
         run: npm run windows:dist
 
       - name: Upload Windows artifacts
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: windows-setup
           path: |
@@ -83,26 +111,26 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/v')
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Download Android artifacts
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           name: android-apk
           path: release-assets
 
       - name: Download Windows artifacts
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           name: windows-setup
           path: release-assets
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3
         with:
           name: Release ${{ github.ref_name }}
           generate_release_notes: true
           files: |
-            release-assets/tclvplayer-android-unsigned.apk
-            release-assets/tclvplayer-android-unsigned.apk.zip
+            release-assets/tclvplayer-android.apk
+            release-assets/tclvplayer-android.apk.zip
             release-assets/*.exe

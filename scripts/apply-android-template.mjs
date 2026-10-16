@@ -4,7 +4,7 @@ import { dirname, join } from "node:path";
 const packagePath = join("android", "app", "src", "main", "java", "sk", "tclv", "player");
 const manifestPath = join("android", "app", "src", "main", "AndroidManifest.xml");
 
-const classes = ["TCLVPlayerPlugin", "MainActivity", "BootReceiver"];
+const classes = ["TCLVPlayerPlugin", "MainActivity", "BootReceiver", "PlaybackService"];
 
 try {
   await access(manifestPath);
@@ -48,6 +48,8 @@ manifest = addAfter(
   [
     '    <uses-permission android:name="android.permission.INTERNET" />',
     '    <uses-permission android:name="android.permission.WAKE_LOCK" />',
+    '    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />',
+    '    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />',
     '    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />',
     '    <uses-feature android:name="android.software.leanback" android:required="false" />',
     '    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />',
@@ -101,7 +103,45 @@ if (!manifest.includes('BootReceiver')) {
   );
 }
 
+manifest = manifest.replace(/android:allowBackup="true"/, 'android:allowBackup="false"');
+if (!manifest.includes('android:dataExtractionRules=')) manifest = manifest.replace('<application', '<application android:dataExtractionRules="@xml/tclv_data_extraction_rules" android:fullBackupContent="@xml/tclv_backup_rules"');
+// Capacitor appends INTERNET after application; keep all permissions at manifest root before application.
+manifest = manifest.replace(/\s*<uses-permission android:name="android.permission.INTERNET"\s*\/>/g, '');
+manifest = manifest.replace(/<manifest\b[^>]*>/, match => match + '\n    <uses-permission android:name="android.permission.INTERNET" />');
+if (!manifest.includes('.PlaybackService')) manifest = manifest.replace('</application>', `
+        <service android:name=".PlaybackService" android:exported="true" android:foregroundServiceType="mediaPlayback">
+            <intent-filter><action android:name="androidx.media3.session.MediaSessionService" /></intent-filter>
+        </service>
+    </application>`);
 await writeFile(manifestPath, manifest);
+const gradlePath = join('android', 'app', 'build.gradle');
+let gradle = await readFile(gradlePath, 'utf8');
+const pkg = JSON.parse(await readFile('package.json', 'utf8'));
+const version = pkg.version.split('.').map(Number);
+const versionCode = version[0] * 1000000 + version[1] * 1000 + version[2];
+gradle = gradle.replace(/versionCode\s+\d+/, 'versionCode ' + versionCode).replace(/versionName\s+"[^"]+"/, 'versionName "' + pkg.version + '"');
+if (!gradle.includes('tclv-media3')) gradle += `
+// tclv-media3: native hardware decoding + foreground MediaSession; no provider data here.
+dependencies {
+    implementation "androidx.media3:media3-exoplayer:1.11.1"
+    implementation "androidx.media3:media3-exoplayer-hls:1.11.1"
+    implementation "androidx.media3:media3-exoplayer-rtsp:1.11.1"
+    implementation "androidx.media3:media3-session:1.11.1"
+    implementation "androidx.media3:media3-ui:1.11.1"
+}
+// Release keys are supplied only through environment variables, never committed.
+def tclvKey = System.getenv('TCLV_ANDROID_KEYSTORE')
+if (tclvKey) {
+    android.signingConfigs.create('tclvRelease') {
+        storeFile file(tclvKey)
+        storePassword System.getenv('TCLV_ANDROID_STORE_PASSWORD')
+        keyAlias System.getenv('TCLV_ANDROID_KEY_ALIAS')
+        keyPassword System.getenv('TCLV_ANDROID_KEY_PASSWORD')
+    }
+    android.buildTypes.release.signingConfig = android.signingConfigs.tclvRelease
+}
+`;
+await writeFile(gradlePath, gradle);
 
 function addAfter(text, marker, additions) {
   const missing = additions.filter((line) => !text.includes(line.trim()));

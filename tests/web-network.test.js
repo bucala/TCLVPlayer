@@ -72,10 +72,10 @@ afterEach(() => {
 });
 
 describe("web video routing", () => {
-  it("defaults new web installations to HTML5 without changing native defaults", () => {
+  it("defaults browsers and Windows to HTML5 and Android to hardware decoding", () => {
     const { context } = app();
     expect(context.fallbackPlayer("web-https")).toBe("html5");
-    expect(context.fallbackPlayer("android")).toBe("html5");
+    expect(context.fallbackPlayer("android")).toBe("native");
     expect(context.fallbackPlayer("electron")).toBe("html5");
   });
 

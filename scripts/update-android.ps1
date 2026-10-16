@@ -49,9 +49,12 @@ if (-not $env:ANDROID_HOME -and -not $env:ANDROID_SDK_ROOT) {
 Write-Step "Stiahnutie najnovsich zmien z GitHubu..."
 try {
     git fetch origin | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "External command failed (exit $LASTEXITCODE)." }
     if ($ForceReset) {
         git reset --hard origin/main | Out-Null
+        if ($LASTEXITCODE -ne 0) { throw "External command failed (exit $LASTEXITCODE)." }
         git clean -fd | Out-Null
+        if ($LASTEXITCODE -ne 0) { throw "External command failed (exit $LASTEXITCODE)." }
         Write-OK "Git vynutene synchronizovany s origin/main"
     } else {
         $dirty = git status --porcelain
@@ -60,6 +63,7 @@ try {
             exit 1
         }
         git pull --ff-only origin main | Out-Null
+        if ($LASTEXITCODE -ne 0) { throw "External command failed (exit $LASTEXITCODE)." }
         Write-OK "Git aktualizovany cez fast-forward pull"
     }
 } catch {
@@ -67,13 +71,14 @@ try {
     exit 1
 }
 
-# --- 2. npm install ---
+# --- 2. npm ci ---
 Write-Step "Aktualizacia npm zavislosti..."
 try {
-    npm install --prefer-offline 2>&1 | Out-Null
-    Write-OK "npm install dokonceny"
+    npm ci --prefer-offline 2>&1 | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "External command failed (exit $LASTEXITCODE)." }
+    Write-OK "npm ci dokonceny"
 } catch {
-    Write-Fail "npm install zlyhalo."
+    Write-Fail "npm ci zlyhalo."
     exit 1
 }
 
@@ -84,6 +89,7 @@ try {
     if ($BuildDebug) { $generatorArgs += "--build" }
     if ($OpenStudio) { $generatorArgs += "--open" }
     node scripts/android-studio.mjs @generatorArgs
+    if ($LASTEXITCODE -ne 0) { throw "External command failed (exit $LASTEXITCODE)." }
     Write-OK "Android Studio projekt pripraveny"
 } catch {
     Write-Fail "Android Studio generator zlyhal."

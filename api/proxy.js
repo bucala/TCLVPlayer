@@ -1,5 +1,5 @@
-import { lookup } from "node:dns/promises";
-import { isIP } from "node:net";
+import { Agent } from "undici";
+import { resolveTarget } from "../bridge/security.mjs";
 import { gunzipSync } from "node:zlib";
 
 const MAX_REDIRECTS = 5;
@@ -10,9 +10,22 @@ const PUBLIC_SOURCE_HOSTS = new Set([
   "iptv-org.github.io",
 ]);
 
+const quotas = new Map();
+let inFlight = 0;
+function admit(req) {
+  const key = String(req.headers['x-vercel-forwarded-for'] || req.socket?.remoteAddress || 'local').split(',')[0];
+  const now = Date.now();
+  for (const [ip, entry] of quotas) if (entry.expires <= now) quotas.delete(ip);
+  if (quotas.size >= 10000 && !quotas.has(key)) return false;
+  const entry = quotas.get(key) || { count: 0, expires: now + 60000 };
+  entry.count++; quotas.set(key, entry);
+  return entry.count <= 30 && inFlight < 8;
+}
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
   res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("Content-Security-Policy", "default-src 'none'; sandbox; frame-ancestors 'none'");
+  res.setHeader("Referrer-Policy", "no-referrer");
   res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
 
   if (!isSameOriginRequest(req)) {
@@ -57,6 +70,9 @@ export default async function handler(req, res) {
     return;
   }
 
+  if (!admit(req)) { res.setHeader('Retry-After', '60'); res.status(429).json({ error: 'Source request limit reached' }); return; }
+  inFlight++;
+  const agents = [];
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), SOURCE_TIMEOUT_MS);
   const abort = () => controller.abort();
@@ -64,7 +80,7 @@ export default async function handler(req, res) {
   res.once?.("close", abort);
 
   try {
-    const { upstream, finalUrl } = await fetchWithCheckedRedirects(target, controller.signal);
+    const { upstream, finalUrl } = await fetchWithCheckedRedirects(target, controller.signal, agents);
 
     if (!upstream.ok) {
       await upstream.body?.cancel();
@@ -119,6 +135,8 @@ export default async function handler(req, res) {
       error: controller.signal.aborted ? "Source download timed out" : "Source download failed",
     });
   } finally {
+    inFlight--;
+    await Promise.allSettled(agents.map(agent => agent.close()));
     clearTimeout(timer);
     req.removeListener?.("aborted", abort);
     res.removeListener?.("close", abort);
@@ -129,7 +147,8 @@ function isSameOriginRequest(req) {
   const origin = req.headers.origin;
   if (origin) {
     try {
-      return new URL(origin).host === req.headers.host;
+      const parsed = new URL(origin);
+      return ['https:', 'http:'].includes(parsed.protocol) && parsed.host === req.headers.host;
     } catch { return false; }
   }
   return req.headers["sec-fetch-site"] === "same-origin";
@@ -194,15 +213,19 @@ async function readBoundedBody(body) {
   }
 }
 
-async function fetchWithCheckedRedirects(initialUrl, signal) {
+async function fetchWithCheckedRedirects(initialUrl, signal, agents) {
   let current = initialUrl;
   for (let redirects = 0; redirects <= MAX_REDIRECTS; redirects++) {
-    if (!(await isPublicHttpUrl(current))) {
-      throw sourceError(403, "Private networks not allowed");
-    }
+    let checkedLookup;
+    try { checkedLookup = await resolveTarget(current); }
+    catch { throw sourceError(403, 'Private networks not allowed'); }
+    if (signal.aborted) throw sourceError(504, 'Source download timed out');
+    const dispatcher = new Agent({ connect: { lookup: checkedLookup }, headersTimeout: SOURCE_TIMEOUT_MS, bodyTimeout: SOURCE_TIMEOUT_MS });
+    agents.push(dispatcher);
 
     const upstream = await fetch(current.href, {
       headers: upstreamHeaders(current),
+      dispatcher,
       redirect: "manual",
       signal,
     });
@@ -232,59 +255,4 @@ function upstreamHeaders(url) {
 
 function isRedirect(status) {
   return status >= 300 && status < 400;
-}
-
-async function isPublicHttpUrl(url) {
-  if (!isAllowedProtocol(url)) return false;
-  const hostname = url.hostname.toLowerCase();
-  if (hostname === "localhost" || hostname.endsWith(".localhost")) return false;
-  if (isBlockedIp(hostname)) return false;
-
-  try {
-    const addresses = await lookup(hostname, { all: true, verbatim: true });
-    return addresses.length > 0 && addresses.every((entry) => !isBlockedIp(entry.address));
-  } catch {
-    return false;
-  }
-}
-
-function isBlockedIp(address) {
-  const version = isIP(address);
-  if (version === 4) return isBlockedIpv4(address);
-  if (version === 6) return isBlockedIpv6(address);
-  return false;
-}
-
-function isBlockedIpv4(address) {
-  const parts = address.split(".").map((part) => Number(part));
-  if (parts.length !== 4 || parts.some((part) => Number.isNaN(part) || part < 0 || part > 255)) return true;
-  const [a, b] = parts;
-  return (
-    a === 0 ||
-    a === 10 ||
-    a === 127 ||
-    (a === 100 && b >= 64 && b <= 127) ||
-    (a === 169 && b === 254) ||
-    (a === 172 && b >= 16 && b <= 31) ||
-    (a === 192 && b === 168) ||
-    a >= 224
-  );
-}
-
-function isBlockedIpv6(address) {
-  const normalized = address.toLowerCase();
-  if (normalized.startsWith("::ffff:")) {
-    return isBlockedIp(normalized.slice(7));
-  }
-  return (
-    normalized === "::" ||
-    normalized === "::1" ||
-    normalized.startsWith("fc") ||
-    normalized.startsWith("fd") ||
-    normalized.startsWith("fe8") ||
-    normalized.startsWith("fe9") ||
-    normalized.startsWith("fea") ||
-    normalized.startsWith("feb") ||
-    normalized.startsWith("ff")
-  );
 }

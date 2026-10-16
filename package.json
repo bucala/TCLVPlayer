@@ -1,6 +1,6 @@
 {
   "name": "tclvplayer",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "private": true,
   "description": "Simple IPTV player for Windows, Android, GoogleTV and web.",
   "main": "native/electron/main.js",
@@ -22,7 +22,10 @@
     "android:apk": "node scripts/android-studio.mjs --build",
     "android:open": "cap open android",
     "lint": "eslint .",
-    "test": "vitest run"
+    "test": "vitest run",
+    "privacy:check": "node scripts/privacy-check.mjs",
+    "test:browser": "node tests/browser.cjs",
+    "check": "node scripts/version-check.mjs && npm run privacy:check && npm run lint && npm test"
   },
   "build": {
     "appId": "sk.tclv.player",
@@ -30,7 +33,10 @@
     "files": [
       "dist/web/**/*",
       "assets/icon.png",
-      "native/electron/**/*"
+      "native/electron/**/*",
+      "LICENSE",
+      "THIRDPARTY.md",
+      "!node_modules/**/*"
     ],
     "win": {
       "target": "nsis",
@@ -43,23 +49,36 @@
     "asar": true
   },
   "dependencies": {
-    "@capacitor/android": "^8.4.1",
-    "@capacitor/core": "^8.3.4",
+    "@capacitor/android": "^8.5.3",
+    "@capacitor/core": "^8.5.3",
     "artplayer": "^5.2.5",
     "flv.js": "^1.6.2",
     "hls.js": "^1.5.20",
     "jplayer": "^2.9.2",
-    "jquery": "^4.0.0",
+    "jquery": "^3.7.1",
     "mpegts.js": "^1.8.0",
+    "sax": "^1.6.1",
+    "undici": "^8.12.2",
     "video.js": "^8.23.9"
   },
   "devDependencies": {
-    "@capacitor/cli": "^8.4.1",
+    "@capacitor/cli": "^8.5.3",
     "@eslint/js": "^10.0.1",
-    "electron": "^43.1.0",
+    "electron": "^43.8.0",
     "electron-builder": "^26.15.3",
     "eslint": "^10.4.1",
     "http-server": "^14.1.1",
-    "vitest": "^4.1.10"
-  }
+    "playwright": "^1.64.1",
+    "vitest": "^5.0.5"
+  },
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "overrides": {
+    "xcode": {
+      "uuid": "^11.1.1"
+    },
+    "@electron/get": "^5.1.0"
+  },
+  "author": "TCLVPlayer contributors"
 }

@@ -10,9 +10,10 @@ const MAX_BYTES = 3 * 1024 * 1024;
 const playlist = "#EXTM3U\n#EXTINF:-1,Example\nhttps://media.example/live.m3u8";
 const epg = '<?xml version="1.0"?><tv><channel id="example"/></tv>';
 
+let requestSequence = 0;
 function request(query = {}, headers = {}, method = "GET") {
   return Object.assign(new EventEmitter(), {
-    method,
+    method, socket: { remoteAddress: "fixture-" + requestSequence++ },
     query: { resource: "source", url: "https://sources.example/list.m3u", ...query },
     headers: { host: "tclv-player.vercel.app", "sec-fetch-site": "same-origin", ...headers },
   });
@@ -38,7 +39,7 @@ async function run(req = request()) {
 
 beforeEach(() => {
   lookup.mockResolvedValue([{ address: "8.8.8.8", family: 4 }]);
-  vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(playlist)));
+  vi.stubGlobal("fetch", vi.fn().mockImplementation(async () => new Response(playlist)));
 });
 
 afterEach(() => {
@@ -277,5 +278,25 @@ describe("source-only Vercel proxy", () => {
     await vi.advanceTimersByTimeAsync(15000);
     const res = await pending;
     expect(res.statusCode).toBe(504);
+  });
+});
+
+describe('DNS pinning transport', () => {
+  it('passes a vetted dispatcher rather than allowing fetch to resolve the hostname independently', async () => {
+    const result = await run(request({}, {}, 'GET'));
+    expect(result.statusCode).toBe(200);
+    const [, options] = fetch.mock.calls[0];
+    expect(options.dispatcher).toBeDefined();
+    expect(typeof options.dispatcher.dispatch).toBe('function');
+  });
+});
+
+describe('bounded proxy use', () => {
+  it('rejects the 31st request from a client within a minute', async () => {
+    const req = request();
+    for (let i = 0; i < 30; i++) expect((await run(req)).statusCode).toBe(200);
+    const result = await run(req);
+    expect(result.statusCode).toBe(429); expect(result.headers['retry-after']).toBe('60');
+    expect(fetch).toHaveBeenCalledTimes(30);
   });
 });

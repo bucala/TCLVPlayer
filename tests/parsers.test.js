@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import {
+import parsers from "../lib/parsers.js";
+const {
   normalizeId,
   uniqueId,
   attr,
@@ -7,7 +8,7 @@ import {
   parseXmlTvDate,
   sanitizeLogoUrl,
   hashCode,
-} from "../lib/parsers.js";
+} = parsers;
 
 describe("normalizeId", () => {
   it("lowercases and strips special chars", () => {
@@ -183,4 +184,25 @@ describe("hashCode", () => {
   it("returns a number", () => {
     expect(typeof hashCode("hello")).toBe("number");
   });
+});
+
+describe('production parser scalability and archive metadata', () => {
+  it('allocates stable unique IDs from one shared set including collisions', () => {
+    const ids = new Set();
+    expect(uniqueId('Fixture', ids)).toBe('fixture');
+    expect(uniqueId('Fixture', ids)).toBe('fixture-2');
+    expect(uniqueId('Fixture', ids)).toBe('fixture-3');
+  });
+  it('retains catchup attributes used by the actual application', () => {
+    const [channel] = parseM3U('#EXTM3U\n#EXTINF:-1 catchup="append" catchup-source="https://media.example/archive?utc={utc}" catchup-days="7",Fixture\nhttps://media.example/live.m3u8');
+    expect(channel.catchup).toBe('append'); expect(channel.catchupDays).toBe(7);
+    expect(channel.catchupSource).toContain('{utc}');
+  });
+});
+
+
+it('keeps ID suffixes stable when many stations share the same metadata', () => {
+  const text = '#EXTM3U\n' + Array.from({ length: 1000 }, (_, i) => '#EXTINF:-1,Fixture\nhttps://media.example/' + i).join('\n');
+  const result = parseM3U(text);
+  expect(result[0].id).toBe('fixture'); expect(result[999].id).toBe('fixture-1000');
 });
