@@ -981,11 +981,14 @@ function initCustomSelects() {
   document.querySelectorAll('.custom-select').forEach(initCustomSelect);
 }
 const channelWindow = { start: 0, rowHeight: 76, source: null };
+const CHANNEL_WINDOW_SIZE = 70;
+function channelWindowStart(index) {
+  return Math.max(0, Math.min(index - 12, filteredChannels().length - CHANNEL_WINDOW_SIZE));
+}
 function focusChannelIndex(index) {
   index = Math.max(0, Math.min(state.channels.length - 1, index));
-  if (state.channels.length > 150) {
-    channelWindow.start = Math.max(0, index - 12);
-    dom.channelGrid.scrollTop = Math.max(0, index * channelWindow.rowHeight - dom.channelGrid.clientHeight / 2);
+  if (state.channels.length > 150 && (index < channelWindow.start || index >= channelWindow.start + CHANNEL_WINDOW_SIZE)) {
+    channelWindow.start = channelWindowStart(index);
     renderChannels();
   }
   const card = [...dom.channelGrid.querySelectorAll('.channel-card')].find(node => node.dataset.channelId === state.channels[index]?.id);
@@ -998,10 +1001,12 @@ function renderChannels() {
   const focused = document.activeElement?.closest('.channel-card');
   const focusId = focused?.dataset.channelId;
   const focusClass = document.activeElement?.className;
-  if (channelWindow.source !== allChannels) { channelWindow.source = allChannels; channelWindow.start = 0; dom.channelGrid.replaceChildren(); }
+  if (channelWindow.source !== allChannels) { channelWindow.source = allChannels; channelWindow.start = 0; dom.channelGrid.replaceChildren(); dom.channelGrid.scrollTop = 0; }
   const virtual = allChannels.length > 150;
-  const start = virtual ? Math.max(0, Math.min(channelWindow.start, allChannels.length - 1)) : 0;
-  const channels = virtual ? allChannels.slice(start, start + 70) : allChannels;
+  const start = virtual ? Math.max(0, Math.min(channelWindow.start, allChannels.length - CHANNEL_WINDOW_SIZE)) : 0;
+  channelWindow.start = start;
+  const channels = virtual ? allChannels.slice(start, start + CHANNEL_WINDOW_SIZE) : allChannels;
+  const scrollTop = dom.channelGrid.scrollTop;
   const existing = new Map([...dom.channelGrid.querySelectorAll('.channel-card')].map(node => [node.dataset.channelId, node]));
   for (const node of dom.channelGrid.querySelectorAll('.channel-card')) if (!channels.some(ch => ch.id === node.dataset.channelId)) node.remove();
   let top = dom.channelGrid.querySelector('.channel-spacer-top'), bottom = dom.channelGrid.querySelector('.channel-spacer-bottom');
@@ -1018,6 +1023,7 @@ function renderChannels() {
     return;
   }
   const now = new Date();
+  let nextNode = top.nextElementSibling;
   channels.forEach((channel, position) => {
     const reused = existing.get(channel.id);
     const node = reused || dom.channelTemplate.content.firstElementChild.cloneNode(true);
@@ -1062,10 +1068,14 @@ function renderChannels() {
       }
     });
     }
-    if (!reused) dom.channelGrid.insertBefore(node, bottom);
+    // Prepend earlier rows before retained cards; appending them reorders the list
+    // and lets browser scroll anchoring repeatedly shift the virtual window.
+    if (node !== nextNode) dom.channelGrid.insertBefore(node, nextNode);
+    nextNode = node.nextElementSibling;
   });
   const first = dom.channelGrid.querySelector('.channel-card');
   if (first) channelWindow.rowHeight = first.getBoundingClientRect().height + 4;
+  dom.channelGrid.scrollTop = scrollTop;
   if (focusId && !document.activeElement?.closest('.channel-card')) {
     const card = [...dom.channelGrid.querySelectorAll('.channel-card')].find(node => node.dataset.channelId === focusId);
     const child = card && focusClass && [...card.querySelectorAll('button')].find(node => node.className === focusClass);
@@ -2436,7 +2446,7 @@ function bindEvents() {
   let guideScrollFrame;
   dom.epgGuide.addEventListener('scroll', () => { if (guideWindow.channels.length <= 150) return; cancelAnimationFrame(guideScrollFrame); guideScrollFrame = requestAnimationFrame(() => { const start = Math.max(0, Math.floor(dom.epgGuide.scrollTop / guideWindow.rowHeight) - 12); if (Math.abs(start - guideWindow.start) > 8) { guideWindow.start = start; renderGuide(); } }); }, { passive: true });
   let channelScrollFrame;
-  dom.channelGrid.addEventListener('scroll', () => { if (state.channels.length <= 150) return; cancelAnimationFrame(channelScrollFrame); channelScrollFrame = requestAnimationFrame(() => { const start = Math.max(0, Math.floor(dom.channelGrid.scrollTop / channelWindow.rowHeight) - 12); if (Math.abs(start - channelWindow.start) > 8) { channelWindow.start = start; renderChannels(); } }); }, { passive: true });
+  dom.channelGrid.addEventListener('scroll', () => { if (state.channels.length <= 150) return; cancelAnimationFrame(channelScrollFrame); channelScrollFrame = requestAnimationFrame(() => { const start = channelWindowStart(Math.floor(dom.channelGrid.scrollTop / channelWindow.rowHeight)); if (Math.abs(start - channelWindow.start) > 8) { channelWindow.start = start; renderChannels(); } }); }, { passive: true });
   dom.channelSearch?.addEventListener('input', function() { state.searchQuery = this.value.trim(); renderChannels(); });
   dom.channelSearch?.addEventListener('search', function() { state.searchQuery = this.value.trim(); renderChannels(); });
   dom.addXtream?.addEventListener('click', addXtreamSource);

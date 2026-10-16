@@ -745,6 +745,7 @@ input[type=search] { -webkit-appearance: none; }
 .channel-grid {
   flex: 1;
   overflow-y: auto;
+  overflow-anchor: none;
   padding: 8px;
   display: flex;
   flex-direction: column;

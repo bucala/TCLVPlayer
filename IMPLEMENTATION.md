@@ -43,6 +43,7 @@ Horná kapsula z referenčného obrázka je vlastnosť konkrétneho výrobcu sys
 
 - `npm run check`: privacy guard, lint a 213 úspešných testov, 2 vynechané.
 - Browser integrácia pre natívny web bundle aj browser/bridge bundle: D-pad, izolácia dialógov, obľúbené bez neúmyselného prehratia, perzistencia, export, neplatný import, opačné poradie aktivácií, worker, veľký virtualizovaný zoznam a fallback druhého slotu.
+- Následný CI log odhalil stratu fokusu pri `End`: nesprávne poradie dopĺňaných riadkov a browser scroll anchoring spúšťali opakované posuny okna. Opravené poradie aj zachovanie posuvu; browser test používa rovnaké Playwright Chromium ako CI a preveruje opakovaný pohyb oboma smermi cez hranice virtuálneho okna, viditeľnosť a stabilitu fokusu počas ďalších rámcov.
 - Plný Vercel/browser build vrátane SHA-256 overeného Windows Node runtime bridge prešiel.
 - Android `assembleDebug` a `lintDebug` prešli; vývojový podpis APK overený cez apksigner, metadáta 1.3.0 / 1003000 / minSdk 24 / targetSdk 36.
 - Windows x64 unpacked aj portable EXE build prešli, vrátane zmenšeného app.asar bez duplicitných node_modules. Electron smoke test na Linuxe preveril štart UI, EPG worker a overené IPC. Prenosný EXE je nepodpísaný testovací build; pri krížovom zostavení nebola aplikovaná editácia Windows ikony/metadát, bežný Windows CI používa štandardnú konfiguráciu.

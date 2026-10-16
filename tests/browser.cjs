@@ -19,7 +19,7 @@ const assert = require('node:assert/strict');
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   let browser;
   try {
-    browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || (require('node:fs').existsSync('/usr/bin/chromium') ? '/usr/bin/chromium' : undefined), headless: true, args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+    browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || chromium.executablePath(), headless: true, args: ['--no-sandbox', '--disable-dev-shm-usage'] });
     const page = await browser.newPage({ viewport: { width: 1360, height: 820 } });
     const errors = []; page.on('pageerror', error => errors.push(error.message));
     await page.route('**/*', route => new URL(route.request().url()).hostname === '127.0.0.1' ? route.continue() : route.abort());
@@ -76,11 +76,40 @@ const assert = require('node:assert/strict');
       const map = await parseEpgOffThread(xml.replace('20261016120000 +0000', timestamp(new Date(Date.now() - 1800000))).replace('20261016130000 +0000', timestamp(new Date(Date.now() + 1800000))));
       return map.get('fixture-a')[0];
     }); assert.equal(parsed.title, 'Čas & deň'); assert.equal(parsed.channelName, 'Fixture A');
-    // A thousand channels must keep a bounded DOM and allow D-pad access to the end.
+    // Check focus across scroll/render frames, including backwards window updates.
+    const expectChannelFocus = async id => {
+      await page.waitForFunction(expected => document.activeElement.dataset.channelId === expected, id);
+      const result = await page.evaluate(async () => {
+        const focus = [];
+        for (let frame = 0; frame < 8; frame++) {
+          await new Promise(resolve => window.requestAnimationFrame(resolve));
+          focus.push(document.activeElement.dataset.channelId);
+        }
+        const cards = [...dom.channelGrid.querySelectorAll('.channel-card')];
+        const bounds = dom.channelGrid.getBoundingClientRect();
+        const active = document.activeElement.getBoundingClientRect();
+        return {
+          focus, positions: cards.map(card => Number(card.getAttribute('aria-posinset'))),
+          visible: active.top >= bounds.top && active.bottom <= bounds.bottom,
+        };
+      });
+      assert.deepEqual(result.focus, Array(8).fill(id), 'Focus must survive pending scroll renders');
+      assert.ok(result.visible, 'The focused channel must stay in view');
+      assert.equal(result.positions.length, 70, 'Keep a full, bounded window at either end');
+      assert.ok(result.positions.every((position, i, all) => !i || position === all[i - 1] + 1), 'Rendered rows must remain in playlist order');
+    };
+    // A thousand channels must keep a bounded DOM through repeated D-pad traversal.
     await page.evaluate(async () => { await loadPlaylistText('#EXTM3U\n' + Array.from({ length: 1000 }, (_, i) => '#EXTINF:-1,Fixture ' + i + '\nhttps://media.example/' + i + '.m3u8').join('\n'), 'large.m3u'); focusChannelIndex(0); });
-    assert.ok(await page.locator('.channel-card').count() <= 70);
-    await page.keyboard.press('End'); await page.waitForTimeout(80); assert.equal(await page.evaluate(() => document.activeElement.dataset.channelId), 'fixture-999');
-    assert.ok(await page.locator('.channel-card').count() <= 70);
+    const largeSelection = await page.evaluate(() => state.selectedChannelId);
+    for (let round = 0; round < 2; round++) {
+      await page.keyboard.press('End'); await expectChannelFocus('fixture-999');
+      for (let i = 0; i < 81; i++) await page.keyboard.press('ArrowUp');
+      await expectChannelFocus('fixture-918');
+      await page.keyboard.press('Home'); await expectChannelFocus('fixture-0');
+      for (let i = 0; i < 81; i++) await page.keyboard.press('ArrowDown');
+      await expectChannelFocus('fixture-81');
+    }
+    assert.equal(await page.evaluate(() => state.selectedChannelId), largeSelection, 'Focus traversal must not start another channel');
     if (process.env.BROWSER_BUILD === 'vercel') {
       await page.route('**/failure.m3u8', route => route.fulfill({ status: 403, body: 'Forbidden' }));
       await page.evaluate(async () => {
