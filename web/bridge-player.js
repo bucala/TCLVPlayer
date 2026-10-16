@@ -15,6 +15,8 @@ window.TCLVWebPlayer = function(host) {
       bridgeDisconnect: "Odpojiť", bridgeCode: "Párovací kód z okna bridge", bridgeDownload: "Stiahnuť TCLV Bridge pre Windows (ZIP)",
       bridgeInstall: "ZIP obsahuje všetko, Node.js netreba inštalovať. Kliknite pravým na ZIP › Rozbaliť všetko. Až v rozbalenom priečinku spustite Start TCLV Bridge.cmd. Nie priamo v ZIP. Okno bridge nechajte otvorené.",
       bridgePrivacy: "Poskytovateľ → tento počítač → prehliadač. Bridge ani video neprechádzajú cez Vercel.",
+      bridgeLocalOnly: "Vypnúť vzdialený proxy", bridgeLocalOnlyDone: "Vzdialený proxy je vypnutý. Video, playlisty aj EPG používajú priame spojenia alebo spárovaný lokálny bridge.",
+      bridgeLimits: "Video nečerpá prenos Vercel proxy. Stránka, knižnice a stiahnutie bridge ZIP stále používajú hosting. Vypnutím vzdialeného proxy obídete aj serverové sťahovanie playlistov a EPG.",
       bridgePermission: "Ak prehliadač žiada prístup k lokálnej sieti, povoľte ho pre TCLVPlayer. Po zamietnutí zmeňte povolenie lokálnej siete v nastaveniach stránky a skúste znovu. Bridge musí bežať na tom istom počítači.",
       bridgeMissing: "Bridge nie je pripojený. Spustite ho a kliknite Nájsť bridge.",
       bridgeAvailable: "Bridge nájdený. Zadajte kód z jeho okna a spárujte ho.",
@@ -32,6 +34,8 @@ window.TCLVWebPlayer = function(host) {
       bridgeDisconnect: "Disconnect", bridgeCode: "Pairing code from the bridge window", bridgeDownload: "Download TCLV Bridge for Windows (ZIP)",
       bridgeInstall: "The ZIP includes everything; no Node.js installation needed. Right-click the ZIP > Extract all. Run Start TCLV Bridge.cmd from the extracted folder, not inside the ZIP. Keep its window open.",
       bridgePrivacy: "Provider → this computer → browser. Neither the bridge nor video goes through Vercel.",
+      bridgeLocalOnly: "Disable remote proxy", bridgeLocalOnlyDone: "Remote proxy is disabled. Video, playlists and EPG use direct connections or the paired local bridge.",
+      bridgeLimits: "Video does not use Vercel proxy transfer. The page, libraries and bridge ZIP download still use hosting. Disabling the remote proxy also avoids server-side playlist and EPG downloads.",
       bridgePermission: "If your browser asks for local-network access, allow it for TCLVPlayer. If denied, change the local-network permission in site settings and retry. The bridge must run on the same computer.",
       bridgeMissing: "Bridge is not connected. Start it and click Find bridge.",
       bridgeAvailable: "Bridge found. Enter the code from its window and pair it.",
@@ -70,7 +74,9 @@ window.TCLVWebPlayer = function(host) {
     <button type="submit" data-i18n="bridgePair"></button></form>
     <a class="bridge-download" href="./downloads/TCLV-Bridge.zip" download data-i18n="bridgeDownload"></a>
     <p class="settings-hint" data-i18n="bridgeInstall"></p><p class="settings-hint" data-i18n="bridgePermission"></p>
-    <p class="settings-hint" data-i18n="bridgeCodec"></p>`;
+    <p class="settings-hint" data-i18n="bridgeCodec"></p>
+    <div class="field-row"><button id="bridgeLocalOnly" type="button" data-i18n="bridgeLocalOnly"></button></div>
+    <p class="settings-hint" data-i18n="bridgeLimits"></p>`;
   body.prepend(ui);
   const bar = document.createElement("div");
   bar.className = "web-bridge-bar";
@@ -270,7 +276,7 @@ window.TCLVWebPlayer = function(host) {
     try {
       const url = new URL(configured, location.origin);
       if (["127.0.0.1", "localhost", "[::1]"].includes(url.hostname) && url.pathname === "/proxy") {
-        return location.origin + "/api/proxy?url=";
+        return "";
       }
     } catch { /* Preserve disabled and custom source proxies. */ }
     return configured;
@@ -354,6 +360,12 @@ window.TCLVWebPlayer = function(host) {
       slot.retried = false;
       void start(slot, slot.channel);
     }
+  });
+  query("#bridgeLocalOnly").addEventListener("click", () => {
+    host.state.corsProxy = "";
+    host.safeSet("tclv.corsProxy", "");
+    host.dom.corsProxyInput.value = "";
+    statusLabel.textContent = host.t("bridgeLocalOnlyDone");
   });
   host.translateUi();
   // Test/diagnostic status contains no provider URLs, session tokens, or pairing code.

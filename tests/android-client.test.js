@@ -5,7 +5,7 @@ const source = readFileSync(new URL('../lib/android-player.js', import.meta.url)
 function client() {
   const listeners = new Map();
   const plugin = { addListener: async (name, listener) => listeners.set(name, listener), nativeBounds: vi.fn().mockResolvedValue({}),
-    nativeReady: vi.fn().mockResolvedValue({ ready: true }), playNative: vi.fn().mockResolvedValue({}), controlNative: vi.fn().mockResolvedValue({}) };
+    nativeReady: vi.fn().mockResolvedValue({ ready: true }), playNative: vi.fn().mockResolvedValue({}), nativeMetadata: vi.fn().mockResolvedValue({}), controlNative: vi.fn().mockResolvedValue({}) };
   const root = { Capacitor: { Plugins: { TCLVPlayer: plugin } }, addEventListener: vi.fn() };
   const context = vm.createContext({ ...root, document: { addEventListener: vi.fn(), documentElement: {} },
     ResizeObserver: class { observe() {} }, MutationObserver: class { observe() {} },
@@ -27,5 +27,27 @@ describe('Android media session lifecycle', () => {
     let ready; plugin.nativeReady.mockImplementation(() => new Promise(resolve => { ready = resolve; }));
     const pending = api.start({ id: 'fixture' }, [], 'fixture'); api.stop(); ready({ ready: true }); await pending;
     expect(plugin.playNative).not.toHaveBeenCalled(); expect(api.active).toBe(false);
+  });
+  it('updates programme metadata without restarting playback and deduplicates unchanged EPG', async () => {
+    const { api, plugin, host } = client(); await api.install(host);
+    const metadata = { id: 'fixture', programme: 'Fixture programme', programmes: [{ title: 'Fixture programme', start: 1, stop: 2 }] };
+    await api.metadata(metadata); expect(plugin.nativeMetadata).not.toHaveBeenCalled();
+    await api.start({ id: 'fixture' }, [], 'queue');
+    await api.metadata(metadata); await api.metadata(metadata);
+    await api.metadata({ ...metadata, programme: 'Next fixture programme' });
+    expect(plugin.nativeMetadata).toHaveBeenCalledTimes(2);
+    expect(plugin.nativeMetadata).toHaveBeenLastCalledWith(expect.objectContaining({ programme: 'Next fixture programme' }));
+    expect(plugin.playNative).toHaveBeenCalledOnce();
+    expect(plugin.controlNative).not.toHaveBeenCalled();
+  });
+  it('retries a failed metadata update and refreshes it after another native start', async () => {
+    const { api, plugin, host } = client(); await api.install(host);
+    await api.start({ id: 'fixture' }, [], 'queue');
+    const metadata = { id: 'fixture', programme: 'Fixture programme' };
+    plugin.nativeMetadata.mockRejectedValueOnce(new Error('Fixture disconnect'));
+    await expect(api.metadata(metadata)).rejects.toThrow('disconnect');
+    await api.metadata(metadata);
+    await api.start({ id: 'fixture' }, [], 'queue'); await api.metadata(metadata);
+    expect(plugin.nativeMetadata).toHaveBeenCalledTimes(3);
   });
 });

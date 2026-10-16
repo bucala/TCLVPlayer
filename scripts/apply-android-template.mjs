@@ -4,7 +4,7 @@ import { dirname, join } from "node:path";
 const packagePath = join("android", "app", "src", "main", "java", "sk", "tclv", "player");
 const manifestPath = join("android", "app", "src", "main", "AndroidManifest.xml");
 
-const classes = ["TCLVPlayerPlugin", "MainActivity", "BootReceiver", "PlaybackService"];
+const classes = ["TCLVPlayerPlugin", "MainActivity", "BootReceiver", "PlaybackService", "ChannelArtworkLoader"];
 
 try {
   await access(manifestPath);

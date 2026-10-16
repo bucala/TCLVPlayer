@@ -135,14 +135,9 @@ public class TCLVPlayerPlugin extends Plugin {
                         JSONObject item = channels.getJSONObject(i);
                         Uri uri = Uri.parse(item.getString("url"));
                         if (!Arrays.asList("http", "https", "rtsp", "rtsps").contains(uri.getScheme())) continue;
-                        MediaMetadata.Builder metadata = new MediaMetadata.Builder().setTitle(item.optString("name", "Channel"))
-                            .setArtist(item.optString("programme", "TCLVPlayer")).setIsPlayable(true).setMediaType(MediaMetadata.MEDIA_TYPE_TV_CHANNEL);
-                        String logo = item.optString("logo", "");
-                        if (logo.startsWith("https://") || logo.startsWith("http://")) metadata.setArtworkUri(Uri.parse(logo));
-                        else metadata.setArtworkUri(Uri.parse("android.resource://" + getContext().getPackageName() + "/" + R.drawable.tclv_icon));
                         String id = item.getString("id");
                         if (id.equals(selected)) selectedIndex = items.size();
-                        MediaItem.Builder media = new MediaItem.Builder().setMediaId(id).setUri(uri).setMediaMetadata(metadata.build());
+                        MediaItem.Builder media = new MediaItem.Builder().setMediaId(id).setUri(uri).setMediaMetadata(channelMetadata(item));
                         String type = item.optString("type", "");
                         if (type.equals("hls")) media.setMimeType("application/x-mpegURL");
                         items.add(media.build());
@@ -157,6 +152,40 @@ public class TCLVPlayerPlugin extends Plugin {
                 ensureView(); playerView.setPlayer(controller); visible = true;
                 controller.prepare(); controller.play(); call.resolve();
             } catch (Exception ignored) { call.reject("Could not start native playback"); }
+        });
+    }
+    private MediaMetadata channelMetadata(JSONObject item) throws org.json.JSONException {
+        MediaMetadata.Builder metadata = new MediaMetadata.Builder().setTitle(item.optString("name", "Channel"))
+            .setArtist(item.optString("programme", "TCLVPlayer")).setIsPlayable(true).setMediaType(MediaMetadata.MEDIA_TYPE_TV_CHANNEL);
+        String logo = item.optString("logo", "");
+        metadata.setArtworkUri(logo.startsWith("https://") || logo.startsWith("http://") ? Uri.parse(logo) :
+            Uri.parse("android.resource://" + getContext().getPackageName() + "/" + R.drawable.tclv_icon));
+        org.json.JSONArray programmes = item.optJSONArray("programmes");
+        int count = programmes == null ? 0 : Math.min(48, programmes.length());
+        long[] starts = new long[count], stops = new long[count];
+        ArrayList<String> titles = new ArrayList<>();
+        for (int i = 0; i < count; i++) {
+            JSONObject programme = programmes.getJSONObject(i);
+            starts[i] = programme.getLong("start"); stops[i] = programme.getLong("stop");
+            String title = programme.optString("title", "");
+            titles.add(title.substring(0, Math.min(512, title.length())));
+        }
+        Bundle extras = new Bundle(); extras.putLongArray("epgStarts", starts); extras.putLongArray("epgStops", stops);
+        extras.putStringArrayList("epgTitles", titles);
+        return metadata.setExtras(extras).build();
+    }
+    @PluginMethod
+    public void nativeMetadata(PluginCall call) {
+        getActivity().runOnUiThread(() -> {
+            if (controller == null) { call.resolve(); return; }
+            MediaItem item = controller.getCurrentMediaItem();
+            // Late EPG results must not overwrite a different channel or restart its stream.
+            if (item == null || !item.mediaId.equals(call.getString("id", ""))) { call.resolve(); return; }
+            try {
+                controller.replaceMediaItem(controller.getCurrentMediaItemIndex(),
+                    item.buildUpon().setMediaMetadata(channelMetadata(call.getData())).build());
+                call.resolve();
+            } catch (Exception ignored) { call.reject("Could not update media information"); }
         });
     }
     @PluginMethod

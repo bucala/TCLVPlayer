@@ -34,6 +34,8 @@ npm run android:apk      # podpísané vývojové APK
 
 Pre web s HTTP/CORS streamami rozbaľte Windows TCLV Bridge ZIP dostupný v Nastavenia → Sieť a spustite `Start TCLV Bridge.cmd`. Spárujte ho kódom z okna. Bridge počúva len na `127.0.0.1:3939–3941`, musí bežať na rovnakom počítači a vyžaduje povolenie lokálnej siete v prehliadači. Produkčný ZIP obsahuje Node.js a jeho licenciu. `npm run bridge:portable` ho vytvorí samostatne.
 
+**Web bez vzdialeného proxy:** v Nastavenia → Sieť stlačte **Vypnúť vzdialený proxy**. Video aj textové zdroje potom používajú iba priame spojenie alebo spárovaný lokálny bridge. Pre HTTP/CORS video zvoľte Auto alebo Iba lokálny bridge; samotný prehliadač nedokáže obísť tieto sieťové obmedzenia. Video neprechádza cez Vercel funkciu. Načítanie stránky, knižníc a stiahnutie bridge ZIP stále čerpajú hostingový prenos; voliteľné serverové sťahovanie EPG/playlistov ho čerpá, ak vzdialený proxy znovu zapnete.
+
 V prostredí, ktoré vyžaduje HTTP proxy pre Node fetch, použite podporované nastavenie runtime, napríklad `NODE_USE_ENV_PROXY=1` na Node 24. Overovanie TLS nevypínajte.
 
 ## Android prehrávanie na pozadí a PiP
@@ -41,12 +43,15 @@ V prostredí, ktoré vyžaduje HTTP proxy pre Node fetch, použite podporované 
 - Zvoľte prehrávač **Natívny**. Natívny obraz je súčasťou TCLVPlayera, neotvára externú aplikáciu.
 - Prehrávanie vlastní `MediaSessionService` s typom `mediaPlayback`, nie životný cyklus WebView. Pri zapnutej voľbe **Prehrávanie na pozadí** pokračuje aj po odchode z aplikácie alebo zhasnutí displeja.
 - Android zobrazuje systémový mediálny panel s názvom a logom kanála, play/pause a dostupným predchádzajúcim/nasledujúcim kanálom. Podporuje zamknutú obrazovku, Bluetooth ovládače, stratu audio focusu a odpojenie slúchadiel.
+- Logo má štvorcový podklad s okrajom a zachovaným pomerom strán, aby sa široké logá v systémovej karte neorezávali. Druhý riadok zobrazuje aktuálny program z načítaného EPG; pri obnove EPG sa metadata aktualizujú bez opätovného spustenia streamu. Služba sleduje načítaný rozvrh aj na pozadí, najviac na ďalších 24 hodín; bez dostupného programu zobrazí TCLVPlayer.
 - **PiP** spustíte tlačidlom v Nastaveniach. Video pokračuje v malom systémovom okne. Dostupnosť závisí od zariadenia a jeho nastavení.
 - Tvar mediálnej karty, ikona v stavovej lište a prípadná horná kapsula sú súčasťou systémového rozhrania výrobcu; aplikácia používa štandardné Android media API.
 - Po vypnutí prehrávania na pozadí sa interný prehrávač pri opustení aplikácie pozastaví. Externé VLC/mpv spravujú vlastné prehrávanie aj notifikácie.
 - Na slabých TV odporúčame jeden natívny obraz. Webový multiview sa pri natívnom prehrávači nezobrazuje; pre dva súbežné webové streamy zvoľte HTML5 alebo iný webový prehrávač.
 
 Buffer natívneho prehrávača je obmedzený na cieľových 16 MiB (8 MiB na zariadeniach s malou RAM) a 5–20 sekúnd. XMLTV sa spracúva v samostatnom worker vlákne, relevantné EPG sa indexuje a veľké zoznamy kanálov aj EPG vykresľujú iba časť riadkov. Na low-RAM zariadeniach automatický výber preferuje najviac 720p, ak stream taký variant ponúka; kvalitu možno zmeniť ručne. Všetky player knižnice sú pribalené; za behu sa nenačítava pohyblivá CDN verzia.
+
+Výber kvality je na všetkých platformách v Nastavenia → Prehrávač & Jazyk, keď ho stream poskytuje. Označenie **Natívna** ani jeho výber už neprekrýva pravý dolný roh obrazu.
 
 ## Diaľkový ovládač a klávesnica
 
@@ -71,6 +76,8 @@ Nastavenia a dialógy zachytávajú fokus a zabraňujú prepínaniu kanálov v p
 Import M3U/M3U8/XSPF a XMLTV vrátane gzip. Formát zoznamu EPG zdrojov je `Názov = URL`; export zoznamu je lokálny TXT súbor. Úplná JSON záloha verzie 2 obnovuje obsah, pôvodné URL, obľúbené, jazyk a nastavenia proxy. Pred zmenou dát sa overí schéma, URL, ID aj povolené prehrávače. Staršie metadátové zálohy verzie 1 zostávajú importovateľné, ale chýbajúci pôvodný lokálny súbor alebo už nahradené heslo z nich nemožno spätne získať.
 
 Sieťové playlisty sa obnovujú po 15 minútach, EPG po 6 hodinách aj počas dlhej relácie. Aktivácia už aktívneho sieťového playlistu vynúti refresh. Lokálne zdroje sa nenačítavajú z názvu súboru cez sieť. Pri chybe sťahovania zostáva posledný použiteľný obsah. Veľkosť jedného zdroja je obmedzená na 64 MiB pred aj po dekompresii; JSON záloha môže mať do 256 MiB.
+
+**Nastavenia → EPG zdroje → Obnoviť EPG teraz** vynúti nové stiahnutie všetkých zapnutých sieťových zdrojov aj pred uplynutím cache a znovu spracuje lokálne uložené XMLTV. Ak už beží automatická obnova, ručná obnova sa vykoná po nej. Tlačidlo počas práce blokuje duplicitné kliknutia a výsledok oznámi priamo v menu. Pri chybe siete alebo neúplnom/neplatnom XML sa ponechajú posledné použiteľné dáta; vypnuté zdroje sa nesťahujú.
 
 Serverový `/api/proxy` je obmedzený na playlisty/EPG do 3 MiB a 15 sekúnd. Každé spojenie aj redirect používa overenú a pripnutú DNS adresu. Limity sú 30 požiadaviek/minútu na klienta a 8 súbežných požiadaviek na proces. Pre rozpočet celého nasadenia treba prípadne nastaviť aj limity hostingu; process limit nie je distribuovaná kvóta účtu.
 
@@ -107,8 +114,9 @@ CI používa `npm ci`, akcie pripnuté na commit, privacy check, audit, unit a b
 
 Overenie verzie 1.3.0 k 16. 10. 2026:
 
-- `npm run check`: 213 úspešných testov, 2 vynechané; kontrola verzie, privacy guard aj lint prešli. `npm audit` vykázal 0 zraniteľností vrátane vývojových závislostí.
+- `npm run check`: 217 úspešných testov, 2 vynechané; kontrola verzie, privacy guard aj lint prešli. `npm audit` vykázal 0 zraniteľností vrátane vývojových závislostí.
 - Chromium integračné testy prešli pre `dist/web` aj `dist/vercel`: D-pad, dialógy, obľúbené, lokálne uloženie/export, odmietnutie neplatného importu, súbeh playlistov, XMLTV worker, virtualizácia a bridge fallback druhého slotu.
+- Ďalšie regresné scenáre overujú obnovu EPG cez cache, zachovanie dát po neúplnom XML, súbeh ručnej/automatickej obnovy, kvalitu v Nastaveniach, úzke menu a nulové volania Vercel proxy pri vypnutom vzdialenom proxy aj pri video fallbacku.
 - Vercel build vrátane Windows bridge runtime prešiel. Android `assembleDebug` a `lintDebug` prešli; podpis debug APK a verzia 1.3.0 / versionCode 1003000 boli overené.
 - Windows x64 unpacked a portable build prešli; Electron smoke test na Linuxe overil UI, EPG worker a IPC. Distribučný `app.asar` obsahuje iba potrebné súbory, bez duplicitných `node_modules`.
 

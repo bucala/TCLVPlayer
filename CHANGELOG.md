@@ -8,8 +8,18 @@ Všetky významné zmeny v projekte sú dokumentované v tomto súbore.
 
 ## [Unreleased]
 
+### Added
+
+- Android mediálny panel zobrazuje aktuálny program z EPG. Metadata sa dopĺňajú po načítaní/obnove EPG bez reštartu streamu; natívna služba každých 30 sekúnd sleduje hranice uložených programov aj pri pozastavenom WebView. Rozvrh je obmedzený na 24 hodín, 48 programov na kanál a 16000 záznamov v celej odovzdanej queue.
+- Na všetkých platformách pribudlo v Nastaveniach pri EPG zdrojoch tlačidlo **Obnoviť EPG teraz**. Obíde cache aktívnych sieťových zdrojov, znovu spracuje lokálne uložený obsah, počká na existujúcu automatickú obnovu a potom vynúti vlastné načítanie. Stav sa zobrazuje v menu, opakované kliknutia sú počas práce blokované.
+- Webová sekcia Sieť obsahuje **Vypnúť vzdialený proxy**: vymaže uložený source proxy, zachová párovanie lokálneho bridge a používa len priame/lokálne sťahovanie. Video už používa direct/loopback tok; stránka, knižnice a bridge ZIP naďalej používajú hostingový prenos.
+
 ### Fixed
 
+- Android artwork sa na pozadí prevádza na štvorcový 512px obrázok so zachovaným pomerom strán a okrajom; široké logo sa nepripravuje na výplň orezom. Výstup aj dekódovanie majú obmedzené rozmery a aktuálny obrázok sa cachuje.
+- Výber kvality vrátane položky „Natívna“ je na všetkých platformách presunutý do Nastavení a neprekrýva video. EPG akcie sa na úzkej obrazovke zalamujú.
+- Obnova EPG overí kompletný XMLTV dokument ešte pred nahradením posledného dobrého obsahu. Worker odmieta aj odpoveď prerušenú v otváracom tagu, ktorú SAX inak prijal. Vynútené načítanie používa revalidáciu aj pri natívnom HTTP.
+- Migrácia starej loopback proxy adresy vo webovej verzii už nenastaví Vercel source proxy. Používateľom vypnuté vzdialené sťahovanie sa samo nezapne.
 - Opravená strata fokusu po `End` a pri pohybe späť vo virtualizovanom zozname kanálov, reprodukovaná z CI logov v Chromium 156. Doplnené riadky sa vkladajú do poradia playlistu, posuv sa zachováva a automatické browser scroll anchoring je pre zoznam vypnuté.
 - Virtuálne okno zostáva na konci plné (najviac 70 riadkov). D-pad nevykresľuje zoznam znova, pokiaľ je cieľový riadok už dostupný; výmena playlistu vráti posuv na začiatok.
 - Odstránené štyri staré gitlink odkazy v `.codex-worktrees`, ktoré bez záznamov v `.gitmodules` spôsobovali warning pri upratovaní GitHub Actions checkoutu. Lokálne pracovné adresáre sa nemažú.
@@ -19,7 +29,8 @@ Všetky významné zmeny v projekte sú dokumentované v tomto súbore.
 
 - Browser test predvolene používa Chromium pribalené k Playwright, rovnako ako CI. Voliteľná cesta `CHROMIUM_PATH` ostáva podporovaná.
 - Namiesto pevného čakania 80 ms test kontroluje fokus počas ôsmich vykresľovacích rámcov. Na 1000 kanáloch opakuje `Home`/`End` a pohyb 81 riadkov oboma smermi; overuje poradie, viditeľnosť, limit DOM a výber kanála bez nechceného prehratia.
-- Po oprave prešli `npm run check` (213 testov, 2 vynechané) a Chromium integrácia pre `dist/web` aj `dist/vercel`.
+- Po opravách prešli `npm run check` (217 testov, 2 vynechané) a Chromium integrácia pre `dist/web` aj `dist/vercel`, vrátane ručnej obnovy cez cache, chybného XML, súbehu obnovovania, umiestnenia kvality a webového bypassu bez Vercel proxy volaní.
+- Doplnené testy deduplikácie/retry Android EPG metadát bez nového spustenia prehrávania a vypnutia vzdialeného proxy bez zrušenia lokálneho párovania. Android `assembleDebug` aj `lintDebug` prešli.
 - Bežné CI teraz spúšťa úplné `npm run check` aj na Windows runneri, aby sa platformové chyby zachytili pred samostatným Windows buildom. Test IPC odmietnutia navyše overuje cudzieho sendera aj nesprávnu URL a potvrdzuje, že nespustili externý proces.
 
 ---

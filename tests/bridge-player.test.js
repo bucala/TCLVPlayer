@@ -20,7 +20,7 @@ function element() {
   };
 }
 
-function player() {
+function player({ configuredProxy = '/api/proxy?url=' } = {}) {
   const body = element();
   const ui = element();
   const bar = element();
@@ -37,7 +37,7 @@ function player() {
     dom: { video, video2, playerMessage2: element(), corsProxyInput: { closest: () => body } },
     translations: { sk: {}, en: {} },
     t: key => key, safeGet: (_key, fallback) => fallback, safeSet: vi.fn(),
-    detectLocalProxy: vi.fn(), detectCorsProxySync: () => "/api/proxy?url=",
+    detectLocalProxy: vi.fn(), detectCorsProxySync: () => configuredProxy,
     canProxyStreams: () => false, needsProxy: () => false,
     isBlockedWebStream: url => url.startsWith("http://"),
     getStreamType: url => url.endsWith(".mp4") ? "mp4" : "hls",
@@ -243,5 +243,18 @@ describe("web-only Auto playback", () => {
     await host.playChannel({ ...channel, url: "https://tclv-player.vercel.app/api/proxy?url=video" });
     expect(client.openStream).not.toHaveBeenCalled();
     expect(host.ensureHls).not.toHaveBeenCalled();
+  });
+  it('disables a saved remote source proxy without stopping or unpairing local playback', () => {
+    const { host, ui, client } = player();
+    ui.querySelector('#bridgeLocalOnly').listeners.get('click')();
+    expect(host.state.corsProxy).toBe('');
+    expect(host.dom.corsProxyInput.value).toBe('');
+    expect(host.safeSet).toHaveBeenCalledWith('tclv.corsProxy', '');
+    expect(client.status).toBe('ready');
+    expect(host.stopInternalPlayers).not.toHaveBeenCalled();
+  });
+  it('never migrates an old loopback source proxy to a Vercel function', () => {
+    const { host } = player({ configuredProxy: 'http://127.0.0.1:3939/proxy?url=' });
+    expect(host.detectCorsProxySync()).toBe('');
   });
 });

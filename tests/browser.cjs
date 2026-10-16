@@ -1,4 +1,4 @@
-/* global URL, process, document, addPlaylistRecord, persistSourcesPending, loadPlaylistText, loadTextFromUrl: writable, persistSources, dom, state, saveExportedFile: writable, exportSettings, importSettingsFromFile, File, parseEpgOffThread, focusChannelIndex, ensureHls, playInSlot1, window, location, activatePlaylist, console */
+/* global URL, process, document, addPlaylistRecord, persistSourcesPending, loadPlaylistText, loadTextFromUrl: writable, persistSources, dom, state, saveExportedFile: writable, exportSettings, importSettingsFromFile, File, parseEpgOffThread, focusChannelIndex, ensureHls, playInSlot1, window, location, activatePlaylist, console, buildQualityMenu, openSettings, closeSettings, writeWebSourceCache, reloadEpgSources, currentProgram, selectedChannel, rebuildMergedEpg, forceRefreshEpg, nativeChannelMetadata */
 // Integration tests use only generated, synthetic sources. No personal fixture files.
 const { chromium } = require('playwright');
 const http = require('node:http');
@@ -76,6 +76,65 @@ const assert = require('node:assert/strict');
       const map = await parseEpgOffThread(xml.replace('20261016120000 +0000', timestamp(new Date(Date.now() - 1800000))).replace('20261016130000 +0000', timestamp(new Date(Date.now() + 1800000))));
       return map.get('fixture-a')[0];
     }); assert.equal(parsed.title, 'Čas & deň'); assert.equal(parsed.channelName, 'Fixture A');
+    // Quality remains selectable in Settings and never overlays the video.
+    const quality = await page.evaluate(() => {
+      const original = state.hls;
+      state.hls = { levels: [{ height: 720 }, { height: 1080 }], currentLevel: -1 };
+      buildQualityMenu(); state.hls = original;
+      return { settings: !!dom.qualityControl.closest('#settingsPanel'), overlay: !!dom.qualityControl.closest('.player-stage'), values: [...dom.qualitySelect.options].map(option => option.value) };
+    });
+    assert.deepEqual(quality, { settings: true, overlay: false, values: ['-1', '0', '1'] });
+    // Force refresh bypasses fresh memory/cache data, disables duplicate clicks and
+    // keeps the previous EPG when a provider replies with malformed XML.
+    const timestamp = ms => new Date(ms).toISOString().slice(0, 19).replace(/[-:T]/g, '') + ' +0000';
+    const epgXml = title => '<tv><programme channel="fixture-a" start="' + timestamp(Date.now() - 1800000) + '" stop="' + timestamp(Date.now() + 1800000) + '"><title>' + title + '</title></programme></tv>';
+    let epgRequests = 0, releaseEpg, requestStarted;
+    let started = new Promise(resolve => { requestStarted = resolve; });
+    await page.route('**/forced-epg.xml', async route => {
+      epgRequests++;
+      await new Promise(resolve => { releaseEpg = resolve; requestStarted(); });
+      await route.fulfill({ contentType: 'application/xml', body: epgRequests === 2 ? '<tv><programme' : epgXml('Fresh fixture programme') });
+    });
+    await page.evaluate(async ({ url, text }) => {
+      window.auditSavedEpgSources = state.epgSources;
+      state.epgSources = [{ id: 'force', name: 'Fixture EPG', origin: 'network', active: true, source: url, fetchedAt: Date.now(), text },
+        { id: 'disabled', name: 'Disabled fixture', origin: 'network', active: false, source: 'https://source.example/disabled.xml' }];
+      await writeWebSourceCache(url, text); await reloadEpgSources(); openSettings();
+    }, { url: origin + '/forced-epg.xml', text: epgXml('Cached fixture programme') });
+    assert.equal(epgRequests, 0);
+    await page.locator('#reloadEpg').click(); await started;
+    assert.equal(await page.locator('#reloadEpg').isDisabled(), true);
+    assert.equal(await page.locator('#reloadEpg').getAttribute('aria-busy'), 'true');
+    await page.evaluate(() => dom.reloadEpg.click()); assert.equal(epgRequests, 1);
+    releaseEpg();
+    await page.waitForFunction(() => !dom.reloadEpg.disabled);
+    assert.equal(await page.evaluate(() => currentProgram(selectedChannel()).title), 'Fresh fixture programme');
+    const metadata = await page.evaluate(() => nativeChannelMetadata(selectedChannel()));
+    assert.equal(metadata.programme, 'Fresh fixture programme');
+    assert.equal(metadata.programmes[0].title, 'Fresh fixture programme');
+    assert.ok(metadata.programmes[0].start < Date.now() && metadata.programmes[0].stop > Date.now());
+    started = new Promise(resolve => { requestStarted = resolve; });
+    await page.locator('#reloadEpg').click(); await started; releaseEpg();
+    await page.waitForFunction(() => !dom.reloadEpg.disabled);
+    assert.equal(await page.evaluate(() => currentProgram(selectedChannel()).title), 'Fresh fixture programme');
+    assert.ok((await page.locator('#playerMessage').textContent()).includes('Niektoré zdroje'));
+    assert.equal(epgRequests, 2);
+    const refreshRace = await page.evaluate(async () => {
+      const original = loadTextFromUrl, text = state.epgSources[0].text, pending = [], flags = [];
+      let secondReady; const second = new Promise(resolve => { secondReady = resolve; });
+      loadTextFromUrl = (_url, options) => new Promise(resolve => { pending.push(resolve); flags.push(options.forceReload); if (pending.length === 2) secondReady(); });
+      try {
+        state.epgSources[0].fetchedAt = 0;
+        const automatic = reloadEpgSources(); const manual = forceRefreshEpg();
+        pending[0](text); await automatic;
+        await second; pending[1](text); await manual;
+        return flags;
+      } finally { loadTextFromUrl = original; }
+    });
+    assert.deepEqual(refreshRace, [true, true], 'A manual refresh must run after an existing automatic refresh');
+    await page.evaluate(async () => {
+      state.epgSources = window.auditSavedEpgSources; await persistSources(); await rebuildMergedEpg(); closeSettings();
+    });
     // Check focus across scroll/render frames, including backwards window updates.
     const expectChannelFocus = async id => {
       await page.waitForFunction(expected => document.activeElement.dataset.channelId === expected, id);
@@ -111,6 +170,18 @@ const assert = require('node:assert/strict');
     }
     assert.equal(await page.evaluate(() => state.selectedChannelId), largeSelection, 'Focus traversal must not start another channel');
     if (process.env.BROWSER_BUILD === 'vercel') {
+      // A saved remote proxy can be explicitly disabled; a failed source must not
+      // silently fall back to the site's Vercel function afterwards.
+      const proxyRequests = [];
+      page.on('request', request => { if (new URL(request.url()).pathname === '/api/proxy') proxyRequests.push(request.url()); });
+      await page.evaluate(() => { state.corsProxy = dom.corsProxyInput.value = location.origin + '/api/proxy?url='; openSettings(); });
+      await page.locator('#bridgeLocalOnly').click();
+      const bypass = await page.evaluate(async () => {
+        const proxy = state.corsProxy; let rejected = false;
+        try { await loadTextFromUrl('https://source.example/no-cors.xml', { forceReload: true }); } catch { rejected = true; }
+        closeSettings(); return { proxy, rejected };
+      });
+      assert.deepEqual(bypass, { proxy: '', rejected: true }); assert.equal(proxyRequests.length, 0);
       await page.route('**/failure.m3u8', route => route.fulfill({ status: 403, body: 'Forbidden' }));
       await page.evaluate(async () => {
         await ensureHls(); window.auditBridgeOpens = 0;
@@ -121,7 +192,11 @@ const assert = require('node:assert/strict');
       });
       try { await page.waitForFunction(() => window.auditBridgeOpens === 1, null, { timeout: 5000 }); } catch (error) { console.log(await page.evaluate(() => ({ opens: window.auditBridgeOpens, hls: !!state.hls2, message: dom.playerMessage2.textContent, version: window.Hls?.version, supported: window.Hls?.isSupported(), source: dom.video2.currentSrc, errors: dom.video2.error?.code, bridged: !!window.TCLVWebBridge }))); throw error; }
       assert.equal(await page.evaluate(() => window.auditBridgeOpens), 1);
+      assert.equal(proxyRequests.length, 0, 'Video and its bridge fallback must never call the Vercel proxy');
     }
+    await page.setViewportSize({ width: 390, height: 844 }); await page.evaluate(() => openSettings());
+    const epgActionsFit = await page.locator('.epg-source-actions').evaluate(row => row.scrollWidth <= row.clientWidth);
+    assert.ok(epgActionsFit, 'EPG actions must wrap on narrow Android/phone settings');
     assert.deepEqual(errors, []); console.log('Browser integration passed: D-pad, modal isolation, local persistence/export, invalid import, EPG worker, virtual channels.');
   } finally { if (browser) await browser.close(); server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); }
 })().catch(error => { console.error(error); process.exitCode = 1; });
