@@ -103,7 +103,7 @@ npm run test:browser     # skutočný browser, syntetické zdroje
 
 Browser test používa Chromium nainštalované cez Playwright, aby sa jeho verzia zhodovala s CI; inú binárku možno explicitne zvoliť cez `CHROMIUM_PATH`. Regresný test 1000 kanálov preveruje opakovaný pohyb hore/dole aj Home/End, fokus po následných scroll/render udalostiach, poradie riadkov, viditeľnosť a limit 70 DOM kariet. Oprava nadväzujúca na CI logy odstránila stratu fokusu pri posune späť; podrobnosti sú v časti Unreleased v changelogu.
 
-CI používa `npm ci`, akcie pripnuté na commit, privacy check, audit, unit a browser testy. Release najprv vykoná kontroly. Browser testy neuploadujú screenshoty ani lokálne používateľské dáta. End-to-end test na fyzickom Android TV je potrebný pre konkrétny firmware, kodeky, správanie PiP a napájania.
+CI používa `npm ci`, akcie pripnuté na commit, privacy check, audit, unit a browser testy. Úplné `npm run check` sa spúšťa aj na Windows; tam sa vykonajú navyše dva Windows launcher testy, ktoré sú na Linuxe vynechané. Electron testy odvodzujú file URL z načítanej cesty na danej platforme, aby kontrola dôveryhodného IPC fungovala aj s Windows diskom. Release najprv vykoná kontroly. Browser testy neuploadujú screenshoty ani lokálne používateľské dáta. End-to-end test na fyzickom Android TV je potrebný pre konkrétny firmware, kodeky, správanie PiP a napájania.
 
 Overenie verzie 1.3.0 k 16. 10. 2026:
 

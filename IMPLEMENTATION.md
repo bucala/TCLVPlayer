@@ -42,6 +42,7 @@ Horná kapsula z referenčného obrázka je vlastnosť konkrétneho výrobcu sys
 ## Overenie
 
 - `npm run check`: privacy guard, lint a 213 úspešných testov, 2 vynechané.
+- Opravený aj platformový Electron test fixture podľa následného Windows logu: dôveryhodná URL rámca vychádza z `loadFile` cesty, nie z pevnej linuxovej URL. Produkčná IPC ochrana zostáva zachovaná. Úplná validácia beží v bežnom CI na Linuxe aj Windows; cudzie framy, sendery aj URL sú výslovne odmietnuté bez spustenia procesu.
 - Browser integrácia pre natívny web bundle aj browser/bridge bundle: D-pad, izolácia dialógov, obľúbené bez neúmyselného prehratia, perzistencia, export, neplatný import, opačné poradie aktivácií, worker, veľký virtualizovaný zoznam a fallback druhého slotu.
 - Následný CI log odhalil stratu fokusu pri `End`: nesprávne poradie dopĺňaných riadkov a browser scroll anchoring spúšťali opakované posuny okna. Opravené poradie aj zachovanie posuvu; browser test používa rovnaké Playwright Chromium ako CI a preveruje opakovaný pohyb oboma smermi cez hranice virtuálneho okna, viditeľnosť a stabilitu fokusu počas ďalších rámcov.
 - Plný Vercel/browser build vrátane SHA-256 overeného Windows Node runtime bridge prešiel.

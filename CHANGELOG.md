@@ -13,12 +13,14 @@ Všetky významné zmeny v projekte sú dokumentované v tomto súbore.
 - Opravená strata fokusu po `End` a pri pohybe späť vo virtualizovanom zozname kanálov, reprodukovaná z CI logov v Chromium 156. Doplnené riadky sa vkladajú do poradia playlistu, posuv sa zachováva a automatické browser scroll anchoring je pre zoznam vypnuté.
 - Virtuálne okno zostáva na konci plné (najviac 70 riadkov). D-pad nevykresľuje zoznam znova, pokiaľ je cieľový riadok už dostupný; výmena playlistu vráti posuv na začiatok.
 - Odstránené štyri staré gitlink odkazy v `.codex-worktrees`, ktoré bez záznamov v `.gitmodules` spôsobovali warning pri upratovaní GitHub Actions checkoutu. Lokálne pracovné adresáre sa nemažú.
+- Opravený Windows testovací fixture Electronu: URL dôveryhodného hlavného rámca sa teraz odvodzuje zo skutočnej cesty odovzdanej do `loadFile`, vrátane písmena disku a URL kódovania. Pevná linuxová URL spôsobovala falošné odmietnutie `Untrusted caller` a následnú neošetrenú chybu v testoch spúšťania VLC/mpv.
 
 ### Tests
 
 - Browser test predvolene používa Chromium pribalené k Playwright, rovnako ako CI. Voliteľná cesta `CHROMIUM_PATH` ostáva podporovaná.
 - Namiesto pevného čakania 80 ms test kontroluje fokus počas ôsmich vykresľovacích rámcov. Na 1000 kanáloch opakuje `Home`/`End` a pohyb 81 riadkov oboma smermi; overuje poradie, viditeľnosť, limit DOM a výber kanála bez nechceného prehratia.
 - Po oprave prešli `npm run check` (213 testov, 2 vynechané) a Chromium integrácia pre `dist/web` aj `dist/vercel`.
+- Bežné CI teraz spúšťa úplné `npm run check` aj na Windows runneri, aby sa platformové chyby zachytili pred samostatným Windows buildom. Test IPC odmietnutia navyše overuje cudzieho sendera aj nesprávnu URL a potvrdzuje, že nespustili externý proces.
 
 ---
 
