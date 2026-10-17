@@ -12,3 +12,7 @@ Podklad: celý `CHANGELOG.md` od 0.1.0 po Unreleased, aktuálny kód aplikácie 
 | 6 | **Pravidelné záťažové overenie na fyzických zariadeniach.** Redmi Pad 2/Android 16 a slabší Android TV, EPG rádovo desiatky MiB, dlhé prehrávanie a export pri prehrávaní. | Opakované opravy Java/Kotlin šablón, GPU, fokusu a pamäte ukazujú, že úspešný build nestačí. Nové testy pokrývajú prenos po častiach a gzip limit, nie správanie firmvéru či jeho file pickera. | Zaznamenať špičku pamäte, ANR/crash, čas obnovy, reakciu na ovládač, návrat z pozadia a úplnosť uloženého súboru. Používať syntetické dáta, výstupy uchovávať mimo repozitára. |
 
 Odporúčané poradie: identifikácia balíka → ručné EPG väzby → diagnostika → vyhľadávanie → zotavenie prehrávania. Overenie na reálnom zariadení má sprevádzať každú zmenu. Pri úpravách postupne oddeliť EPG, zálohy a navigáciu z veľkého `app.js`, aby ďalšia oprava jednej oblasti nepoškodila ostatné.
+
+## Nadväzujúce overenie generátora
+
+Lokálny prenos z IPTVPlaylistgen je už overený; kompatibilita XSPF meta ID a M3U EPG adries je opravená. Pre ručné párovanie možno zatiaľ využiť existujúci generátor a M3U export/import podľa [EPG-COMPATIBILITY.md](EPG-COMPATIBILITY.md). Návrh priamo integrovaného výberu EPG v prehrávači zostáva samostatnou budúcou funkciou.

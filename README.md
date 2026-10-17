@@ -93,6 +93,18 @@ Párovanie EPG používa presné ID a potom názvy/alternatívne názvy bez rozd
 
 Serverový `/api/proxy` je obmedzený na playlisty/EPG do 3 MiB a 15 sekúnd. Každé spojenie aj redirect používa overenú a pripnutú DNS adresu. Limity sú 30 požiadaviek/minútu na klienta a 8 súbežných požiadaviek na proces. Pre rozpočet celého nasadenia treba prípadne nastaviť aj limity hostingu; process limit nie je distribuovaná kvóta účtu.
 
+## IPTVPlaylistgen a menšie EPG prenosy
+
+[IPTVPlaylistgen](https://github.com/bucala/IPTVPlaylistgen) možno použiť na priradenie ID, názvov a log. Odporúčaný prenos je **lokálny M3U export/import**: zachová aj EPG adresy. XSPF parser číta `<meta rel="tvg-id">` a ďalšie metadáta generátora; jeho aktuálny XSPF export však EPG URL neobsahuje, preto ich treba pridať osobitne. Pri importe sa odhalia aj nové zdroje z hlavičiek `url-tvg`/`x-tvg-url` a atribútov `tvg-url`, vrátane existujúceho zoznamu zdrojov. Importér rozpozná čiarky v úvodzovkách a exportované XML entity v atribútoch; HTML prihlasovacia stránka sa neuloží ako playlist. Podporované sú aj lokálne `.m3u.gz` a `.xspf.gz`.
+
+Pre verejné Open‑EPG `files/*.xml` adresy bez prihlasovacích údajov/query/vlastného portu sa prednostne stiahne `.xml.gz`, pri chybe pôvodné XML. Uložená adresa zostáva zachovaná. Pri troch overených zdrojoch gzip znížil prenos o **85,8–91,0 %** a po rozbalení bol obsah zhodný. Android cache zostáva rozbalené UTF‑8; gzip nemení nároky parsovania ani 3 MiB limit voliteľného Vercel proxy po rozbalení.
+
+Automatické objavovanie spracuje najviac 12 adries playlistu; konkrétne `tvg-url` priradené staniciam majú prednosť a nie sú obmedzené na tri úspešné heuristické zdroje. Ďalšie zdroje možno pridať ručne.
+
+EPG výber uprednostní aktuálny rozvrh rovnakej stanice a krajiny pred starým HD rozvrhom, zohľadní zdroj priradený v playliste a vyberie jeden konzistentný rozvrh namiesto miešania konfliktujúcich programov. Slovenské a české varianty sa nezamenia. Verejný `slovakia1` pri kontrole 17. 10. 2026 končil o 06:00 UTC; nový dátum súboru sám nepotvrdzuje aktuálny program.
+
+[EPG-COMPATIBILITY.md](EPG-COMPATIBILITY.md) obsahuje merania, potvrdené príčiny, postup z generátora a overenie na skutočných verejných dátach. Nové regresné scenáre prešli v oboch Chromium balíkoch; unit kontrola má 229 úspešných testov a 2 Windows testy na Linuxe vynechané.
+
 ## Windows externé prehrávače
 
 VLC a mpv sa spúšťajú cez oddelené argumenty, bez shellu. Aplikácia overuje spustenie procesu a pri chybe zobrazí hlásenie. Ak nie sú v PATH, nastavte pre daný proces `TCLV_VLC_PATH` alebo `TCLV_MPV_PATH` na úplnú cestu k exe. Prechod späť na interný prehrávač ukončí externý proces spustený aplikáciou.
@@ -142,6 +154,7 @@ Lokálne pripravený Windows portable EXE je nepodpísaný testovací build; pri
 - `lib/parsers.js`: jeden parser používaný aplikáciou aj testami;
 - `lib/backup.js`: postupný JSON export;
 - `lib/storage.js`: validácia a súkromná lokálna IndexedDB;
+- `lib/epg.js`: identita staníc, krajina, výber rozvrhu a gzip adresy;
 - `lib/epg-worker.js`: SAX XMLTV spracovanie mimo UI;
 - `lib/android-player.js`: synchronizácia natívneho obrazu a ovládania;
 - `native/android/`: Media3 service, Capacitor plugin a Activity;

@@ -10,6 +10,10 @@ Všetky významné zmeny v projekte sú dokumentované v tomto súbore.
 
 ### Added
 
+- Kompatibilita s IPTVPlaylistgen 2.6.0 (`ccd1a63`): XSPF `<meta rel="tvg-id">`, tvg-name/krajina/skupina a dostupné EPG/catchup metadáta; zachované logo, stream URL aj pôvodná tvorba interného ID. M3U číta zdroje `url-tvg`/`x-tvg-url` aj `tvg-url` jednotlivých staníc a doplní nové EPG aj popri už existujúcich zdrojoch. Konkrétne tvg-url majú prednosť a neobmedzia sa na tri heuristické zhody; celkový limit automatického objavovania zostáva 12 adries. XML a jeho gzip variant sa pri objavovaní/importovaní zoznamu neduplikujú.
+- Prednostné gzip sťahovanie overených verejných Open‑EPG XML adries s fallbackom na pôvodné XML; uložené URL sa nemenia. Tri skutočné dvojice XML/gzip mali zhodný rozbalený SHA‑256 a úsporu 85,8–91,0 %. Ostatné XML adresy sa automaticky neprepisujú.
+- Lokálny import `.m3u.gz`/`.xspf.gz`, obnovenie súborového vstupu pre opätovný výber a [EPG-COMPATIBILITY.md](EPG-COMPATIBILITY.md) s meraniami a postupom generátor → lokálny M3U → prehrávač. Aktuálny generátor do XSPF EPG URL neexportuje; generátor sa nemenil.
+
 - Pri každom EPG zdroji sa zobrazí stav a konkrétny problém: HTTP kód, TLS, timeout, XML, limit veľkosti alebo chýbajúca cache. Rozlíšené sú prázdne/staré/budúce EPG, nesúlad staníc a chýbajúci aktuálny program. Diagnostika nevypisuje súkromnú URL ani token; ručná obnova hlási aj načítaný zdroj bez relevantného aktuálneho programu.
 - Export má priebežný stav, blokovanie duplicitného spustenia a voľbu **Pridať aj stiahnutú EPG cache**. Predvolená záloha zachová všetky playlisty, lokálne EPG, pôvodné adresy/prihlasovacie údaje a nastavenia; vynechá veľké XML stiahnutých sieťových EPG, ktoré sa po importe obnovia zo zdrojov.
 - [IMPROVEMENTS.md](IMPROVEMENTS.md) obsahuje šesť prioritných návrhov po preskúmaní celej histórie 0.1.0–Unreleased a aktuálneho kódu, s dôvodmi a kritériami overenia. Ide o návrhy ďalšej práce.
@@ -19,6 +23,11 @@ Všetky významné zmeny v projekte sú dokumentované v tomto súbore.
 - Webová sekcia Sieť obsahuje **Vypnúť vzdialený proxy**: vymaže uložený source proxy, zachová párovanie lokálneho bridge a používa len priame/lokálne sťahovanie. Video už používa direct/loopback tok; stránka, knižnice a bridge ZIP naďalej používajú hostingový prenos.
 
 ### Fixed
+
+- Reprodukované nulové priradenie EPG pri XSPF z generátora: ignorovaný meta tvg-id, kolízie normalizovaných HD/SD/SK/CZ aliasov a presný, ale starý HD rozvrh. Nový `lib/epg.js` rozlišuje krajinu/identitu, uprednostní aktuálny rozvrh rovnakej stanice, zohľadní tvg-url a vyberie jeden rozvrh zdroja. Nejednoznačné rôzne stanice sa nehádajú; worker filtruje aj podľa krajiny playlistu.
+- Vypršaný krátky program neprekryje stále bežiaci dlhší program pri prekrývajúcich sa záznamoch. Cache výberu rozvrhu sa obnovuje pred pravidelným UI refreshom.
+- M3U oddeľuje názov až čiarkou mimo úvodzoviek a dekóduje XML entity v atribútoch exportovaných generátorom. HTML/prázdny zdroj sa odmietne pred uložením nového playlistu; neplatná sieťová obnova neprepíše posledný platný obsah. Pri zlyhaní aktivácie sa obnoví predchádzajúci výber. XML názvové priestory XSPF sú podporované.
+- Overené, že Open‑EPG `slovakia1.xml` aj `.xml.gz` dňa 17. 10. 2026 končia o 06:00 UTC napriek dátumu súboru 17‑10‑26; hlásenie starého programu je správne. Gzip nemení aktuálnosť dát, rozbalenú Android cache ani 3 MiB limit Vercel source proxy.
 
 - Opravené rizikové dátové cesty z hlásenia zamrznutia exportu na Redmi Pad 2/Android 16: JSON sa serializuje po menších častiach, natívny most neuchováva celú zálohu v PluginCall a SAF kopírovanie beží na pracovnom vlákne. Limit je 256 MiB, najviac dva rozpracované exporty; chyba/zrušenie odstránia dočasný súbor a nemenia zdrojové dáta.
 - Android sieťové EPG sa sťahuje, dekomprimuje a prevádza na UTF-8 priamo do súkromného súboru. Gzip sa rozpozná podľa obsahu, podporujú sa XML encoding deklarácie aj UTF-16 BOM. Worker číta lokálnu URL postupne; celé XML už neprechádza CapacitorHttp JSON mostom. Použité aj pre pridanie URL, import zoznamu a automatické EPG z playlistu; zachovaný `.xml.gz` → `.xml` fallback.
@@ -38,6 +47,9 @@ Všetky významné zmeny v projekte sú dokumentované v tomto súbore.
 - Opravený Windows testovací fixture Electronu: URL dôveryhodného hlavného rámca sa teraz odvodzuje zo skutočnej cesty odovzdanej do `loadFile`, vrátane písmena disku a URL kódovania. Pevná linuxová URL spôsobovala falošné odmietnutie `Untrusted caller` a následnú neošetrenú chybu v testoch spúšťania VLC/mpv.
 
 ### Tests
+
+- Po doplnení kompatibility/gzip prešlo 229 unit testov (2 Windows testy na Linuxe vynechané) a oba Chromium balíky. Nové testy pokrývajú gzip XSPF/M3U import, meta ID/logo/skupinu/URL, starý HD + aktuálny SK/CZ zdroj, gzip EPG discovery pri existujúcich zdrojoch, XML entity/čiarky, odmietnutie HTML bez zmeny dát, konzistentný výber zdroja a prekrývajúce sa programy.
+- Na skutočnom verejnom Open‑EPG XML a syntetickej XSPF stanici sa výsledok zmenil z prázdneho ID/0 programov na presné ID/44 programov s aktuálnym slovenským titulom; český variant bol vylúčený. Poskytovateľské súbory ani používateľské dáta nie sú súčasťou testov/repozitára. `npm run verify` generátora prešlo.
 
 - K 17. 10. 2026 prešlo 221 testov a 2 Windows testy boli na Linuxe vynechané; lint, privacy check a kontrola verzie prešli. Chromium integrácia pre `dist/web` aj `dist/vercel` pokrýva export viac MiB, zachovanie súkromných URL/lokálneho obsahu, voliteľnú cache, sekvenčné kúsky, reakciu UI, zrušenie/chybu zápisu, reálny worker nad viac než 15000 programami, EPG diagnostiku/párovanie a zachovanie posledného dobrého programu po chybe.
 - Nový JDK test kompiluje produkčné `FileExports`/`SourceCache` s minimálnymi Android I/O stubmi a spúšťa skutočný lokálny HTTP server so 64 MiB Java heapom: Unicode export, cleanup, gzip bez prípony, redirect, HTTP 404, windows-1250/UTF-16, veľkostné limity a dekompresný nadlimit bez zničenia cache. Pri chýbajúcom JDK sa tento test preskočí. Nenahrádza fyzický SAF/HyperOS test.

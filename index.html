@@ -67,7 +67,7 @@
           <h3 data-i18n="settingsPlaylists">Playlisty</h3>
           <div class="settings-body">
             <div class="field-row"><input id="playlistUrl" type="url" placeholder="https://.../playlist.m3u8" /><button id="addPlaylistUrl" type="button" data-i18n="addPlaylist">Pridať URL</button></div>
-            <label class="file-button"><input id="playlistFile" type="file" accept=".m3u,.m3u8,.xspf,audio/x-mpegurl,application/xspf+xml" /><span data-i18n="openPlaylist">Otvoriť súbor</span></label>
+            <label class="file-button"><input id="playlistFile" type="file" accept=".m3u,.m3u8,.xspf,.gz,audio/x-mpegurl,application/xspf+xml" /><span data-i18n="openPlaylist">Otvoriť súbor</span></label>
             <div id="playlistList" class="source-list"></div>
           </div>
         </div>
@@ -110,6 +110,7 @@
     <div id="lockOverlay" class="lock-overlay" hidden><button id="lockUnlock" class="lock-unlock-btn" aria-label="Odomknúť"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></button></div>
     <template id="channelTemplate"><article class="channel-card"><button class="fav-action" type="button" aria-label="Obľúbené">☆</button><img class="channel-logo" alt="" /><span class="status-dot"></span><div class="channel-text"><h3></h3><p></p></div><div class="progress-track"><span></span></div></article></template>
     <script src="./lib/parsers.js"></script>
+    <script src="./lib/epg.js"></script>
     <script src="./lib/storage.js"></script>
     <script src="./lib/backup.js"></script>
     <script src="./lib/android-player.js"></script>

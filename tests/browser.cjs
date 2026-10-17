@@ -1,4 +1,4 @@
-/* global URL, process, document, addPlaylistRecord, persistSourcesPending, loadPlaylistText, loadTextFromUrl: writable, persistSources, dom, state, saveExportedFile: writable, exportSettings, importSettingsFromFile, File, parseEpgOffThread, focusChannelIndex, ensureHls, playInSlot1, window, location, activatePlaylist, console, buildQualityMenu, openSettings, closeSettings, writeWebSourceCache, reloadEpgSources, currentProgram, selectedChannel, rebuildMergedEpg, forceRefreshEpg, nativeChannelMetadata, epgSourceStatus, reindexEpg, findPrograms, parseXspf, setTimeout, setInterval, clearInterval */
+/* global URL, process, document, addPlaylistRecord, persistSourcesPending, loadPlaylistText, loadTextFromUrl: writable, persistSources, dom, state, saveExportedFile: writable, exportSettings, importSettingsFromFile, File, parseEpgOffThread, focusChannelIndex, ensureHls, playInSlot1, window, location, activatePlaylist, console, buildQualityMenu, openSettings, closeSettings, writeWebSourceCache, reloadEpgSources, currentProgram, selectedChannel, rebuildMergedEpg, forceRefreshEpg, nativeChannelMetadata, epgSourceStatus, reindexEpg, findPrograms, parseXspf, setTimeout, setInterval, clearInterval, Buffer, autoLoadEpgFromPlaylist */
 // Integration tests use only generated, synthetic sources. No personal fixture files.
 const { chromium } = require('playwright');
 const http = require('node:http');
@@ -76,6 +76,64 @@ const assert = require('node:assert/strict');
       const map = await parseEpgOffThread(xml.replace('20261016120000 +0000', timestamp(new Date(Date.now() - 1800000))).replace('20261016130000 +0000', timestamp(new Date(Date.now() + 1800000))));
       return map.get('fixture-a')[0];
     }); assert.equal(parsed.title, 'Čas & deň'); assert.equal(parsed.channelName, 'Fixture A');
+    // Reproduce the generator's XSPF <meta rel="tvg-id"> export, including a
+    // gzip local file, a stale exact HD schedule and live SK/CZ alternatives.
+    const originalData = await page.evaluate(() => {
+      window.generatorSavedState = { playlists: state.playlists, active: state.activePlaylistId, epgSources: state.epgSources };
+      return { playlists: state.playlists.length };
+    });
+    const { gzipSync } = require('node:zlib');
+    const generatedXspf = '<playlist version="1" xmlns="http://xspf.org/ns/0/"><trackList><track><title>Fíxture A</title><location>https://media.example/a?x=1&amp;y=2</location><image>https://logo.example/a?x=1&amp;y=2</image><meta rel="tvg-id">Fíxture A HD.sk</meta><meta rel="tvg-name">Fíxture A.sk</meta><meta rel="tvg-country">sk</meta><meta rel="group-title">Local, news</meta><meta rel="catchup-days">7</meta></track></trackList></playlist>';
+    await page.locator('#playlistFile').setInputFiles({ name: 'generator-selected.xspf.gz', mimeType: 'application/gzip', buffer: gzipSync(generatedXspf) });
+    await page.waitForFunction(() => state.channels[0]?.tvgId === 'Fíxture A HD.sk' && !dom.playlistFile.value);
+    const generatorMetadata = await page.evaluate(() => ({ channel: state.channels[0], type: state.playlists[0].type }));
+    assert.equal(generatorMetadata.type, 'xspf');
+    assert.equal(generatorMetadata.channel.id, 'f-xture-a', 'Reading generator metadata must preserve the existing channel selection/favourites ID');
+    assert.equal(generatorMetadata.channel.logo, 'https://logo.example/a?x=1&y=2');
+    assert.equal(generatorMetadata.channel.url, 'https://media.example/a?x=1&y=2');
+    assert.equal(generatorMetadata.channel.group, 'Local, news'); assert.equal(generatorMetadata.channel.catchupDays, 7);
+    const generatorEpg = await page.evaluate(async () => {
+      const stamp = ms => new Date(ms).toISOString().slice(0, 19).replace(/[-:T]/g, '') + ' +0000';
+      const xml = (id, title, start, stop) => '<tv><channel id="' + id + '"><display-name>' + id + '</display-name></channel><programme channel="' + id + '" start="' + stamp(start) + '" stop="' + stamp(stop) + '"><title>' + title + '</title></programme></tv>';
+      state.epgSources = [
+        { id: 'expired-hd', name: 'Expired', source: 'old.xml', origin: 'local', text: xml('Fíxture A HD.sk', 'Old', Date.now() - 7200000, Date.now() - 3600000) },
+        { id: 'current-sk', name: 'Current SK', source: 'new.xml', origin: 'local', text: xml('Fixture A.sk', 'Correct SK programme', Date.now() - 600000, Date.now() + 3600000) },
+        { id: 'current-cz', name: 'Current CZ', source: 'cz.xml', origin: 'local', text: xml('Fixture A.cz', 'Wrong country', Date.now() - 600000, Date.now() + 7200000) },
+      ];
+      await rebuildMergedEpg(); return currentProgram(selectedChannel())?.title;
+    });
+    assert.equal(generatorEpg, 'Correct SK programme');
+    const beforeInvalid = await page.evaluate(() => ({ count: state.playlists.length, active: state.activePlaylistId, channel: state.selectedChannelId }));
+    await page.locator('#playlistFile').setInputFiles({ name: 'login.m3u', buffer: Buffer.from('<!doctype html>\n<html>Please sign in</html>') });
+    await page.waitForFunction(() => !dom.playlistFile.value && dom.playerMessage.textContent.includes('neobsahuje platné stanice'));
+    assert.deepEqual(await page.evaluate(() => ({ count: state.playlists.length, active: state.activePlaylistId, channel: state.selectedChannelId })), beforeInvalid);
+    // M3U from the generator carries source URLs in url-tvg and per-track
+    // tvg-url. Import must discover them even when other EPG sources exist.
+    let generatorRequests = 0;
+    const stamp = ms => new Date(ms).toISOString().slice(0, 19).replace(/[-:T]/g, '') + ' +0000';
+    const compressedGuide = gzipSync('<tv><programme channel="Fixture A.sk" start="' + stamp(Date.now() - 600000) + '" stop="' + stamp(Date.now() + 3600000) + '"><title>Gzip imported programme</title></programme></tv>');
+    await page.route('**/generator-epg.xml.gz?*', route => { generatorRequests++; return route.fulfill({ contentType: 'application/gzip', body: compressedGuide }); });
+    const epgUrl = origin + '/generator-epg.xml.gz?x=1&amp;y=2';
+    const generatedM3u = '#EXTM3U url-tvg="' + epgUrl + '"\n#EXTINF:-1 group-title="Local, news" tvg-id="Fixture A.sk" tvg-url="' + epgUrl + '",Fixture A\nhttps://media.example/a';
+    await page.locator('#playlistFile').setInputFiles({ name: 'generator.m3u.gz', buffer: gzipSync(generatedM3u) });
+    await page.waitForFunction(() => currentProgram(selectedChannel())?.title === 'Gzip imported programme' && !dom.playlistFile.value);
+    assert.equal(generatorRequests, 1);
+    assert.equal(await page.evaluate(() => state.epgSources.find(source => source.origin === 'network').source), origin + '/generator-epg.xml.gz?x=1&y=2');
+    assert.equal(await page.evaluate(() => state.playlists.length), originalData.playlists + 2);
+    await page.route('**/assigned-*.xml.gz', route => {
+      const id = new URL(route.request().url()).pathname.match(/assigned-(\d+)/)[1];
+      return route.fulfill({ contentType: 'application/gzip', body: gzipSync('<tv><programme channel="Assigned' + id + '.sk" start="' + stamp(Date.now() - 600000) + '" stop="' + stamp(Date.now() + 3600000) + '"><title>Assigned ' + id + '</title></programme></tv>') });
+    });
+    const assignedSources = await page.evaluate(async origin => {
+      const text = '#EXTM3U\n' + Array.from({ length: 4 }, (_, i) => '#EXTINF:-1 tvg-id="Assigned' + i + '.sk" tvg-url="' + origin + '/assigned-' + i + '.xml.gz",Assigned ' + i + '\nhttps://media.example/' + i).join('\n');
+      await loadPlaylistText(text, 'assigned.m3u'); await autoLoadEpgFromPlaylist(text);
+      return state.channels.map(channel => currentProgram(channel)?.title);
+    }, origin);
+    assert.deepEqual(assignedSources, ['Assigned 0', 'Assigned 1', 'Assigned 2', 'Assigned 3'], 'Explicit per-channel sources must not stop at the three-source heuristic limit');
+    await page.evaluate(async () => {
+      const saved = window.generatorSavedState; state.playlists = saved.playlists; state.epgSources = saved.epgSources;
+      await activatePlaylist(saved.active); await persistSources();
+    });
     // Quality remains selectable in Settings and never overlays the video.
     const quality = await page.evaluate(() => {
       const original = state.hls;

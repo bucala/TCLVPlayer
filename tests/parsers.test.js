@@ -206,3 +206,14 @@ it('keeps ID suffixes stable when many stations share the same metadata', () => 
   const result = parseM3U(text);
   expect(result[0].id).toBe('fixture'); expect(result[999].id).toBe('fixture-1000');
 });
+
+describe('playlist generator interoperability', () => {
+  it('preserves EPG source/name/country and decodes exported XML attribute entities', () => {
+    const [channel] = parseM3U('#EXTM3U\n#EXTINF:-1 group-title="News, local" tvg-id="Fíxture.sk" tvg-name="Fixture &amp; News" tvg-country="sk" tvg-url="https://source.example/guide.xml?x=1&amp;y=2" tvg-logo="https://logo.example/a?x=1&amp;y=2",Display\nhttps://media.example/live?x=1&y=2');
+    expect(channel).toMatchObject({ tvgId: 'Fíxture.sk', tvgName: 'Fixture & News', name: 'Fixture & News', group: 'News, local', tvgCountry: 'sk', tvgUrl: 'https://source.example/guide.xml?x=1&y=2', logo: 'https://logo.example/a?x=1&y=2', url: 'https://media.example/live?x=1&y=2' });
+  });
+  it('does not mistake an HTML login/error page for channels', () => {
+    expect(parseM3U('<!doctype html>\n<html>\nLogin required\n</html>')).toEqual([]);
+    expect(parseM3U('#EXTM3U\n#EXTINF:-1,Unsafe\njavascript:alert(1)')).toEqual([]);
+  });
+});
