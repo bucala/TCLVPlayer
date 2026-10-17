@@ -16,6 +16,7 @@ Všetky významné zmeny v projekte sú dokumentované v tomto súbore.
 
 ### Fixed
 
+- Návody pre GitHub Actions výslovne rozlišujú nový build vetvy `main` od opakovania starého behu/tagu. Log z 17. 10. 2026 používal `v1.3.0` → `53a7e73`, preto opakoval už opravenú chybu Windows testov; tag neobsahuje novšie commity `cbeb650` a `7761bb5`.
 - Android artwork sa na pozadí prevádza na štvorcový 512px obrázok so zachovaným pomerom strán a okrajom; široké logo sa nepripravuje na výplň orezom. Výstup aj dekódovanie majú obmedzené rozmery a aktuálny obrázok sa cachuje.
 - Výber kvality vrátane položky „Natívna“ je na všetkých platformách presunutý do Nastavení a neprekrýva video. EPG akcie sa na úzkej obrazovke zalamujú.
 - Obnova EPG overí kompletný XMLTV dokument ešte pred nahradením posledného dobrého obsahu. Worker odmieta aj odpoveď prerušenú v otváracom tagu, ktorú SAX inak prijal. Vynútené načítanie používa revalidáciu aj pri natívnom HTTP.

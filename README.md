@@ -32,6 +32,10 @@ npm run android:studio   # otvorí Android Studio
 npm run android:apk      # podpísané vývojové APK
 ```
 
+Pre aktuálny balík z GitHubu otvorte **Actions → Windows** alebo **Android and GoogleTV → Run workflow** a v **Use workflow from** vyberte **Branch: main**. Výstupy sú po dokončení v časti **Artifacts** daného behu. **Re-run jobs** opakuje pôvodný commit; nové opravy z `main` nepreberie. Tag označuje konkrétnu verziu a neposúva sa spolu s vetvou.
+
+Tag `v1.3.0` ukazuje na historický commit `53a7e73`, ktorý ešte neobsahuje opravu Windows testov `cbeb650` ani následné Android/EPG úpravy `7761bb5`. Pre tieto zmeny zostavujte `main`; opakované zostavenie starého tagu znovu použije starý kód.
+
 Pre web s HTTP/CORS streamami rozbaľte Windows TCLV Bridge ZIP dostupný v Nastavenia → Sieť a spustite `Start TCLV Bridge.cmd`. Spárujte ho kódom z okna. Bridge počúva len na `127.0.0.1:3939–3941`, musí bežať na rovnakom počítači a vyžaduje povolenie lokálnej siete v prehliadači. Produkčný ZIP obsahuje Node.js a jeho licenciu. `npm run bridge:portable` ho vytvorí samostatne.
 
 **Web bez vzdialeného proxy:** v Nastavenia → Sieť stlačte **Vypnúť vzdialený proxy**. Video aj textové zdroje potom používajú iba priame spojenie alebo spárovaný lokálny bridge. Pre HTTP/CORS video zvoľte Auto alebo Iba lokálny bridge; samotný prehliadač nedokáže obísť tieto sieťové obmedzenia. Video neprechádza cez Vercel funkciu. Načítanie stránky, knižníc a stiahnutie bridge ZIP stále čerpajú hostingový prenos; voliteľné serverové sťahovanie EPG/playlistov ho čerpá, ak vzdialený proxy znovu zapnete.
