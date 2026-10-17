@@ -44,8 +44,8 @@ import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.ActivityCallback;
 import com.getcapacitor.annotation.CapacitorPlugin;
 
-import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.Arrays;
 import java.util.Locale;
 
@@ -60,9 +60,14 @@ public class TCLVPlayerPlugin extends Plugin {
     private boolean screenLocked = false;
     private final Handler touchHandler = new Handler(Looper.getMainLooper());
     private final Runnable unlock = () -> notifyListeners("unlockRequested", new JSObject());
+    private final ExecutorService exportIO = Executors.newSingleThreadExecutor();
+    private final ExecutorService sourceIO = Executors.newSingleThreadExecutor();
+    private FileExports fileExports;
+    private SourceCache sourceCache;
 
     @Override
     public void load() {
+        fileExports = new FileExports(getContext()); sourceCache = new SourceCache(getContext());
         getActivity().runOnUiThread(() -> {
             if (getActivity() instanceof MainActivity) ((MainActivity) getActivity()).setNativePlayer(this);
             SessionToken token = new SessionToken(getContext(), new ComponentName(getContext(), PlaybackService.class));
@@ -255,24 +260,49 @@ public class TCLVPlayerPlugin extends Plugin {
         touchHandler.removeCallbacksAndMessages(null);
         if (controllerFuture != null) MediaController.releaseFuture(controllerFuture);
         controller = null;
+        exportIO.execute(() -> fileExports.close()); exportIO.shutdown();
+        sourceIO.execute(() -> sourceCache.close()); sourceIO.shutdown();
     }
 
 
     @PluginMethod
     public void saveTextFile(PluginCall call) {
-        String filename = call.getString("filename", "export.txt");
-        String content = call.getString("content", "");
-        String mimeType = call.getString("mimeType", "text/plain");
-        call.getData().put("savedContent", content);
-
+        exportIO.execute(() -> {
+            String id = null;
+            try { id = fileExports.begin(); fileExports.append(id, call.getString("content", ""));
+                call.getData().put("exportId", id); getActivity().runOnUiThread(() -> openExportPicker(call));
+            } catch (Exception error) { if (id != null) fileExports.discard(id); call.reject("Could not prepare export"); }
+        });
+    }
+    @PluginMethod public void beginTextExport(PluginCall call) {
+        exportIO.execute(() -> {
+            try { JSObject result = new JSObject(); result.put("id", fileExports.begin()); call.resolve(result); }
+            catch (Exception error) { call.reject("Could not prepare export"); }
+        });
+    }
+    @PluginMethod public void appendTextExport(PluginCall call) {
+        exportIO.execute(() -> {
+            try { fileExports.append(call.getString("id", ""), call.getString("content", "")); call.resolve(); }
+            catch (Exception error) { call.reject("Could not write export chunk"); }
+        });
+    }
+    @PluginMethod public void cancelTextExport(PluginCall call) {
+        exportIO.execute(() -> { fileExports.discard(call.getString("id", "")); call.resolve(); });
+    }
+    @PluginMethod public void finishTextExport(PluginCall call) {
+        call.getData().put("exportId", call.getString("id", ""));
+        getActivity().runOnUiThread(() -> openExportPicker(call));
+    }
+    private void openExportPicker(PluginCall call) {
         Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
         intent.addCategory(Intent.CATEGORY_OPENABLE);
-        intent.setType(mimeType);
-        intent.putExtra(Intent.EXTRA_TITLE, filename);
+        intent.setType(call.getString("mimeType", "text/plain"));
+        intent.putExtra(Intent.EXTRA_TITLE, call.getString("filename", "export.txt"));
         try {
             startActivityForResult(call, intent, "handleSaveTextFileResult");
         } catch (Exception exception) {
-            call.reject("Could not open save dialog: " + exception.getMessage());
+            exportIO.execute(() -> fileExports.discard(call.getString("exportId", "")));
+            call.reject("Could not open save dialog");
         }
     }
 
@@ -280,24 +310,50 @@ public class TCLVPlayerPlugin extends Plugin {
     private void handleSaveTextFileResult(PluginCall call, ActivityResult result) {
         if (call == null) return;
         if (result.getResultCode() != Activity.RESULT_OK || result.getData() == null) {
+            exportIO.execute(() -> fileExports.discard(call.getString("exportId", "")));
             call.reject("Save cancelled");
             return;
         }
         Uri uri = result.getData().getData();
         if (uri == null) {
+            exportIO.execute(() -> fileExports.discard(call.getString("exportId", "")));
             call.reject("No file selected");
             return;
         }
-        try (OutputStream out = getActivity().getContentResolver().openOutputStream(uri)) {
-            if (out == null) {
-                call.reject("Could not open output stream");
-                return;
+        exportIO.execute(() -> {
+            try { fileExports.save(call.getString("exportId", ""), uri); call.resolve(); }
+            catch (Exception error) { call.reject("Could not save export"); }
+        });
+    }
+
+    @PluginMethod public void fetchEpgSource(PluginCall call) {
+        sourceIO.execute(() -> {
+            try {
+                SourceCache.Download item = sourceCache.fetch(call.getString("url", ""));
+                JSObject result = new JSObject(); result.put("id", item.id); result.put("key", item.key);
+                result.put("path", item.file.getAbsolutePath()); result.put("bytes", item.file.length()); call.resolve(result);
+            } catch (Exception error) {
+                String message = String.valueOf(error.getMessage());
+                if (message.matches("HTTP \\d{3}") || message.contains("64 MiB") || message.contains("timed out")) call.reject(message);
+                else if (error instanceof javax.net.ssl.SSLException) call.reject("TLS certificate or connection error");
+                else call.reject("EPG network download failed");
             }
-            out.write(call.getString("savedContent", "").getBytes(StandardCharsets.UTF_8));
-            call.resolve();
-        } catch (Exception exception) {
-            call.reject("Save failed: " + exception.getMessage());
-        }
+        });
+    }
+    @PluginMethod public void getEpgCache(PluginCall call) {
+        sourceIO.execute(() -> {
+            try { JSObject result = new JSObject(); result.put("path", sourceCache.cached(call.getString("key", "")).getAbsolutePath()); call.resolve(result); }
+            catch (Exception error) { call.reject("Local EPG cache is unavailable"); }
+        });
+    }
+    @PluginMethod public void commitEpgSource(PluginCall call) {
+        sourceIO.execute(() -> {
+            try { sourceCache.commit(call.getString("id", "")); call.resolve(); }
+            catch (Exception error) { call.reject("Could not save EPG cache"); }
+        });
+    }
+    @PluginMethod public void discardEpgSource(PluginCall call) {
+        sourceIO.execute(() -> { sourceCache.discard(call.getString("id", "")); call.resolve(); });
     }
 
     @PluginMethod

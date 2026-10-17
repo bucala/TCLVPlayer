@@ -16,12 +16,16 @@ function exportableSourceRecord(item) {
 
 const translations = {
   sk: {
+    epgSourceLoading: "Načítavam…", epgSourceReady: "Načítané", epgSourceUnmatched: "EPG načítané, ale stanice sa nezhodujú s playlistom", epgSourceOutdated: "Zdroj obsahuje iba starý program — skontrolujte zdroj a čas zariadenia", epgSourceFuture: "Zdroj obsahuje iba budúci program — skontrolujte čas zariadenia", epgSourceNoCurrent: "Stanice spárované, ale chýba aktuálny program — skontrolujte zdroj a čas zariadenia", epgSourceEmpty: "XMLTV neobsahuje programy", epgSourceError: "Chyba", epgRefreshNeedsAttention: "EPG načítané; niektoré zdroje nemajú zodpovedajúci aktuálny program. Pozrite podrobnosti pri zdrojoch.",
+    includeEpgCache: "Pridať aj stiahnutú EPG cache (veľký súbor)", backupPreparing: "Pripravujem zálohu…", backupSaving: "Pripravujem súbor; potom vyberte miesto uloženia…", backupDone: "Záloha bola uložená.", backupCancelled: "Ukladanie bolo zrušené.", backupFailed: "Zálohu sa nepodarilo uložiť. Pôvodné dáta zostali zachované.",
     reloadEpg: "Obnoviť EPG teraz", epgRefreshing: "Obnovujem EPG…", epgRefreshDone: "EPG obnovené", epgRefreshPartial: "Niektoré zdroje EPG sa nepodarilo obnoviť; ponechané posledné dostupné dáta.", epgNoSources: "Nie sú zapnuté žiadne zdroje EPG.",
     webNetworkHint: "Video ide priamo od poskytovateľa, nikdy cez Vercel. Proxy slúži len pre playlisty a EPG. Pre HTTP/CORS streamy použite lokálny proxy alebo Windows/Android aplikáciu.",
     webStreamHint: "Web neposiela video cez Vercel. Tento stream potrebuje HTTPS/CORS alebo lokálny proxy (npm run proxy). Použite prípadne Windows/Android aplikáciu.",
     sourceTooLarge: "Zdroj prekračuje 3 MiB limit Vercel proxy. Načítajte ho priamo, zo súboru, cez lokálny proxy alebo v natívnej aplikácii.",
     tagline: "Jednoduchy IPTV prehravac", openPlaylist: "Playlist", openEpg: "EPG", load: "Nacitat", loadEpg: "Nacitat EPG", guide: "Program", noChannels: "Nacitajte M3U/M3U8 alebo XSPF playlist v Nastaveniach.", noEpg: "EPG este nie je nacitane.", noProgram: "Program nie je dostupny", now: "Teraz", next: "Nasleduje", html5Notice: "HTML5 video prehravac je aktivny. Niektore HLS streamy (.m3u8) potrebuju nativnu podporu prehliadaca.", optionalMissing: "Tento player nie je pribaleny. Nacitajte jeho kniznicu alebo pouzite HTML5.",  loadError: "Nepodarilo sa nacitat zdroj.", playlistLoaded: "Playlist nacitany", epgLoaded: "EPG nacitane", logoTitle: "Vybrat logo", settingsPlayer: "Prehrávač & Jazyk", labelPlayer: "Prehrávač", labelLanguage: "Jazyk", settingsPlaylists: "Playlisty", addPlaylist: "Pridať URL", settingsEpg: "EPG zdroje", weakTvPlayerHint: "Na starších/pomalších Android TV odporúčame prehrávač \"Natívny\" — používa hardvérové dekódovanie Media3 priamo v aplikácii. Podporuje prehrávanie na pozadí a systémové ovládanie.", addEpg: "Pridať EPG", importEpgList: "Import EPG", exportEpgList: "Export EPG", epgListImported: "EPG zdroje importované", epgListExported: "Zoznam EPG exportovaný", epgListEmpty: "Súbor neobsahuje žiadne platné EPG riadky (Nazov = URL).", epgHint: "Všetky zdroje sa načítajú a zlúčia.", settingsNetwork: "Sieť", labelCorsProxy: "CORS proxy (len web)", corsHint: "Voliteľný vzdialený proxy prijíma URL zdroja. Predvolene sa používajú len priame spojenia a lokálny bridge.", searchEpg: "Hladat v programe", corsNeeded: "CORS chyba — nastavte CORS proxy v Nastaveniach > Sieť.", proxyBlocked: "Proxy blokuje požiadavku. Skúste iný CORS proxy.", streamUnavailable: "Stream nie je dostupný — server odmietol pripojenie alebo je geo-blokovaný.", clickToPlay: "Kliknite na video pre spustenie prehrávania.", local: "lokálny", network: "sieťový", epgAutoDetected: "EPG zdroje automaticky detegované z playlistu", proxyChanged: "CORS proxy uložený. Znovu načítavam EPG…", qualityNative: "Natívna", qualityHigh: "Vysoká (1080p)", qualityMedium: "Stredná (720p)", qualityLow: "Nízka (360p)", labelQuality: "Kvalita videa", searchChannels: "Hľadať kanály", groupAll: "Všetky", groupFavorites: "Obľúbené", settingsXtream: "Xtream Codes API", xtreamHint: "Prihlasovacie údaje od IPTV poskytovateľa.", addXtream: "Načítať", xtreamLoading: "Načítavanie Xtream playlistu…", settingsBackup: "Export / Import", backupHint: "Úplná lokálna záloha vrátane playlistov a prístupových údajov. Súbor uchovajte v súkromí.", exportSettings: "Exportovať", importSettings: "Importovať", settingsImported: "Nastavenia obnovené.", catchupAvailable: "Archív dostupný", catchupTitle: "Archív", catchupUnavailable: "Archív nie je dostupný pre tento kanál.", rtmpUnsupported: "RTMP/RTSP streamy nie sú podporované v prehliadači. Použite natívnu aplikáciu (Android/Electron).", reconnecting: "Opätovné pripájanie…", localProxyFound: "Lokálny proxy nájdený — streamy pôjdu priamo bez Vercel proxy.", localProxyHint: "Tip: Spustite 'npm run proxy' na lokálnom PC — streamy pôjdu priamo cez vašu sieť.", locked: "Obrazovka zamknutá", unlocked: "Obrazovka odomknutá", autostartOn: "Automatický štart zapnutý", autostartOff: "Automatický štart vypnutý", backgroundPlaybackOn: "Prehrávanie na pozadí zapnuté", backgroundPlaybackOff: "Prehrávanie na pozadí vypnuté", holdLockHint: "Podržte zámok 2 sekundy",   },
   en: {
+    epgSourceLoading: "Loading…", epgSourceReady: "Loaded", epgSourceUnmatched: "EPG loaded, but channels do not match the playlist", epgSourceOutdated: "Only old programmes — check the source and device clock", epgSourceFuture: "Only future programmes — check the device clock", epgSourceNoCurrent: "Channels matched, but no current programme — check the source and device clock", epgSourceEmpty: "XMLTV contains no programmes", epgSourceError: "Error", epgRefreshNeedsAttention: "EPG loaded; some sources have no matching current programmes. See source details.",
+    includeEpgCache: "Include downloaded EPG cache (large file)", backupPreparing: "Preparing backup…", backupSaving: "Preparing the file; then choose where to save it…", backupDone: "Backup saved.", backupCancelled: "Save cancelled.", backupFailed: "Could not save the backup. Original data is unchanged.",
     reloadEpg: "Refresh EPG now", epgRefreshing: "Refreshing EPG…", epgRefreshDone: "EPG refreshed", epgRefreshPartial: "Some EPG sources could not be refreshed; keeping the last available data.", epgNoSources: "No EPG sources are enabled.",
     webNetworkHint: "Video comes directly from the provider, never through Vercel. The proxy is only for playlists and EPG. For HTTP/CORS streams use the local proxy or Windows/Android app.",
     webStreamHint: "The web player never sends video through Vercel. This stream needs HTTPS/CORS or the local proxy (npm run proxy). Alternatively use the Windows/Android app.",
@@ -178,6 +182,7 @@ const dom = {
   playerMessage2: document.querySelector("#playerMessage2"),
   catchupModal: document.querySelector("#catchupModal"),
   exportSettings: document.querySelector("#exportSettings"),
+  includeEpgCache: document.querySelector("#includeEpgCache"), backupStatus: document.querySelector("#backupStatus"),
   importFile: document.querySelector("#importFile"),
   programDetailModal: document.querySelector("#programDetailModal"),
   lockButton: document.querySelector("#lockButton"),
@@ -490,6 +495,7 @@ function setLogoImage(imgEl, channel) {
   imgEl.alt = channel.name;
 }
 function uniqueId(seed, existing) { return globalThis.TCLVParsers.uniqueId(seed, existing); }
+function channelEpgKeys(channel) { return [...new Set([channel.tvgId, channel.id, channel.name, ...channelLogoAliases(channel)].flatMap(globalThis.TCLVParsers.epgKeys))]; }
 function parseXml(text) { const doc = new DOMParser().parseFromString(text, "application/xml"); const error = doc.querySelector("parsererror"); if (error) throw new Error(error.textContent || "XML parse error"); return doc; }
 function textOf(root, selector) { return root.querySelector(selector)?.textContent?.trim() || ""; }
 function escapeHtml(value) { const span = document.createElement("span"); span.textContent = String(value || ""); return span.innerHTML; }
@@ -497,7 +503,7 @@ function formatTime(date) { return new Intl.DateTimeFormat(state.language === "s
 function floorToHalfHour(date) { const next = new Date(date); next.setMinutes(date.getMinutes() < 30 ? 0 : 30, 0, 0); return next; }
 
 function parseM3U(text) { return globalThis.TCLVParsers.parseM3U(text); }
-function parseXspf(text) { const doc = parseXml(text); const tracks = [...doc.querySelectorAll("track")]; const channels = []; const ids = new Set(); tracks.forEach((track, index) => { const name = textOf(track, "title") || textOf(track, "annotation") || `Channel ${index+1}`; const url = textOf(track, "location"); const tvgId = track.getAttribute("id") || ""; if (!url) return; channels.push({ id: uniqueId(tvgId || name || String(index), ids), tvgId, name, logo: textOf(track, "image"), group: textOf(track, "creator"), url }); }); return channels; }
+function parseXspf(text) { const doc = parseXml(text); const tracks = [...doc.querySelectorAll("track")]; const channels = []; const ids = new Set(); tracks.forEach((track, index) => { const name = textOf(track, "title") || textOf(track, "annotation") || `Channel ${index+1}`; const url = textOf(track, "location"); const tvgId = textOf(track, 'identifier') || track.getAttribute('tvg-id') || track.getAttribute("id") || ""; if (!url) return; channels.push({ id: uniqueId(tvgId || name || String(index), ids), tvgId, name, logo: textOf(track, "image"), group: textOf(track, "creator"), url }); }); return channels; }
 function parseXmlTvDate(value) { return globalThis.TCLVParsers.parseXmlTvDate(value); }
 function parseXmlTv(text) {
   const doc = parseXml(text);
@@ -535,15 +541,17 @@ let epgNameIndex = new Map();
 function reindexEpg() {
   epgNameIndex = new Map(); epgProgramCache.clear();
   for (const [id, programs] of state.epg) {
-    epgNameIndex.set(normalizeId(id), programs);
-    if (programs[0]?.channelName) epgNameIndex.set(normalizeId(programs[0].channelName), programs);
+    for (const key of [id, ...(programs[0]?.channelNames || [programs[0]?.channelName])].flatMap(globalThis.TCLVParsers.epgKeys)) {
+      if (!epgNameIndex.has(key)) epgNameIndex.set(key, programs);
+      else if (epgNameIndex.get(key) !== programs) epgNameIndex.set(key, null); // Ambiguous names must not map to the wrong channel.
+    }
   }
 }
 function findPrograms(channel) {
   if (!epgProgramCache.has(channel.id)) {
     let programs;
     for (const key of [channel.tvgId, channel.id, channel.name].filter(Boolean)) if (state.epg.has(key)) { programs = state.epg.get(key); break; }
-    epgProgramCache.set(channel.id, programs || epgNameIndex.get(normalizeId(channel.name)) || []);
+    epgProgramCache.set(channel.id, programs || channelEpgKeys(channel).map(key => epgNameIndex.get(key)).find(Boolean) || []);
   }
   return epgProgramCache.get(channel.id);
 }
@@ -725,7 +733,21 @@ async function saveExportedFile(content, filename, mime, successMessage) {
   // Route through a native SAF "Save As" dialog instead so the user actually
   // gets a picker and a file lands where they chose it to.
   var TCLVPlayer = window.Capacitor?.Plugins?.TCLVPlayer;
-  if (getPlatform() === 'android' && TCLVPlayer?.saveTextFile) {
+  async function* pieces() {
+    if (typeof content !== 'string') { yield* content; return; }
+    for (let i = 0; i < content.length;) {
+      let end = Math.min(content.length, i + 32768);
+      if (end < content.length && /[\uD800-\uDBFF]/.test(content[end - 1])) end++;
+      yield content.slice(i, end); i = end;
+    }
+  }
+  if (getPlatform() === 'android' && TCLVPlayer?.beginTextExport) {
+    const { id } = await TCLVPlayer.beginTextExport();
+    try {
+      for await (const part of pieces()) await TCLVPlayer.appendTextExport({ id, content: part });
+      await TCLVPlayer.finishTextExport({ id, filename, mimeType: mime || 'text/plain' });
+    } catch (error) { await TCLVPlayer.cancelTextExport({ id }).catch(() => {}); throw error; }
+  } else if (getPlatform() === 'android' && TCLVPlayer?.saveTextFile && typeof content === 'string') {
     try {
       await TCLVPlayer.saveTextFile({ filename: filename, content: content, mimeType: mime || 'text/plain' });
       if (successMessage) showMessage(successMessage);
@@ -733,10 +755,22 @@ async function saveExportedFile(content, filename, mime, successMessage) {
       if (!/cancelled|canceled/i.test(error.message || '')) showMessage(t('loadError') + ' (export)');
     }
     return;
+  } else {
+    const parts = []; let bytes = 0;
+    for await (const part of pieces()) {
+      bytes += new globalThis.TextEncoder().encode(part).length;
+      if (bytes > 256 * 1024 * 1024) throw new Error('Backup exceeds 256 MiB');
+      parts.push(part);
+    }
+    fallbackExportFile(new Blob(parts, { type: mime || 'text/plain' }), filename, mime);
   }
-  fallbackExportFile(content, filename, mime);
+  if (successMessage) showMessage(successMessage);
 }
-function exportSettings() {
+async function exportSettings() {
+  if (dom.exportSettings.disabled) return;
+  dom.exportSettings.disabled = true; dom.exportSettings.setAttribute('aria-busy', 'true');
+  dom.backupStatus.textContent = t('backupPreparing');
+  try {
   var data = {
     version: 2, activePlaylistId: state.activePlaylistId,
     playlists: state.playlists.map(function(p) {
@@ -747,13 +781,18 @@ function exportSettings() {
     epgSources: state.epgSources.map(function(s) {
       var item = exportableSourceRecord(s);
       delete item.type;
+      if (s.origin === 'network' && !dom.includeEpgCache.checked) { delete item.text; delete item.fetchedAt; }
+      else if (s.nativeCache && !item.text) item.text = globalThis.TCLVBackup.textSource(() => nativeEpgText(s.nativeCache));
       return item;
     }),
     favorites: [...state.favorites],
     language: state.language, player: state.player, players: platformPlayersSnapshot(), corsProxy: state.corsProxy
   };
-  var json = JSON.stringify(data, null, 2);
-  saveExportedFile(json, 'tclvplayer-settings.json', 'application/json', t('exportSettings'));
+  dom.backupStatus.textContent = t('backupSaving');
+  await saveExportedFile(globalThis.TCLVBackup.chunks(data), 'tclvplayer-settings.json', 'application/json', t('exportSettings'));
+  dom.backupStatus.textContent = t('backupDone');
+  } catch (error) { dom.backupStatus.textContent = t(/cancelled|canceled/i.test(error.message || '') ? 'backupCancelled' : 'backupFailed'); }
+  finally { dom.exportSettings.disabled = false; dom.exportSettings.removeAttribute('aria-busy'); }
 }
 function epgListTemplateText() {
   var lines = state.epgSources
@@ -764,9 +803,10 @@ function epgListTemplateText() {
     + '# Uprav a naimportuj cez Nastavenia -> EPG zdroje -> "Import EPG".\n\n'
     + lines.join('\n') + (lines.length ? '\n' : '');
 }
-function exportEpgListFile() {
+async function exportEpgListFile() {
   var text = epgListTemplateText();
-  saveExportedFile(text, 'tclvplayer-epg-list.txt', 'text/plain', t('epgListExported'));
+  try { await saveExportedFile(text, 'tclvplayer-epg-list.txt', 'text/plain', t('epgListExported')); }
+  catch (error) { if (!/cancelled|canceled/i.test(error.message || '')) showMessage(t('backupFailed')); }
 }
 async function importSettingsFromFile(file) {
   try {
@@ -882,6 +922,13 @@ function renderSourceLists() {
       const isActive = item.active !== false;
       const row = document.createElement("div"); row.dataset.sourceId = item.id; row.className = 'source-item' + (isActive ? ' active' : '');
       const epgOrigin = t(item.origin || (item.source?.startsWith('http') ? 'network' : 'local')); row.innerHTML = `<div class="source-main"><strong>${escapeHtml(item.name)}</strong><span>${escapeHtml(epgOrigin)}</span></div><span class="source-chip">EPG</span><div class="source-actions"><button data-action="toggle">Use</button><button data-action="remove">X</button></div>`;
+      if (item.status) {
+        const detail = document.createElement('small'); detail.className = 'source-status';
+        const labels = { loading: 'epgSourceLoading', ready: 'epgSourceReady', unmatched: 'epgSourceUnmatched', outdated: 'epgSourceOutdated', future: 'epgSourceFuture', noCurrent: 'epgSourceNoCurrent', empty: 'epgSourceEmpty', error: 'epgSourceError' };
+        detail.textContent = t(labels[item.status] || 'epgSourceError') + (item.error ? ': ' + item.error : '');
+        if (item.status === 'ready' && item.stats) detail.textContent += ' · ' + item.stats.kept + ' ' + (state.language === 'sk' ? 'programov' : 'programmes') + ' · ' + (item.stats.current || 0) + ' ' + t('now').toLowerCase();
+        row.querySelector('.source-main').append(detail); row.dataset.status = item.status;
+      }
       row.querySelector('[data-action="toggle"]').addEventListener('click', ()=>toggleEpgSource(item.id));
       row.querySelector('[data-action="remove"]').addEventListener('click', ()=>removeEpgSource(item.id));
       dom.epgList.append(row);
@@ -1972,7 +2019,7 @@ async function loadTextFromUrl(url, options = {}) {
   pendingWebSources.set(pendingKey, pending);
   try { return await pending; } finally { pendingWebSources.delete(pendingKey); }
 }
-async function loadPlaylistText(text, sourceName = '') { try { const isXspf = sourceName.toLowerCase().endsWith('.xspf') || text.includes('<playlist'); const channels = isXspf ? parseXspf(text) : parseM3U(text); state.channels = channels; const saved = safeGet('tclv.lastChannel.' + state.activePlaylistId, safeGet('tclv.lastChannel')); state.selectedChannelId = channels.some(ch => ch.id === saved) ? saved : channels[0]?.id || null; epgProgramCache.clear(); renderAll(); if (globalThis.TCLVAndroidPlayer?.active) globalThis.TCLVAndroidPlayer.refresh(); setTimeout(initLogoIndex, 1000); if (state.selectedChannelId) showSwitchOverlay(selectedChannel()); showMessage(`${t('playlistLoaded')}: ${channels.length}`); } catch (error) { showMessage(`${t('loadError')} ${error.message || ''}`); } }
+async function loadPlaylistText(text, sourceName = '') { try { const isXspf = sourceName.toLowerCase().endsWith('.xspf') || text.includes('<playlist'); const channels = isXspf ? parseXspf(text) : parseM3U(text); state.channels = channels; ++epgChannelsGeneration; const saved = safeGet('tclv.lastChannel.' + state.activePlaylistId, safeGet('tclv.lastChannel')); state.selectedChannelId = channels.some(ch => ch.id === saved) ? saved : channels[0]?.id || null; epgProgramCache.clear(); renderAll(); if (state.epgSources.length) await rebuildMergedEpg(); if (globalThis.TCLVAndroidPlayer?.active) globalThis.TCLVAndroidPlayer.refresh(); setTimeout(initLogoIndex, 1000); if (state.selectedChannelId) showSwitchOverlay(selectedChannel()); showMessage(`${t('playlistLoaded')}: ${channels.length}`); } catch (error) { showMessage(`${t('loadError')} ${error.message || ''}`); } }
 async function loadEpgText(text) { try { state.epg = parseXmlTv(text); reindexEpg(); renderAll(); showMessage(`${t('epgLoaded')}: ${state.epg.size}`); } catch (error) { showMessage(`${t('loadError')} ${error.message || ''}`); } }
 async function readFile(file) {
   const maximum = /\.json$/i.test(file.name) ? 256 * 1024 * 1024 : MAX_SOURCE_DOWNLOAD;
@@ -1982,7 +2029,7 @@ async function readFile(file) {
 function xmlTvDate(date) { const pad = (value) => String(value).padStart(2, '0'); const offsetMinutes = -date.getTimezoneOffset(); const sign = offsetMinutes >= 0 ? '+' : '-'; const absolute = Math.abs(offsetMinutes); const offset = `${sign}${pad(Math.floor(absolute / 60))}${pad(absolute % 60)}`; return `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())} ${offset}`; }
 let persistSourcesPending = Promise.resolve();
 function persistSources() {
-  const snapshot = { playlists: state.playlists.map(exportableSourceRecord), epgSources: state.epgSources.map(exportableSourceRecord) };
+  const snapshot = { playlists: state.playlists.map(exportableSourceRecord), epgSources: state.epgSources.map(source => ({ ...exportableSourceRecord(source), nativeCache: source.nativeCache })) };
   persistSourcesPending = persistSourcesPending.catch(function() {}).then(() => globalThis.TCLVStorage.saveSnapshot(snapshot));
   persistSourcesPending.catch(() => showMessage(state.language === 'sk' ? 'Úložisko je plné alebo nedostupné. Exportujte dáta do súboru.' : 'Storage unavailable or full. Export your data to a file.', 0));
   return persistSourcesPending;
@@ -1994,6 +2041,7 @@ function addPlaylistRecord(record) {
   savePlaylistMeta(); safeSet('tclv.activePlaylistId', record.id); renderSourceLists();
 }
 let playlistGeneration = 0;
+let epgChannelsGeneration = 0;
 async function activatePlaylist(id, options = {}) {
   const item = state.playlists.find(p => p.id === id);
   if (!item) return;
@@ -2068,14 +2116,10 @@ async function importEpgListFile(file) {
   for (var i = 0; i < entries.length; i++) {
     var entry = entries[i];
     if (state.epgSources.some(function(s) { return s.source === entry.url; })) continue;
-    try {
-      var epgText = await loadTextFromUrl(entry.url);
-      addEpgRecord({ id: 'epg-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6), name: entry.name, source: entry.url, origin: 'network', active: true, text: epgText });
-      added++;
-    } catch (err) {
-      console.warn('EPG list import failed:', err.name);
-    }
+    addEpgRecord({ id: 'epg-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6), name: entry.name, source: entry.url, origin: 'network', active: true });
+    added++;
   }
+  await reloadEpgSources({ showOnLoad: false });
   showMessage(t('epgListImported') + ': ' + added + '/' + entries.length);
 }
 function yieldToMain() { return new Promise(function(resolve) { setTimeout(resolve, 0); }); }
@@ -2084,69 +2128,81 @@ let epgWorker;
 let epgRequestId = 0;
 const epgJobs = new Map();
 function parseEpgOffThread(text) {
-  if (typeof Worker === 'undefined') return Promise.resolve(parseXmlTv(text));
+  if (typeof Worker === 'undefined') return typeof text === 'string' ? Promise.resolve(parseXmlTv(text)) : Promise.reject(new Error('EPG worker unavailable'));
   if (!epgWorker) {
     epgWorker = new Worker('./lib/epg-worker.js');
     epgWorker.onmessage = event => {
       const job = epgJobs.get(event.data.id); if (!job) return;
       epgJobs.delete(event.data.id);
-      if (event.data.error) job.reject(new Error('Invalid XMLTV'));
-      else job.resolve(new Map(event.data.entries.map(([key, programs]) => [key, programs.map(p => ({ ...p, start: new Date(p.start), stop: new Date(p.stop) }))])));
+      if (event.data.error) job.reject(new Error(event.data.error));
+      else { const map = new Map(event.data.entries.map(([key, programs]) => [key, programs.map(p => ({ ...p, start: new Date(p.start), stop: new Date(p.stop) }))])); map.stats = event.data.stats; job.resolve(map); }
     };
     epgWorker.onerror = () => { for (const job of epgJobs.values()) job.reject(new Error('EPG worker failed')); epgJobs.clear(); epgWorker.terminate(); epgWorker = null; };
   }
   const id = ++epgRequestId;
-  return new Promise((resolve, reject) => { epgJobs.set(id, { resolve, reject }); epgWorker.postMessage({ id, text, wanted: state.channels.flatMap(ch => [ch.tvgId, ch.id, ch.name].filter(Boolean).map(normalizeId)), pastDays: Math.max(2, ...state.channels.map(ch => Math.min(30, ch.catchupDays || 0))) }); });
+  return new Promise((resolve, reject) => { epgJobs.set(id, { resolve, reject }); epgWorker.postMessage({ id, ...(typeof text === 'string' ? { text } : { url: text.url }), wanted: state.channels.flatMap(channelEpgKeys), pastDays: Math.max(2, ...state.channels.map(ch => Math.min(30, ch.catchupDays || 0))) }); });
+}
+function epgSourceVersion(source) { return source.nativeCache ? source.nativeCache + ':' + source.fetchedAt : source.text; }
+async function epgSourceInput(source) {
+  if (!source.nativeCache) return source.text;
+  const { path } = await window.Capacitor.Plugins.TCLVPlayer.getEpgCache({ key: source.nativeCache });
+  return { url: window.Capacitor.convertFileSrc(path) };
+}
+async function* nativeEpgText(key) {
+  const { path } = await window.Capacitor.Plugins.TCLVPlayer.getEpgCache({ key });
+  const response = await fetch(window.Capacitor.convertFileSrc(path));
+  if (!response.ok) throw new Error('Cached EPG unavailable');
+  const reader = response.body.getReader(), decoder = new globalThis.TextDecoder();
+  try {
+    while (true) { const { done, value } = await reader.read(); if (done) break; yield decoder.decode(value, { stream: true }); }
+    const rest = decoder.decode(); if (rest) yield rest;
+  } finally { await reader.cancel().catch(() => {}); }
+}
+function epgSourceStatus(source, parsed) {
+  const stats = parsed.stats;
+  if (!stats) return;
+  source.stats = stats;
+  source.status = !stats.programmes ? 'empty' : stats.last < Date.now() ? 'outdated' : stats.first > Date.now() ? 'future' : !parsed.size ? 'unmatched' : !stats.current ? 'noCurrent' : 'ready';
+  delete source.error;
+}
+function epgFailure(error) {
+  const message = String(error?.message || '');
+  const http = message.match(/\bHTTP (\d{3})\b|^(\d{3})\b/);
+  if (http) return 'HTTP ' + (http[1] || http[2]);
+  if (/XMLTV|XML|parser/i.test(message)) return 'XML';
+  if (/64 MiB|too large|size limit/i.test(message)) return '64 MiB';
+  if (/timed out|timeout|abort/i.test(message)) return 'timeout';
+  if (/TLS|certificate|SSL/i.test(message)) return 'TLS';
+  if (/cache/i.test(message)) return 'cache';
+  return 'network';
 }
 async function rebuildMergedEpg() {
   const run = ++epgGeneration;
-  const playlist = playlistGeneration;
-  const active = state.epgSources.filter(source => source.active !== false && source.text);
+  const playlist = epgChannelsGeneration;
+  const active = state.epgSources.filter(source => source.active !== false && (source.text || source.nativeCache));
   const maps = [];
   for (const source of active) {
-    if (run !== epgGeneration || playlist !== playlistGeneration) return;
+    if (run !== epgGeneration || playlist !== epgChannelsGeneration) return;
     try {
-      const text = source.text;
+      const text = epgSourceVersion(source);
       if (!source.parsed || source.parsedText !== text || source.parsedPlaylist !== playlist) {
         if (!source.parsePending || source.pendingText !== text || source.pendingPlaylist !== playlist) {
           source.pendingText = text; source.pendingPlaylist = playlist;
-          source.parsePending = parseEpgOffThread(text);
+          source.parsePending = epgSourceInput(source).then(parseEpgOffThread);
         }
         const pending = source.parsePending;
         const parsed = await pending;
         if (source.parsePending === pending) source.parsePending = null;
-        if (run !== epgGeneration || playlist !== playlistGeneration || source.text !== text) return;
+        if (run !== epgGeneration || playlist !== epgChannelsGeneration || epgSourceVersion(source) !== text) return;
         source.parsed = parsed; source.parsedText = text; source.parsedPlaylist = playlist;
+        if (source.status !== 'error') epgSourceStatus(source, parsed);
       }
       maps.push(source.parsed);
-    } catch { source.parsePending = null; }
+    } catch (error) { source.parsePending = null; source.status = 'error'; source.error = epgFailure(error); }
     await yieldToMain();
   }
-  if (run !== epgGeneration || playlist !== playlistGeneration) return;
+  if (run !== epgGeneration || playlist !== epgChannelsGeneration) return;
   state.epg = mergeEpgMaps(maps); reindexEpg(); renderAll(); refreshNativeMetadata();
-}
-function epgMatchesChannels(epgText) {
-  try {
-    var map = parseXmlTv(epgText);
-    if (!map.size) return 0;
-    var hits = 0;
-    for (var i = 0; i < state.channels.length; i++) {
-      var ch = state.channels[i];
-      var keys = [ch.tvgId, ch.id, ch.name].filter(Boolean);
-      for (var j = 0; j < keys.length; j++) { if (map.has(keys[j])) { hits++; break; } }
-      if (hits === 0) {
-        var wanted = normalizeId(ch.name);
-        for (var k of map.keys()) { if (normalizeId(k) === wanted) { hits++; break; } }
-      }
-    }
-    return hits;
-  } catch { return 0; }
-}
-async function fetchEpgWithFallback(url) {
-  try { return await loadTextFromUrl(url); } catch {
-    if (url.endsWith('.xml.gz')) { try { return await loadTextFromUrl(url.replace(/\.gz$/, '')); } catch {} }
-    return null;
-  }
 }
 async function autoLoadEpgFromPlaylist(text, generation = playlistGeneration) {
   var urls = extractM3UEpgUrls(text);
@@ -2169,13 +2225,11 @@ async function autoLoadEpgFromPlaylist(text, generation = playlistGeneration) {
   for (var i = 0; i < maxAttempts && loaded < 3; i++) {
     var url = prioritized[i];
     if (state.epgSources.some(function(s) { return s.source === url; })) continue;
-    var epgText = await fetchEpgWithFallback(url);
+    const record = { id: 'epg-' + Date.now() + '-' + Math.random().toString(36).slice(2,6), name: sourceNameFromUrl(url, 'epg.xml'), source: url, origin: 'network', active: true };
+    addEpgRecord(record);
+    await reloadEpgSources({ onlyId: record.id, showOnLoad: false });
     if (generation !== playlistGeneration) return;
-    if (!epgText) continue;
-    var hits = epgMatchesChannels(epgText);
-    if (hits === 0) continue;
-    addEpgRecord({ id: 'epg-' + Date.now() + '-' + Math.random().toString(36).slice(2,6), name: url.split('/').pop() || 'epg.xml', source: url, origin: 'network', active: true, text: epgText });
-    loaded++;
+    if (record.parsed?.size) loaded++;
   }
   if (loaded > 0) showMessage(t('epgAutoDetected'));
 }
@@ -2454,7 +2508,7 @@ function bindEvents() {
   dom.exportEpgList?.addEventListener('click', exportEpgListFile);
   dom.reloadEpg?.addEventListener('click', forceRefreshEpg);
   dom.addPlaylistUrl?.addEventListener('click', async () => { try { const url = dom.playlistUrl.value.trim(); if (!url) return; const text = await loadTextFromUrl(url); const name = sourceNameFromUrl(url, 'playlist'); const record = { id: `pl-${Date.now()}`, name, source: url, type: playlistTypeFromSource(url, text), origin: 'network', text }; addPlaylistRecord(record); await loadPlaylistText(text, name); dom.playlistUrl.value = ''; } catch (error) { showMessage(`${t('loadError')} ${error.message}`); } });
-  dom.addEpgUrl?.addEventListener('click', async () => { try { const url = dom.epgUrl.value.trim(); if (!url) return; const text = await loadTextFromUrl(url); addEpgRecord({ id: `epg-${Date.now()}`, name: sourceNameFromUrl(url, 'epg.xml'), source: url, origin: 'network', text }); dom.epgUrl.value = ''; } catch (error) { showMessage(`${t('loadError')} ${error.message}`); } });
+  dom.addEpgUrl?.addEventListener('click', async () => { try { const url = dom.epgUrl.value.trim(); if (!url) return; if (!/^https?:$/i.test(new URL(url).protocol)) throw new Error('HTTP(S) required'); const record = { id: `epg-${Date.now()}`, name: sourceNameFromUrl(url, 'epg.xml'), source: url, origin: 'network' }; addEpgRecord(record); dom.epgUrl.value = ''; await reloadEpgSources({ onlyId: record.id, showOnLoad: false }); } catch (error) { showMessage(`${t('loadError')} ${epgFailure(error)}`); } });
   dom.corsProxyInput?.addEventListener('change', async () => {
     state.corsProxy = dom.corsProxyInput.value.trim(); safeSet('tclv.corsProxy', state.corsProxy);
     if (!state.corsProxy) return;
@@ -2566,10 +2620,10 @@ async function forceRefreshEpg() {
   try {
     // A forced request must run after an existing automatic refresh, not join it.
     if (epgReloadPending) await epgReloadPending;
-    for (const source of state.epgSources) if (source.active !== false) source.parsed = null;
+    for (const source of state.epgSources) if (source.active !== false && source.origin === 'local') source.parsed = null;
     const result = await reloadEpgSources({ forceReload: true, showOnLoad: false });
     await persistSources();
-    report(result.failures ? 'epgRefreshPartial' : 'epgRefreshDone');
+    report(result.failures ? 'epgRefreshPartial' : result.unavailable ? 'epgRefreshNeedsAttention' : 'epgRefreshDone');
   } catch { report('loadError'); }
   finally {
     dom.reloadEpg.disabled = false; dom.reloadEpg.removeAttribute('aria-busy');
@@ -2577,28 +2631,53 @@ async function forceRefreshEpg() {
   }
 }
 async function reloadEpgSources(options = {}) {
-  if (epgReloadPending) return epgReloadPending;
+  if (epgReloadPending) { if (options.onlyId) { await epgReloadPending; return reloadEpgSources(options); } return epgReloadPending; }
   epgReloadPending = (async function() {
+    const native = getPlatform() === 'android' && window.Capacitor?.Plugins?.TCLVPlayer?.fetchEpgSource;
+    const plugin = window.Capacitor?.Plugins?.TCLVPlayer;
     const sources = state.epgSources.filter(s => s.active !== false && s.origin !== 'local' && s.source &&
-      (options.forceReload || !s.text || !s.fetchedAt || Date.now() - s.fetchedAt >= 6 * 60 * 60 * 1000));
+      (!options.onlyId || s.id === options.onlyId) &&
+      (options.forceReload || ((!s.retryAt || Date.now() >= s.retryAt) && ((!s.text && !s.nativeCache) || s.error === 'cache' || !s.fetchedAt || Date.now() - s.fetchedAt >= 6 * 60 * 60 * 1000))));
     let failures = 0;
     // Two simultaneous sources bound peak RAM on small TV devices.
-    for (let i = 0; i < sources.length; i += 2) {
-      await Promise.all(sources.slice(i, i + 2).map(async source => {
+    const parallel = native ? 1 : 2;
+    for (let i = 0; i < sources.length; i += parallel) {
+      await Promise.all(sources.slice(i, i + parallel).map(async source => {
+        let download;
+        source.status = 'loading'; delete source.error; renderSourceLists();
         try {
-          const text = await loadTextFromUrl(source.source, { forceReload: !!options.forceReload || !!source.text });
-          const parsedPlaylist = playlistGeneration;
+          let text;
+          const addresses = [normalizeDownloadUrl(source.source)];
+          const plain = new URL(addresses[0]);
+          if (/\.xml\.gz$/i.test(plain.pathname)) { plain.pathname = plain.pathname.slice(0, -3); addresses.push(plain.href); }
+          for (let attempt = 0; attempt < addresses.length; attempt++) {
+            try {
+              if (native) { download = await plugin.fetchEpgSource({ url: addresses[attempt] }); text = { url: window.Capacitor.convertFileSrc(download.path) }; }
+              else text = await loadTextFromUrl(addresses[attempt], { forceReload: !!options.forceReload || !!source.text });
+              break;
+            } catch (error) { if (attempt === addresses.length - 1) throw error; }
+          }
+          const parsedPlaylist = epgChannelsGeneration;
           const parsed = await parseEpgOffThread(text);
-          if (!state.epgSources.includes(source)) return;
-          source.text = text; source.fetchedAt = Date.now(); source.parsed = parsed;
-          source.parsedText = text; source.parsedPlaylist = parsedPlaylist;
-        } catch { failures++; }
+          if (!state.epgSources.includes(source)) { if (download) await plugin.discardEpgSource({ id: download.id }); return; }
+          if (download) { await plugin.commitEpgSource({ id: download.id }); source.nativeCache = download.key; delete source.text; }
+          else { source.text = text; delete source.nativeCache; }
+          source.fetchedAt = Date.now(); source.parsed = parsed;
+          source.parsedText = epgSourceVersion(source); source.parsedPlaylist = parsedPlaylist;
+          source.failures = 0; delete source.retryAt; epgSourceStatus(source, parsed);
+        } catch (error) {
+          if (download) await plugin.discardEpgSource({ id: download.id }).catch(() => {});
+          failures++; source.status = 'error'; source.error = epgFailure(error);
+          source.failures = (source.failures || 0) + 1; source.retryAt = Date.now() + Math.min(3600000, 60000 * 2 ** Math.min(source.failures - 1, 6));
+        }
       }));
     }
     await rebuildMergedEpg();
+    if (sources.length) await persistSources();
     if (failures && failures === sources.length && options.showOnLoad !== false) showMessage(t('loadError') + ' (EPG)');
     if (state.epg.size && !state.epgVisible && options.showOnLoad === true) toggleEpg();
-    return { failures };
+    const unavailable = state.epgSources.filter(source => source.active !== false && ['empty', 'outdated', 'future', 'unmatched', 'noCurrent'].includes(source.status)).length;
+    return { failures, unavailable };
   })();
   try { return await epgReloadPending; } finally { epgReloadPending = null; }
 }

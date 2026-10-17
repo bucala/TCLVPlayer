@@ -1,4 +1,4 @@
-/* global URL, process, document, addPlaylistRecord, persistSourcesPending, loadPlaylistText, loadTextFromUrl: writable, persistSources, dom, state, saveExportedFile: writable, exportSettings, importSettingsFromFile, File, parseEpgOffThread, focusChannelIndex, ensureHls, playInSlot1, window, location, activatePlaylist, console, buildQualityMenu, openSettings, closeSettings, writeWebSourceCache, reloadEpgSources, currentProgram, selectedChannel, rebuildMergedEpg, forceRefreshEpg, nativeChannelMetadata */
+/* global URL, process, document, addPlaylistRecord, persistSourcesPending, loadPlaylistText, loadTextFromUrl: writable, persistSources, dom, state, saveExportedFile: writable, exportSettings, importSettingsFromFile, File, parseEpgOffThread, focusChannelIndex, ensureHls, playInSlot1, window, location, activatePlaylist, console, buildQualityMenu, openSettings, closeSettings, writeWebSourceCache, reloadEpgSources, currentProgram, selectedChannel, rebuildMergedEpg, forceRefreshEpg, nativeChannelMetadata, epgSourceStatus, reindexEpg, findPrograms, parseXspf, setTimeout, setInterval, clearInterval */
 // Integration tests use only generated, synthetic sources. No personal fixture files.
 const { chromium } = require('playwright');
 const http = require('node:http');
@@ -45,8 +45,8 @@ const assert = require('node:assert/strict');
     // Favourite activation must not also select/play the enclosing channel.
     await page.locator('.fav-action').nth(1).focus(); await page.keyboard.press('Enter');
     assert.equal(await page.evaluate(() => state.selectedChannelId), selection);
-    const backup = await page.evaluate(() => {
-      let result; const save = saveExportedFile; saveExportedFile = text => { result = JSON.parse(text); }; exportSettings(); saveExportedFile = save; return result;
+    const backup = await page.evaluate(async () => {
+      let result; const save = saveExportedFile; saveExportedFile = async chunks => { let text = ''; for await (const chunk of chunks) text += chunk; result = JSON.parse(text); }; await exportSettings(); saveExportedFile = save; return result;
     });
     assert.ok(backup.playlists[0].text.includes('#EXTM3U'));
     const race = await page.evaluate(async () => {
@@ -124,7 +124,7 @@ const assert = require('node:assert/strict');
       let secondReady; const second = new Promise(resolve => { secondReady = resolve; });
       loadTextFromUrl = (_url, options) => new Promise(resolve => { pending.push(resolve); flags.push(options.forceReload); if (pending.length === 2) secondReady(); });
       try {
-        state.epgSources[0].fetchedAt = 0;
+        state.epgSources[0].fetchedAt = 0; delete state.epgSources[0].retryAt;
         const automatic = reloadEpgSources(); const manual = forceRefreshEpg();
         pending[0](text); await automatic;
         await second; pending[1](text); await manual;
@@ -132,9 +132,112 @@ const assert = require('node:assert/strict');
       } finally { loadTextFromUrl = original; }
     });
     assert.deepEqual(refreshRace, [true, true], 'A manual refresh must run after an existing automatic refresh');
+    const localReindex = await page.evaluate(async () => {
+      await loadPlaylistText('#EXTM3U\n#EXTINF:-1,Unrelated fixture\nhttps://media.example/other.m3u8', 'other.m3u');
+      const unrelated = state.epg.size;
+      await loadPlaylistText(state.playlists[0].text, 'local.m3u');
+      return { unrelated, restored: currentProgram(selectedChannel())?.title };
+    });
+    assert.deepEqual(localReindex, { unrelated: 0, restored: 'Fresh fixture programme' });
+    assert.equal(epgRequests, 2, 'Local playlist changes re-filter cached EPG without downloading again');
     await page.evaluate(async () => {
       state.epgSources = window.auditSavedEpgSources; await persistSources(); await rebuildMergedEpg(); closeSettings();
     });
+    // Native source download returns only a private file reference. Exercise the
+    // real streaming worker, matching, transactional refresh and error/backoff.
+    await page.route('**/native-fixture.xml', route => route.fulfill({ contentType: 'application/xml', body: '<tv><channel id="provider-123"><display-name>Fíxture A HD</display-name><display-name>Fixture A</display-name></channel>' + epgXml('Matched native programme').replace('fixture-a', 'provider-123').replace('<tv>', '').replace('</tv>', '') + '</tv>' }));
+    await page.route('**/broken-native.xml', route => route.fulfill({ contentType: 'application/xml', body: '<tv><programme' }));
+    const nativeResults = await page.evaluate(async ({ origin }) => {
+      const original = window.Capacitor, sources = state.epgSources;
+      let downloads = 0, commits = 0, discards = 0, fail = '', broken = false, httpCalls = 0;
+      const key = 'a'.repeat(64);
+      window.Capacitor = { getPlatform: () => 'android', convertFileSrc: path => path, Plugins: {
+        CapacitorHttp: { request: async () => { httpCalls++; throw new Error('Full-body HTTP must not be used'); } },
+        TCLVPlayer: {
+          fetchEpgSource: async () => { downloads++; if (fail) throw new Error(fail); return { id: 'download', key, path: origin + (broken ? '/broken-native.xml' : '/native-fixture.xml') }; },
+          commitEpgSource: async () => { commits++; }, discardEpgSource: async () => { discards++; },
+          getEpgCache: async () => ({ path: origin + '/native-fixture.xml' }),
+        }
+      } };
+      try {
+        state.epgSources = [{ id: 'native', name: 'Fixture', source: 'https://source.example/guide?token=private-fixture', origin: 'network', active: true }];
+        await reloadEpgSources({ forceReload: true, showOnLoad: false });
+        const matched = currentProgram(selectedChannel())?.title;
+        const persisted = await window.TCLVStorage.loadSnapshot();
+        const hasText = Object.hasOwn(state.epgSources[0], 'text');
+        const save = saveExportedFile; let exported;
+        try { dom.includeEpgCache.checked = true; saveExportedFile = async chunks => { let text = ''; for await (const part of chunks) text += part; exported = JSON.parse(text); }; await exportSettings(); }
+        finally { saveExportedFile = save; dom.includeEpgCache.checked = false; }
+        const cachedExport = exported.epgSources[0].text.includes('Matched native programme') && !Object.hasOwn(exported.epgSources[0], 'nativeCache');
+        broken = true; await reloadEpgSources({ forceReload: true, showOnLoad: false });
+        const preserved = currentProgram(selectedChannel())?.title;
+        fail = 'HTTP 404'; await reloadEpgSources({ forceReload: true, showOnLoad: false });
+        const before = downloads; await reloadEpgSources({ showOnLoad: false });
+        const diagnostic = dom.epgList.textContent;
+        return { matched, preserved, commits, discards, httpCalls, hasText, cachedExport, savedKey: persisted.epgSources[0].nativeCache, automaticSkipped: before === downloads, diagnostic };
+      } finally { window.Capacitor = original; state.epgSources = sources; await persistSources(); await rebuildMergedEpg(); }
+    }, { origin });
+    assert.equal(nativeResults.matched, 'Matched native programme');
+    assert.equal(nativeResults.preserved, 'Matched native programme');
+    assert.equal(nativeResults.commits, 1); assert.equal(nativeResults.discards, 1);
+    assert.ok(nativeResults.cachedExport); assert.equal(nativeResults.httpCalls, 0); assert.equal(nativeResults.hasText, false);
+    assert.equal(nativeResults.savedKey, 'a'.repeat(64)); assert.ok(nativeResults.automaticSkipped);
+    assert.ok(nativeResults.diagnostic.includes('HTTP 404')); assert.ok(!nativeResults.diagnostic.includes('private-fixture'));
+    await page.route('**/large-native.xml', route => route.fulfill({ contentType: 'application/xml', body: '<tv>' + epgXml('Irrelevant').replace('fixture-a', 'unrelated').replace('<tv>', '').replace('</tv>', '').repeat(15000) + epgXml('Relevant').replace('<tv>', '').replace('</tv>', '') + '</tv>' }));
+    const largeEpg = await page.evaluate(async url => { const parsed = await parseEpgOffThread({ url }); return { size: parsed.size, kept: parsed.stats.kept, total: parsed.stats.programmes }; }, origin + '/large-native.xml');
+    assert.deepEqual(largeEpg, { size: 1, kept: 1, total: 15001 });
+    const diagnostics = await page.evaluate(async () => {
+      const timestamp = ms => new Date(ms).toISOString().slice(0, 19).replace(/[-:T]/g, '') + ' +0000';
+      const xml = (channel, start, stop) => '<tv><programme channel="' + channel + '" start="' + timestamp(start) + '" stop="' + timestamp(stop) + '"><title>Fixture</title></programme></tv>';
+      const result = [];
+      for (const text of ['<tv/>', xml('unrelated', Date.now() - 10000, Date.now() + 10000), xml('fixture-a', Date.now() - 4 * 86400000, Date.now() - 3 * 86400000), xml('fixture-a', Date.now() + 86400000, Date.now() + 2 * 86400000)]) {
+        const parsed = await parseEpgOffThread(text), source = {}; epgSourceStatus(source, parsed); result.push(source.status);
+      }
+      const old = state.epg;
+      const programme = { start: new Date(Date.now() - 10000), stop: new Date(Date.now() + 10000), title: 'Fixture', channelNames: ['Shared HD'] };
+      state.epg = new Map([['one', [programme]], ['two', [programme]]]); reindexEpg();
+      const ambiguous = findPrograms({ id: 'missing', name: 'Shared' }).length;
+      const exact = findPrograms({ id: 'one', name: 'Shared' }).length;
+      state.epg = old; reindexEpg();
+      const xspf = parseXspf('<playlist><trackList><track><title>Fixture</title><identifier>provider-123</identifier><location>https://media.example/a</location></track></trackList></playlist>');
+      return { statuses: result, ambiguous, exact, tvgId: xspf[0].tvgId };
+    });
+    assert.deepEqual(diagnostics, { statuses: ['empty', 'unmatched', 'outdated', 'future'], ambiguous: 0, exact: 1, tvgId: 'provider-123' });
+    // Export a large LOCAL source intact; omit downloaded network XML by default.
+    // Real async serialization must leave the UI responsive and clean up failures.
+    const exportResults = await page.evaluate(async () => {
+      const original = window.Capacitor, sources = state.epgSources, playlists = state.playlists;
+      let chunks = [], active = 0, maxActive = 0, cancelled = 0, fail = '', heartbeats = 0, begins = 0;
+      const plugin = {
+        beginTextExport: async () => { begins++; chunks = []; return { id: 'fixture-export' }; },
+        appendTextExport: async ({ content }) => { active++; maxActive = Math.max(maxActive, active); await new Promise(resolve => setTimeout(resolve, 0)); chunks.push(content); active--; if (fail === 'write') throw new Error('Disk unavailable'); },
+        finishTextExport: async () => { if (fail === 'cancel') throw new Error('Save cancelled'); },
+        cancelTextExport: async () => { cancelled++; },
+      };
+      window.Capacitor = { getPlatform: () => 'android', Plugins: { TCLVPlayer: plugin } };
+      const timer = setInterval(() => heartbeats++, 0);
+      try {
+        const large = '#EXTM3U\n' + 'Synthetic "Čas" 😀\n'.repeat(120000);
+        state.playlists = [{ id: 'large-local', name: 'local.m3u', source: 'local.m3u', origin: 'local', type: 'm3u', text: large }];
+        state.epgSources = [{ id: 'downloaded', name: 'Remote fixture', source: 'https://source.example/epg?token=keep-original-fixture', origin: 'network', active: false, text: '<tv>' + 'x'.repeat(3000000) + '</tv>' }, { id: 'local-epg', name: 'local.xml', source: 'local.xml', origin: 'local', text: '<tv/>' }];
+        dom.includeEpgCache.checked = false;
+        const pending = exportSettings(); await exportSettings(); await pending;
+        const data = JSON.parse(chunks.join(''));
+        const result = { localIntact: data.playlists[0].text === large, localEpg: data.epgSources[1].text, cacheOmitted: !Object.hasOwn(data.epgSources[0], 'text'), originalUrl: data.epgSources[0].source, maxChunk: Math.max(...chunks.map(chunk => chunk.length)), maxActive, heartbeats, begins };
+        dom.includeEpgCache.checked = true; await exportSettings();
+        result.optionalCacheIntact = JSON.parse(chunks.join('')).epgSources[0].text === state.epgSources[0].text;
+        fail = 'cancel'; await exportSettings(); result.cancelMessage = dom.backupStatus.textContent;
+        fail = 'write'; await exportSettings(); result.failureMessage = dom.backupStatus.textContent;
+        result.cancelled = cancelled; result.enabled = !dom.exportSettings.disabled;
+        return result;
+      } finally { clearInterval(timer); window.Capacitor = original; state.epgSources = sources; state.playlists = playlists; dom.includeEpgCache.checked = false; }
+    });
+    assert.ok(exportResults.localIntact && exportResults.optionalCacheIntact && exportResults.cacheOmitted);
+    assert.equal(exportResults.localEpg, '<tv/>'); assert.ok(exportResults.originalUrl.endsWith('token=keep-original-fixture'));
+    assert.ok(exportResults.maxChunk <= 98304); assert.equal(exportResults.maxActive, 1);
+    assert.ok(exportResults.heartbeats > 10); assert.equal(exportResults.begins, 1);
+    assert.equal(exportResults.cancelled, 2); assert.ok(exportResults.enabled);
+    assert.ok(exportResults.cancelMessage.includes('zrušen')); assert.ok(exportResults.failureMessage.includes('nepodarilo'));
     // Check focus across scroll/render frames, including backwards window updates.
     const expectChannelFocus = async id => {
       await page.waitForFunction(expected => document.activeElement.dataset.channelId === expected, id);

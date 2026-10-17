@@ -12,3 +12,9 @@ For current GitHub artifacts, open Actions → Android and GoogleTV → Run work
 Templates (Java and resources) live here; the generator also injects media3 dependencies, private-data backup policy, foreground permissions/service, app version and optional release signing. No channel list, credentials or signing key belongs here.
 
 Release environment variables and device verification instructions are in the root README. Keep an existing signing key to support upgrades. Debug APK is for local testing and uses the Android debug certificate.
+
+`FileExports` receives bounded UTF-8 chunks into private temporary files, then copies to a SAF destination on a dedicated I/O executor. A PluginCall never retains an entire settings backup; the main thread only opens the picker. Two pending exports and 256 MiB per export are allowed; cancellation/failure removes temporary data.
+
+`SourceCache` downloads/decompresses/transcodes XMLTV to private disk on a separate executor (one source at a time). It detects gzip by magic bytes, supports XML encoding declarations and UTF-8/UTF-16 BOM, caps input/decoded/output at 64 MiB and committed cache at 256 MiB. The WebView worker fetches only the converted local file URL and streams SAX parsing. A candidate replaces the previous file only after complete valid XMLTV is accepted. IndexedDB stores a validated opaque cache key, never an exported device path. All source entry points, including URL, playlist autodetection and source-list import, use this path.
+
+`tests/android-data.test.js` compiles the production helpers with minimal Android I/O stubs when a JDK is available, then exercises real local HTTP/file operations under `-Xmx64m`. Physical Redmi Pad 2 / Android 16 SAF, lifecycle and firmware behaviour still require device validation.

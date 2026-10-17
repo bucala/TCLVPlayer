@@ -8,7 +8,7 @@ Tento dokument opisuje zmeny zdrojového kódu verzie 1.3.0 a ich overenie. Comm
 | --- | --- |
 | A01 závislosti | Aktualizované Capacitor 8.5.3, Electron 43.8, HLS/Video.js/testovacie nástroje a tranzitívne závislosti. Overrides pre kompatibilný opravený uuid a aktuálny Electron downloader. `npm audit`: 0 zraniteľností. |
 | A02 SSRF | Server používa zdieľaný `resolveTarget` a Undici Agent s overeným pripnutým lookup pre každý redirect. |
-| A03 zálohy | Úplný lokálny JSON export vrátane dostupného obsahu a pôvodných URL. Žiadne nahrádzanie hesiel za nepoužiteľný placeholder. Súbor sa neodosiela do repozitára. |
+| A03 zálohy | Lokálny JSON export playlistov, lokálneho EPG a pôvodných URL; stiahnutá sieťová EPG cache je voliteľná. Android serializuje a zapisuje po častiach mimo hlavného vlákna. Žiadne nahrádzanie hesiel za nepoužiteľný placeholder. Súbor sa neodosiela do repozitára. |
 | A04 súbeh playlistov | Generácia aktivácie bráni staršej požiadavke prepísať novší výber. Overené browser testom s opačným poradím odpovedí. |
 | A05 Android podpis | Release konfigurácia používa iba externý stabilný kľúč; CI vyžaduje signing Secrets a overí APK. Bez nich sa nepodpísaný release nevydá. Kľúč nebol vytvorený ani pridaný do Git. |
 | A06 lokálne EPG | IndexedDB uchováva obsah lokálnych zdrojov, vrátane migrácie pôvodného úložiska. |
@@ -51,3 +51,9 @@ Horná kapsula z referenčného obrázka je vlastnosť konkrétneho výrobcu sys
 - Úplný NSIS Windows installer sa v tomto Linux prostredí nedal dokončiť pre chýbajúce Wine. Normálny Windows CI build zostáva nakonfigurovaný pre Windows runner.
 
 Finálnu prevádzku na fyzickom Windows a konkrétnom Android TV treba overiť používateľským testom: živý stream, prepínanie, pozadie/zhasnutie, mediálna karta/logo/ovládanie, PiP, audio focus a návrat do aplikácie. Presný model slabšieho TV a jeho firmware neboli zadané. Produkčný Android release potrebuje existujúci súkromný podpisový kľúč; tento krok nebol simulovaný náhradným release kľúčom.
+
+## EPG a export — následná oprava 17. 10. 2026
+
+Android EPG už neprenáša kompletné XML cez CapacitorHttp/JSON most. `SourceCache` sťahuje a dekomprimuje do súkromného súboru; worker ho postupne číta a po validácii dovolí atomickú náhradu cache. `FileExports` a `lib/backup.js` odstraňujú veľký synchrónny JSON a zápis v Activity callbacku. Lokálne zdroje a prihlasovacie URL sa zachovávajú; sieťová EPG cache sa do zálohy pridáva voliteľne. Import veľkej JSON zálohy zostáva v pamäti.
+
+Párovanie zohľadňuje diakritiku, HD/SD, alternatívne display-name a XSPF identifier; nejednoznačné aliasy sa nepoužijú. Stav každého zdroja odlišuje chybu prenosu, XML, chýbajúce aktuálne programy a nezhodu staníc, bez výpisu súkromnej URL. Úspešný syntetický test nepreukazuje dostupnosť konkrétneho používateľského poskytovateľa ani správanie HyperOS. Ďalšie návrhy s odkazom na históriu a kritériami overenia sú v [IMPROVEMENTS.md](IMPROVEMENTS.md).

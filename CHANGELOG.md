@@ -10,11 +10,22 @@ Všetky významné zmeny v projekte sú dokumentované v tomto súbore.
 
 ### Added
 
+- Pri každom EPG zdroji sa zobrazí stav a konkrétny problém: HTTP kód, TLS, timeout, XML, limit veľkosti alebo chýbajúca cache. Rozlíšené sú prázdne/staré/budúce EPG, nesúlad staníc a chýbajúci aktuálny program. Diagnostika nevypisuje súkromnú URL ani token; ručná obnova hlási aj načítaný zdroj bez relevantného aktuálneho programu.
+- Export má priebežný stav, blokovanie duplicitného spustenia a voľbu **Pridať aj stiahnutú EPG cache**. Predvolená záloha zachová všetky playlisty, lokálne EPG, pôvodné adresy/prihlasovacie údaje a nastavenia; vynechá veľké XML stiahnutých sieťových EPG, ktoré sa po importe obnovia zo zdrojov.
+- [IMPROVEMENTS.md](IMPROVEMENTS.md) obsahuje šesť prioritných návrhov po preskúmaní celej histórie 0.1.0–Unreleased a aktuálneho kódu, s dôvodmi a kritériami overenia. Ide o návrhy ďalšej práce.
+
 - Android mediálny panel zobrazuje aktuálny program z EPG. Metadata sa dopĺňajú po načítaní/obnove EPG bez reštartu streamu; natívna služba každých 30 sekúnd sleduje hranice uložených programov aj pri pozastavenom WebView. Rozvrh je obmedzený na 24 hodín, 48 programov na kanál a 16000 záznamov v celej odovzdanej queue.
 - Na všetkých platformách pribudlo v Nastaveniach pri EPG zdrojoch tlačidlo **Obnoviť EPG teraz**. Obíde cache aktívnych sieťových zdrojov, znovu spracuje lokálne uložený obsah, počká na existujúcu automatickú obnovu a potom vynúti vlastné načítanie. Stav sa zobrazuje v menu, opakované kliknutia sú počas práce blokované.
 - Webová sekcia Sieť obsahuje **Vypnúť vzdialený proxy**: vymaže uložený source proxy, zachová párovanie lokálneho bridge a používa len priame/lokálne sťahovanie. Video už používa direct/loopback tok; stránka, knižnice a bridge ZIP naďalej používajú hostingový prenos.
 
 ### Fixed
+
+- Opravené rizikové dátové cesty z hlásenia zamrznutia exportu na Redmi Pad 2/Android 16: JSON sa serializuje po menších častiach, natívny most neuchováva celú zálohu v PluginCall a SAF kopírovanie beží na pracovnom vlákne. Limit je 256 MiB, najviac dva rozpracované exporty; chyba/zrušenie odstránia dočasný súbor a nemenia zdrojové dáta.
+- Android sieťové EPG sa sťahuje, dekomprimuje a prevádza na UTF-8 priamo do súkromného súboru. Gzip sa rozpozná podľa obsahu, podporujú sa XML encoding deklarácie aj UTF-16 BOM. Worker číta lokálnu URL postupne; celé XML už neprechádza CapacitorHttp JSON mostom. Použité aj pre pridanie URL, import zoznamu a automatické EPG z playlistu; zachovaný `.xml.gz` → `.xml` fallback.
+- Natívne EPG má sekvenčné sťahovanie, rozpočet 60 s, connect/read najviac 15 s, limity 64 MiB pred/po dekompresii aj pre UTF-8 výstup a súkromnú cache do 256 MiB. Posledný dobrý súbor sa nahradí až po úspešnej kontrole úplného XMLTV. IndexedDB uchováva len interný kľúč namiesto sieťového XML; kľúč sa do prenosnej zálohy nedostane.
+- Výmena lokálneho playlistu znovu prefiltruje uložené EPG pre jeho kanály aj bez sieťového sťahovania; výsledok filtrovaný pre prázdny/starý playlist sa už nepoužije pre nový výber.
+- Párovanie EPG používa diakritiku, samostatné HD/SD/UHD označenia, bežné krajinné prípony a viac XMLTV display-name. XSPF zachová `<identifier>` aj `tvg-id`. Presné ID má prednosť, nejednoznačné aliasy nevyberú náhodnú stanicu; filter workeru používa rovnaké pravidlá ako UI.
+- Neúspešné automatické obnovy EPG majú odklad 1 minúta až 1 hodina, ktorý ručné obnovenie obíde. Zdroj pridaný počas inej obnovy počká a potom sa samostatne načíta. Pri parsovaní bez playlistu sa neuchováva celý nepotrebný programový rozvrh.
 
 - Návody pre GitHub Actions výslovne rozlišujú nový build vetvy `main` od opakovania starého behu/tagu. Log z 17. 10. 2026 používal `v1.3.0` → `53a7e73`, preto opakoval už opravenú chybu Windows testov; tag neobsahuje novšie commity `cbeb650` a `7761bb5`.
 - Android artwork sa na pozadí prevádza na štvorcový 512px obrázok so zachovaným pomerom strán a okrajom; široké logo sa nepripravuje na výplň orezom. Výstup aj dekódovanie majú obmedzené rozmery a aktuálny obrázok sa cachuje.
@@ -27,6 +38,10 @@ Všetky významné zmeny v projekte sú dokumentované v tomto súbore.
 - Opravený Windows testovací fixture Electronu: URL dôveryhodného hlavného rámca sa teraz odvodzuje zo skutočnej cesty odovzdanej do `loadFile`, vrátane písmena disku a URL kódovania. Pevná linuxová URL spôsobovala falošné odmietnutie `Untrusted caller` a následnú neošetrenú chybu v testoch spúšťania VLC/mpv.
 
 ### Tests
+
+- K 17. 10. 2026 prešlo 221 testov a 2 Windows testy boli na Linuxe vynechané; lint, privacy check a kontrola verzie prešli. Chromium integrácia pre `dist/web` aj `dist/vercel` pokrýva export viac MiB, zachovanie súkromných URL/lokálneho obsahu, voliteľnú cache, sekvenčné kúsky, reakciu UI, zrušenie/chybu zápisu, reálny worker nad viac než 15000 programami, EPG diagnostiku/párovanie a zachovanie posledného dobrého programu po chybe.
+- Nový JDK test kompiluje produkčné `FileExports`/`SourceCache` s minimálnymi Android I/O stubmi a spúšťa skutočný lokálny HTTP server so 64 MiB Java heapom: Unicode export, cleanup, gzip bez prípony, redirect, HTTP 404, windows-1250/UTF-16, veľkostné limity a dekompresný nadlimit bez zničenia cache. Pri chýbajúcom JDK sa tento test preskočí. Nenahrádza fyzický SAF/HyperOS test.
+- Android debug zostavenie a lint prešli. Priame overenie na používateľovom Redmi Pad 2 s Androidom 16 ani dostupnosť jeho konkrétnych EPG adries neprebehli; opravené sú potvrdené chyby kódu a doplnené rozlíšenie príčin pri zdroji. Veľký JSON import naďalej potrebuje pamäť pre celý dokument.
 
 - Browser test predvolene používa Chromium pribalené k Playwright, rovnako ako CI. Voliteľná cesta `CHROMIUM_PATH` ostáva podporovaná.
 - Namiesto pevného čakania 80 ms test kontroluje fokus počas ôsmich vykresľovacích rámcov. Na 1000 kanáloch opakuje `Home`/`End` a pohyb 81 riadkov oboma smermi; overuje poradie, viditeľnosť, limit DOM a výber kanála bez nechceného prehratia.

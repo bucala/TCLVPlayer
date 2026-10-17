@@ -20,7 +20,7 @@ for (const [source, target] of files) {
 }
 
 for (const name of ['LICENSE', 'THIRDPARTY.md']) await copyFile(new URL('../' + name, import.meta.url), join(outDir, name));
-for (const file of ['parsers.js', 'storage.js', 'epg-worker.js', 'android-player.js']) {
+for (const file of ['parsers.js', 'storage.js', 'backup.js', 'epg-worker.js', 'android-player.js']) {
   await mkdir(join(outDir, 'lib'), { recursive: true });
   await copyFile(new URL('../lib/' + file, import.meta.url), join(outDir, 'lib', file));
 }

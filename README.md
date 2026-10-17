@@ -8,11 +8,11 @@ IPTV prehrávač pre Windows, Android, Android TV a web.
 
 Windows aplikácia používa izolovaný Electron runtime. Android predvolene prehráva cez natívny **Media3/ExoPlayer** s hardvérovým dekódovaním. HTML5, Video.js, ArtPlayer, flv.js, jPlayer a externé VLC/mpv zostávajú voliteľné.
 
-Kompletné zmeny verzie 1.3.0 sú v [CHANGELOG.md](CHANGELOG.md). [IMPLEMENTATION.md](IMPLEMENTATION.md) mapuje všetkých 18 nálezov auditu na opravy, ich overenie a zostávajúce obmedzenia.
+Kompletné zmeny verzie 1.3.0 sú v [CHANGELOG.md](CHANGELOG.md). [IMPLEMENTATION.md](IMPLEMENTATION.md) mapuje všetkých 18 nálezov auditu na opravy, ich overenie a zostávajúce obmedzenia. Návrhy ďalšieho rozvoja po preskúmaní celej histórie sú v [IMPROVEMENTS.md](IMPROVEMENTS.md).
 
 ## Súkromné dáta
 
-Playlisty, kanály, EPG a prístupové údaje sa ukladajú iba v lokálnej databáze zariadenia. Aplikácia ich nepublikuje na GitHub a neobsahuje poskytovateľské playlisty. Zálohovanie a prenos medzi zariadeniami prebieha cez **explicitný export/import súboru**. Úplná záloha obsahuje aj lokálny obsah a pôvodné prihlasovacie URL; uchovávajte ju v súkromí.
+Playlisty, kanály, EPG a prístupové údaje ostávajú v súkromnom úložisku zariadenia (IndexedDB a na Androide aj súkromná súborová EPG cache). Aplikácia ich nepublikuje na GitHub a neobsahuje poskytovateľské playlisty. Zálohovanie a prenos medzi zariadeniami prebieha cez **explicitný export/import súboru**. Úplná záloha obsahuje aj lokálny obsah a pôvodné prihlasovacie URL; uchovávajte ju v súkromí.
 
 Na webe je vzdialený source proxy predvolene vypnutý. Zdroje sa načítajú od poskytovateľa alebo cez spárovaný bridge na rovnakom počítači. Voliteľný vzdialený proxy dostane URL a obsah požiadavky, ak ho používateľ sám nastaví. Video sa neposiela cez Vercel proxy. Verejné indexy log môžu byť načítané z ich pôvodných GitHub zdrojov; používateľské playlisty sa týmto zdrojom neposielajú.
 
@@ -77,11 +77,19 @@ Nastavenia a dialógy zachytávajú fokus a zabraňujú prepínaniu kanálov v p
 
 ## Zálohy, playlisty a EPG
 
-Import M3U/M3U8/XSPF a XMLTV vrátane gzip. Formát zoznamu EPG zdrojov je `Názov = URL`; export zoznamu je lokálny TXT súbor. Úplná JSON záloha verzie 2 obnovuje obsah, pôvodné URL, obľúbené, jazyk a nastavenia proxy. Pred zmenou dát sa overí schéma, URL, ID aj povolené prehrávače. Staršie metadátové zálohy verzie 1 zostávajú importovateľné, ale chýbajúci pôvodný lokálny súbor alebo už nahradené heslo z nich nemožno spätne získať.
+Import M3U/M3U8/XSPF a XMLTV vrátane gzip. Formát zoznamu EPG zdrojov je `Názov = URL`; export zoznamu je lokálny TXT súbor. JSON záloha verzie 2 obnovuje playlisty vrátane obsahu, lokálne EPG, pôvodné URL/prihlasovacie údaje, obľúbené, jazyk a nastavenia proxy. Predvolene vynecháva stiahnutý obsah sieťových EPG; po importe sa načíta z uložených adries. Voľba **Pridať aj stiahnutú EPG cache** vytvorí väčšiu zálohu aj s týmto obsahom. Interné odkazy na súbory zariadenia sa neexportujú. Pred zmenou dát sa overí schéma, URL, ID aj povolené prehrávače. Staršie metadátové zálohy verzie 1 zostávajú importovateľné, ale chýbajúci pôvodný lokálny súbor alebo už nahradené heslo z nich nemožno spätne získať.
+
+Export vytvára JSON po menších častiach. Android ich zapisuje do súkromného dočasného súboru a cez systémové **Uložiť ako** kopíruje do zvoleného umiestnenia na pracovnom vlákne. Počas exportu je opakované spustenie blokované; zrušenie alebo chyba nemenia pôvodné dáta. Limit zálohy je 256 MiB. Import naďalej overuje celý JSON v pamäti; na malých zariadeniach preto odporúčame predvolenú zálohu bez sieťovej EPG cache.
 
 Sieťové playlisty sa obnovujú po 15 minútach, EPG po 6 hodinách aj počas dlhej relácie. Aktivácia už aktívneho sieťového playlistu vynúti refresh. Lokálne zdroje sa nenačítavajú z názvu súboru cez sieť. Pri chybe sťahovania zostáva posledný použiteľný obsah. Veľkosť jedného zdroja je obmedzená na 64 MiB pred aj po dekompresii; JSON záloha môže mať do 256 MiB.
 
 **Nastavenia → EPG zdroje → Obnoviť EPG teraz** vynúti nové stiahnutie všetkých zapnutých sieťových zdrojov aj pred uplynutím cache a znovu spracuje lokálne uložené XMLTV. Ak už beží automatická obnova, ručná obnova sa vykoná po nej. Tlačidlo počas práce blokuje duplicitné kliknutia a výsledok oznámi priamo v menu. Pri chybe siete alebo neúplnom/neplatnom XML sa ponechajú posledné použiteľné dáta; vypnuté zdroje sa nesťahujú.
+
+Android sťahuje sieťové XMLTV na pracovnom vlákne priamo do súkromného súboru, rozpoznáva gzip podľa obsahu a spracuje deklarované kódovanie aj UTF-16 BOM. Do WebView sa neposiela celý XML reťazec; worker súbor postupne číta a filtruje programy. Natívne sťahovanie je sekvenčné, má rozpočet 60 sekúnd (connect/read najviac 15 sekúnd), limit 64 MiB pre vstup, dekompresiu aj výsledné UTF-8 a cache do 256 MiB. Staršia cache sa uvoľňuje; odstránený súbor možno znovu stiahnuť. Nový súbor nahradí posledný dobrý až po úspešnom XMLTV parsovaní.
+
+Pri každom EPG zdroji sa zobrazuje načítavanie, počet relevantných/aktuálnych programov alebo konkrétny problém: **HTTP stav**, **TLS**, **timeout**, **XML**, limit veľkosti, chýbajúca cache, prázdny/starý/budúci program či nesúlad staníc. Chyba nevypisuje poskytovateľskú URL ani token. Po chybe automatické pokusy ustupujú od 1 minúty po 1 hodinu; **Obnoviť EPG teraz** tento odklad obíde. Pri časovom nesúlade skontrolujte aj automatický dátum a čas zariadenia.
+
+Párovanie EPG používa presné ID a potom názvy/alternatívne názvy bez rozdielov v diakritike, interpunkcii a samostatných označeniach HD/SD/UHD. Podporuje aj `<identifier>` v XSPF a bežné koncové krajinné prípony ID. Nejednoznačný názov sa automaticky nepriradí k nesprávnej stanici. Bez skutočnej adresy zdroja nemožno potvrdiť dostupnosť konkrétneho poskytovateľa; nová diagnostika pomáha odlíšiť prenos, obsah a párovanie.
 
 Serverový `/api/proxy` je obmedzený na playlisty/EPG do 3 MiB a 15 sekúnd. Každé spojenie aj redirect používa overenú a pripnutú DNS adresu. Limity sú 30 požiadaviek/minútu na klienta a 8 súbežných požiadaviek na proces. Pre rozpočet celého nasadenia treba prípadne nastaviť aj limity hostingu; process limit nie je distribuovaná kvóta účtu.
 
@@ -116,7 +124,7 @@ Browser test používa Chromium nainštalované cez Playwright, aby sa jeho verz
 
 CI používa `npm ci`, akcie pripnuté na commit, privacy check, audit, unit a browser testy. Úplné `npm run check` sa spúšťa aj na Windows; tam sa vykonajú navyše dva Windows launcher testy, ktoré sú na Linuxe vynechané. Electron testy odvodzujú file URL z načítanej cesty na danej platforme, aby kontrola dôveryhodného IPC fungovala aj s Windows diskom. Release najprv vykoná kontroly. Browser testy neuploadujú screenshoty ani lokálne používateľské dáta. End-to-end test na fyzickom Android TV je potrebný pre konkrétny firmware, kodeky, správanie PiP a napájania.
 
-Overenie verzie 1.3.0 k 16. 10. 2026:
+Overenie predchádzajúcich zmien verzie 1.3.0 k 16. 10. 2026:
 
 - `npm run check`: 217 úspešných testov, 2 vynechané; kontrola verzie, privacy guard aj lint prešli. `npm audit` vykázal 0 zraniteľností vrátane vývojových závislostí.
 - Chromium integračné testy prešli pre `dist/web` aj `dist/vercel`: D-pad, dialógy, obľúbené, lokálne uloženie/export, odmietnutie neplatného importu, súbeh playlistov, XMLTV worker, virtualizácia a bridge fallback druhého slotu.
@@ -124,12 +132,15 @@ Overenie verzie 1.3.0 k 16. 10. 2026:
 - Vercel build vrátane Windows bridge runtime prešiel. Android `assembleDebug` a `lintDebug` prešli; podpis debug APK a verzia 1.3.0 / versionCode 1003000 boli overené.
 - Windows x64 unpacked a portable build prešli; Electron smoke test na Linuxe overil UI, EPG worker a IPC. Distribučný `app.asar` obsahuje iba potrebné súbory, bez duplicitných `node_modules`.
 
+Oprava EPG/exportu zo 17. 10. 2026 pridáva regresné scenáre pre natívny prenos odkazu na súbor, postupné parsovanie viac ako 15000 programov, párovanie diakritiky/HD/XSPF, HTTP chybu a odklad retry, zachovanie pôvodných dát, veľký lokálny export, voliteľnú EPG cache, zrušenie uloženia a zlyhanie zápisu. `tests/android-data.test.js` pri dostupnom JDK kompiluje skutočné `FileExports`/`SourceCache` a testuje lokálny HTTP server, gzip bez prípony, kódovania, limity a cleanup s Java heapom 64 MiB; platformové Android I/O nahrádzajú malé stuby. Nenahrádza test Storage Access Framework na reálnom zariadení. Redmi Pad 2/Android 16 je nahlásené zariadenie, fyzické overenie na ňom zatiaľ neprebehlo.
+
 Lokálne pripravený Windows portable EXE je nepodpísaný testovací build; pri krížovom zostavení nebola aplikovaná úprava Windows ikony/metadát. Android APK má vývojový podpis. Tieto binárne súbory sa necommitujú do repozitára a nejde o publikovaný produkčný release. Úplný NSIS installer nebol v Linux prostredí dokončený pre chýbajúce Wine; jeho build je nakonfigurovaný na Windows CI. Overenie na fyzickom Windows/Android TV a produkčný Android podpis existujúcim kľúčom zostávajú potrebné pred produkčným vydaním.
 
 ## Štruktúra
 
 - `app.js`, `styles.css`, `index.html`: spoločné používateľské rozhranie;
 - `lib/parsers.js`: jeden parser používaný aplikáciou aj testami;
+- `lib/backup.js`: postupný JSON export;
 - `lib/storage.js`: validácia a súkromná lokálna IndexedDB;
 - `lib/epg-worker.js`: SAX XMLTV spracovanie mimo UI;
 - `lib/android-player.js`: synchronizácia natívneho obrazu a ovládania;

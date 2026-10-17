@@ -90,10 +90,12 @@
           <h3 data-i18n="settingsBackup">Export / Import</h3>
           <div class="settings-body">
             <p class="settings-hint" data-i18n="backupHint">Úplná lokálna záloha vrátane playlistov a prístupových údajov. Súbor uchovajte v súkromí.</p>
+            <label class="backup-cache-choice"><input id="includeEpgCache" type="checkbox" /><span data-i18n="includeEpgCache">Pridať aj stiahnutú EPG cache (veľký súbor)</span></label>
             <div class="field-row">
               <button id="exportSettings" type="button" data-i18n="exportSettings">Exportovať</button>
               <label class="file-button"><input id="importFile" type="file" accept=".json" /><span data-i18n="importSettings">Importovať</span></label>
             </div>
+            <p id="backupStatus" class="settings-hint" role="status" aria-live="polite"></p>
           </div>
         </div>
       </aside>
@@ -109,6 +111,7 @@
     <template id="channelTemplate"><article class="channel-card"><button class="fav-action" type="button" aria-label="Obľúbené">☆</button><img class="channel-logo" alt="" /><span class="status-dot"></span><div class="channel-text"><h3></h3><p></p></div><div class="progress-track"><span></span></div></article></template>
     <script src="./lib/parsers.js"></script>
     <script src="./lib/storage.js"></script>
+    <script src="./lib/backup.js"></script>
     <script src="./lib/android-player.js"></script>
     <script src="./app.js"></script>
   </body>
