@@ -14,7 +14,7 @@ function element() {
     listeners,
     addEventListener: (name, callback) => listeners.set(name, callback),
     querySelector: selector => { if (!children.has(selector)) children.set(selector, element()); return children.get(selector); },
-    prepend: vi.fn(), before: vi.fn(), focus: vi.fn(), scrollIntoView: vi.fn(), removeAttribute: vi.fn(),
+    setAttribute: vi.fn(), prepend: vi.fn(), before: vi.fn(), focus: vi.fn(), scrollIntoView: vi.fn(), removeAttribute: vi.fn(),
     load: vi.fn(), pause: vi.fn(),
     canPlayType: vi.fn().mockReturnValue("maybe"),
   };
@@ -58,6 +58,7 @@ function player({ configuredProxy = '/api/proxy?url=' } = {}) {
       this.isMediaUrl = value => value === ticket;
       this.discover = vi.fn();
       this.pair = vi.fn();
+      this.cancelApproval = vi.fn();
     }
   }
   class Hls {
@@ -71,11 +72,11 @@ function player({ configuredProxy = '/api/proxy?url=' } = {}) {
   const underlying = { play: host.playChannel, slot: host.playInSlot1, source: host.fetchWebSource };
   const context = vm.createContext({
     window, document, location: { protocol: "https:", origin: "https://tclv-player.vercel.app" },
-    URL, queueMicrotask, fetch: vi.fn(),
+    URL, queueMicrotask, setTimeout, clearTimeout, fetch: vi.fn(),
   });
   vm.runInContext(source, context);
   window.TCLVWebPlayer(host);
-  return { host, client, ui, video, video2, window, underlying };
+  return { host, client, ui, bar, video, video2, window, underlying };
 }
 
 async function settle() {
@@ -89,6 +90,23 @@ describe("web-only Auto playback", () => {
     vm.runInContext(source, context);
     expect(() => window.TCLVWebPlayer({})).not.toThrow();
     expect(window.TCLVWebBridge).toBeUndefined();
+  });
+  it("does not claim a direct video route before any channel is started", () => {
+    const { bar } = player();
+    expect(bar.querySelector("#webVideoRoute").textContent).toBe("bridgeIdle");
+    expect(bar.dataset.route).toBe("idle");
+  });
+  it("distinguishes a provider rejection from waiting for local pairing", async () => {
+    const { host, client, bar } = player();
+    client.openStream.mockRejectedValueOnce(Object.assign(new Error("Provider unavailable"), { status: 502 }));
+    await host.playChannel({ ...channel, url: "http://provider.example/live.m3u8" });
+    expect(bar.querySelector("#webVideoRoute").textContent).toBe("bridgeVideoError");
+    expect(host.showMessage).toHaveBeenLastCalledWith("streamUnavailable bridgeCodec", 0);
+    const pending = player();
+    pending.client.status = "available";
+    pending.client.openStream.mockRejectedValueOnce(Object.assign(new Error("Pairing required"), { code: "unpaired" }));
+    await pending.host.playChannel({ ...channel, url: "http://provider.example/live.m3u8" });
+    expect(pending.bar.querySelector("#webVideoRoute").textContent).toBe("bridgeUnavailable");
   });
   it("plays HTTPS directly before contacting the helper", async () => {
     const { host, client, underlying } = player();

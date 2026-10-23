@@ -8,6 +8,20 @@ Všetky významné zmeny v projekte sú dokumentované v tomto súbore.
 
 ## [Unreleased]
 
+### Webové prehrávanie — 2026-10-24
+
+- [WEB-PLAYBACK.md](WEB-PLAYBACK.md) zaznamenáva kontrolu dátových ciest, pôvodné problémy UX, dokončené kroky a hranice overenia.
+- Electron aktualizovaný z 43.8.0 na 43.8.3 v rovnakej hlavnej vetve kvôli bezpečnostnej oprave certifikátov (GHSA-jr5w-w6x2-84p9); následný npm audit nehlási zraniteľnosti.
+
+- Nastavenia siete majú sprievodcu **Pripravte pomocníka → Spustite TCLV Bridge → Potvrďte tento prehliadač**. Nad videom je prístup k nastaveniu a stav aktuálnej cesty videa. Nové pripojenie sa schvaľuje v lokálnom okne s adresou webu; kód sa štandardne neprepisuje. Po schválení sa čakajúce prehrávanie zopakuje. Ručný kód pre staršie verzie a ZIP zostávajú dostupné ako záloha.
+- Pridaný samostatný `TCLV-Bridge-Setup.exe` pre Windows 10+ x64: inštalácia iba do účtu používateľa, pribalený pripnutý a SHA‑256 overený Node.js runtime, odkazy v Štarte a odinštalovanie. Nevyžaduje administrátora, samostatný Node.js, rozbaľovanie ani príkazy. Nespúšťa sa automaticky po prihlásení a nemení hlavnú Windows/Android aplikáciu. Vercel build vytvorí EXE aj ZIP z rovnakého runtime bez opakovaného sťahovania.
+- Tlačidlo **Spustiť nainštalovaný bridge** používa `tclvbridge://open`. Registrácia protokolu obsahuje pevný príkaz bez `%1`; URL, tokeny a argumenty z odkazu sa neodovzdávajú. Opakované otvorenie využije už bežiaceho pomocníka a otvorí webového sprievodcu. Odinštalovanie odstráni registráciu iba vtedy, ak stále patrí tejto inštalácii.
+- Potvrdenie prehliadača má dvojminútovú platnosť, samostatný dôkaz pre vyzdvihnutie výsledku, CSRF ochranu a jednorazové spracovanie; session token nie je súčasťou potvrdenia ani externého odkazu. Schválená relácia je viazaná na pôvod webu, uchováva sa v `sessionStorage` karty najviac 12 hodín a po reštarte pomocníka prestane platiť. Nové spárovanie rovnakého webu nahradí jeho predchádzajúcu reláciu.
+- UI a návody vysvetľujú požiadavku rovnakého počítača, povolenie lokálnej siete, zablokované okno potvrdenia, zrušenie a vypršanie. Windows pomocník na inom PC neslúži telefónu ani TV. Režimy videa a **Vypnúť vzdialený proxy** sú v pokročilých nastaveniach; vzdialený source proxy zostáva predvolene vypnutý.
+- Video pokračuje priamo alebo cez loopback mimo Vercel video proxy. Stránka, knižnice a stiahnutie pomocníka stále spotrebúvajú hostingový prenos; voliteľný vzdialený source proxy pre playlisty/EPG používa kapacitu hostingu, ak ho používateľ zapne. Bridge nemení kodeky/DRM ani geo-obmedzenia.
+- Overenie finálnych zmien: `npm run check` s JDK 21 má 297 úspešných testov a 2 Windows-only testy vynechané na Linuxe. Prešli spoločný aj Vercel Chromium balík a nový skutočný tok schválenia/odmietnutia/zrušenia, fallback po zablokovaní okna, lokálny prenos média a mobilné zobrazenie. Produkčný Vercel build prešiel aj po čistom `npm ci --include=dev --ignore-scripts`; vznikol EXE aj ZIP. Regresné testy chránia aj pred stratou novej relácie starším discovery/401 výsledkom.
+- Cielené `tests/bridge-build.test.js`: 11 testov prešlo, 2 Windows launcher testy boli na Linuxe vynechané; syntax, ESLint a whitespace kontrola prešli. Skutočný pripnutý Linux NSIS zostavil EXE s overeným Windows runtime. Inštalátor je nepodpísaný a nebol spustený na fyzickom Windows; inštaláciu, systémové upozornenia a spustenie cez protokol treba overiť na cieľovom systéme. Binárne balíky sa necommitujú.
+
 ### Added
 
 - Kompatibilita s IPTVPlaylistgen 2.6.0 (`ccd1a63`): XSPF `<meta rel="tvg-id">`, tvg-name/krajina/skupina a dostupné EPG/catchup metadáta; zachované logo, stream URL aj pôvodná tvorba interného ID. M3U číta zdroje `url-tvg`/`x-tvg-url` aj `tvg-url` jednotlivých staníc a doplní nové EPG aj popri už existujúcich zdrojoch. Konkrétne tvg-url majú prednosť a neobmedzia sa na tri heuristické zhody; celkový limit automatického objavovania zostáva 12 adries. XML a jeho gzip variant sa pri objavovaní/importovaní zoznamu neduplikujú.

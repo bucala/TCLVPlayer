@@ -3,16 +3,20 @@ import https from "node:https";
 import { randomBytes, timingSafeEqual } from "node:crypto";
 import { gunzipSync, inflateSync, brotliDecompressSync } from "node:zlib";
 import { bridgeError, parseTarget, resolveTarget } from "./security.mjs";
+import { URLSearchParams } from "node:url";
+import { pairingPage } from "./pairing-page.mjs";
 
 export const BRIDGE_SERVICE = "tclv-bridge";
 export const BRIDGE_PROTOCOL = 1;
-export const BRIDGE_VERSION = "2.0.0";
+export const BRIDGE_VERSION = "2.1.0";
 export const DEFAULT_ORIGINS = ["https://tclv-player.vercel.app", "http://127.0.0.1:3000", "http://localhost:3000"];
 const REDIRECTS = new Set([301, 302, 303, 307, 308]);
 const MAX_MANIFEST_BYTES = 2 * 1024 * 1024;
 const MAX_SESSION_AGE = 12 * 60 * 60 * 1000;
 const MAX_TICKETS = 10000;
 const MAX_SESSIONS = 8;
+const MAX_PAIR_REQUESTS = 16;
+const PAIR_REQUEST_AGE = 2 * 60 * 1000;
 
 function equalSecret(first, second) {
   if (typeof first !== "string" || typeof second !== "string") return false;
@@ -38,6 +42,18 @@ async function readJson(req) {
     if (body.length > 16384) throw bridgeError(413, "Request too large");
   }
   try { return JSON.parse(body); } catch { throw bridgeError(400, "Invalid JSON"); }
+}
+
+async function readApprovalForm(req) {
+  if (!/^application\/x-www-form-urlencoded(?:\s*;|$)/i.test(req.headers["content-type"] || "")) throw bridgeError(415, "Form required");
+  let body = "";
+  for await (const chunk of req) {
+    body += chunk.toString("utf8");
+    if (body.length > 4096) throw bridgeError(413, "Request too large");
+  }
+  const form = new URLSearchParams(body);
+  if (form.getAll("csrf").length !== 1 || form.getAll("action").length !== 1) throw bridgeError(400, "Invalid confirmation form");
+  return { csrf: form.get("csrf"), action: form.get("action") };
 }
 
 export function rewriteManifest(text, finalUrl, resourceUrl) {
@@ -131,6 +147,8 @@ export function createBridge({
   }));
   const sessions = new Map();
   const pairAttempts = new Map();
+  const pairRequests = new Map();
+  const requestAttempts = new Map();
   const tickets = new Map();
   let activeRequests = 0;
 
@@ -142,6 +160,37 @@ export function createBridge({
       throw bridgeError(401, "Pair this browser with TCLV Bridge");
     }
     return { token, session };
+  }
+
+  function createSession(origin) {
+    for (const [token, old] of sessions) if (old.origin === origin || old.expires <= now()) forget(token);
+    if (sessions.size >= MAX_SESSIONS) throw bridgeError(429, "Too many paired browsers");
+    const token = randomBytes(32).toString("base64url");
+    const expires = now() + MAX_SESSION_AGE;
+    sessions.set(token, { origin, expires, resources: new Map() });
+    return { token, expires };
+  }
+
+  function prunePairRequests() {
+    for (const [id, request] of pairRequests) if (request.expires <= now()) pairRequests.delete(id);
+    for (const [origin, attempts] of requestAttempts) if (attempts.reset <= now()) requestAttempts.delete(origin);
+  }
+
+  function pairRequest(id) {
+    prunePairRequests();
+    const request = pairRequests.get(id);
+    if (!request) throw bridgeError(410, "Pairing request has expired or was already used");
+    return request;
+  }
+
+  function approvalHtml(res, options, status = 200) {
+    // no-referrer turns a browser form POST Origin into null. Preserve the exact
+    // local Origin for CSRF checks while still withholding external referrers.
+    res.setHeader("Referrer-Policy", "same-origin");
+    res.setHeader("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'");
+    res.setHeader("X-Frame-Options", "DENY");
+    res.writeHead(status, { "Content-Type": "text/html; charset=utf-8" });
+    res.end(pairingPage(options));
   }
 
   function resourceUrl(target, token, session) {
@@ -247,6 +296,30 @@ export function createBridge({
       const origin = req.headers.origin || "";
       const url = new URL(req.url, "http://127.0.0.1");
       const mediaRequest = url.pathname.startsWith("/media/");
+      const approval = url.pathname.match(/^\/pair\/approve\/([A-Za-z0-9_-]{32})$/);
+      if (approval && ["GET", "POST"].includes(req.method)) {
+        const localOrigin = localUrl("");
+        if (req.headers.host !== new URL(localOrigin).host || (origin && origin !== localOrigin)) throw bridgeError(403, "Only the local confirmation page can approve a connection");
+        const id = approval[1];
+        if (req.method === "GET") {
+          const request = pairRequests.get(id);
+          if (!request || request.expires <= now()) {
+            pairRequests.delete(id);
+            approvalHtml(res, { status: "expired" }, 410);
+          } else approvalHtml(res, { origin: request.origin, id, csrf: request.csrf, status: request.status });
+          return;
+        }
+        if (origin !== localOrigin) throw bridgeError(403, "Local confirmation origin required");
+        const form = await readApprovalForm(req);
+        const request = pairRequest(id);
+        if (!equalSecret(form.csrf, request.csrf)) throw bridgeError(403, "Invalid confirmation token");
+        if (request.status !== "pending") throw bridgeError(409, "This request was already confirmed");
+        if (!["approve", "deny"].includes(form.action)) throw bridgeError(400, "Invalid confirmation action");
+        request.status = form.action === "approve" ? "approved" : "denied";
+        approvalHtml(res, { status: request.status });
+        return;
+      }
+
       if (origin && allowedOrigins.has(origin)) {
         res.setHeader("Access-Control-Allow-Origin", origin);
         res.setHeader("Vary", "Origin");
@@ -258,7 +331,39 @@ export function createBridge({
 
       if (req.method === "OPTIONS") { res.writeHead(204); res.end(); return; }
       if (url.pathname === "/ping" && req.method === "GET") {
-        json(res, 200, { service: BRIDGE_SERVICE, protocol: BRIDGE_PROTOCOL, version: BRIDGE_VERSION, pairingRequired: true });
+        json(res, 200, { service: BRIDGE_SERVICE, protocol: BRIDGE_PROTOCOL, version: BRIDGE_VERSION, pairingRequired: true, capabilities: ["local-approval"] });
+        return;
+      }
+
+      if (url.pathname === "/pair/request" && req.method === "POST") {
+        const body = await readJson(req);
+        if (!body || typeof body !== "object" || Array.isArray(body)) throw bridgeError(400, "JSON object required");
+        prunePairRequests();
+        const attempts = requestAttempts.get(origin);
+        if (attempts && attempts.count >= 5) throw bridgeError(429, "Wait a minute before requesting another connection");
+        if (pairRequests.size >= MAX_PAIR_REQUESTS) throw bridgeError(429, "Too many pending connection requests");
+        requestAttempts.set(origin, { count: (attempts?.count || 0) + 1, reset: attempts?.reset || now() + 60000 });
+        const id = randomBytes(24).toString("base64url"), proof = randomBytes(32).toString("base64url");
+        const expires = now() + PAIR_REQUEST_AGE;
+        pairRequests.set(id, { origin, proof, csrf: randomBytes(32).toString("base64url"), expires, status: "pending" });
+        json(res, 200, { id, proof, approvalUrl: localUrl("/pair/approve/" + id), expires });
+        return;
+      }
+      const requestedPair = url.pathname.match(/^\/pair\/request\/([A-Za-z0-9_-]{32})$/);
+      if (requestedPair && ["POST", "DELETE"].includes(req.method)) {
+        const body = await readJson(req);
+        const request = pairRequest(requestedPair[1]);
+        if (request.origin !== origin || !equalSecret(body?.proof, request.proof)) throw bridgeError(403, "Invalid pairing request proof");
+        if (req.method === "DELETE") {
+          pairRequests.delete(requestedPair[1]); res.writeHead(204); res.end(); return;
+        }
+        if (request.status === "pending") json(res, 200, { status: "pending", expires: request.expires });
+        else if (request.status === "denied") {
+          pairRequests.delete(requestedPair[1]); json(res, 200, { status: "denied" });
+        } else {
+          const session = createSession(origin);
+          pairRequests.delete(requestedPair[1]); json(res, 200, { status: "approved", ...session });
+        }
         return;
       }
       if (url.pathname === "/pair" && req.method === "POST") {
@@ -270,12 +375,7 @@ export function createBridge({
           throw bridgeError(403, "Incorrect pairing code");
         }
         pairAttempts.delete(origin);
-        for (const [token, old] of sessions) if (old.origin === origin || old.expires <= now()) forget(token);
-        if (sessions.size >= MAX_SESSIONS) throw bridgeError(429, "Too many paired browsers");
-        const token = randomBytes(32).toString("base64url");
-        const expires = now() + MAX_SESSION_AGE;
-        sessions.set(token, { origin, expires, resources: new Map() });
-        json(res, 200, { token, expires });
+        json(res, 200, createSession(origin));
         return;
       }
       if (url.pathname === "/session" && ["GET", "DELETE"].includes(req.method)) {

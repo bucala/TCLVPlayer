@@ -22,6 +22,29 @@ function client(saved = null) {
   return { client: new context.window.TCLVBridgeClient({ origin: "https://tclv-player.vercel.app", storage, request }), request, values };
 }
 
+const requestId = "r".repeat(32);
+const proof = "p".repeat(43);
+const approvalIdentity = { ...identity, capabilities: ["local-approval", "unknown-capability"] };
+const approvalRequest = () => ({ id: requestId, proof, approvalUrl: base + "/pair/approve/" + requestId, expires: Date.now() + 120000 });
+
+function approvalClient({ data = approvalRequest(), poll = () => json({ status: "pending" }) } = {}) {
+  const environment = client();
+  environment.request.mockImplementation(async (url, options = {}) => {
+    if (url.endsWith("/ping")) return url.startsWith(base) ? json(approvalIdentity) : json({}, 404);
+    if (url === base + "/pair/request" && options.method === "POST") return json(data);
+    if (url === base + "/pair/request/" + requestId && options.method === "POST") return poll();
+    if (url === base + "/pair/request/" + requestId && options.method === "DELETE") return new Response(null, { status: 204 });
+    return json({}, 404);
+  });
+  return { ...environment, data };
+}
+
+function deferred() {
+  let resolve;
+  const promise = new Promise(complete => { resolve = complete; });
+  return { promise, resolve };
+}
+
 describe("web bridge connection", () => {
   it("verifies bridge identity before accepting a ping response", async () => {
     const { client: bridge, request } = client();
@@ -129,5 +152,216 @@ describe("web bridge connection", () => {
     expect(values.size).toBe(0);
     expect(bridge.status).toBe("available");
     expect(bridge.connection.token).toBeUndefined();
+  });
+});
+
+describe("web bridge local approval", () => {
+  it("discovers approval support and exposes only a local approval address and expiry", async () => {
+    const { client: bridge, request, values, data } = approvalClient();
+    const approval = await bridge.beginApproval();
+    expect(bridge.connection.capabilities).toEqual(["local-approval"]);
+    expect(approval).toEqual({ url: data.approvalUrl, expires: data.expires });
+    expect(approval.url).not.toContain(proof);
+    expect(approval.url).not.toContain(token);
+    expect(values.size).toBe(0);
+    const creation = request.mock.calls.find(([url]) => url === base + "/pair/request");
+    expect(creation[1]).toMatchObject({ method: "POST", body: "{}", credentials: "omit", referrerPolicy: "no-referrer" });
+    expect(creation[1].headers.Authorization).toBeUndefined();
+  });
+
+  it("keeps a request pending, accepts approval once and stores only the tab session", async () => {
+    let polls = 0;
+    const sessionExpires = expires();
+    const { client: bridge, request, values } = approvalClient({
+      poll: () => json(++polls === 1 ? { status: "pending" } : { status: "approved", token, expires: sessionExpires }),
+    });
+    const changed = vi.fn();
+    bridge.onChange = changed;
+    await bridge.beginApproval();
+    await expect(bridge.pollApproval()).resolves.toBe("pending");
+    expect(values.size).toBe(0);
+    await expect(bridge.pollApproval()).resolves.toBe("ready");
+    expect(changed.mock.calls.filter(([status]) => status === "ready")).toHaveLength(1);
+    expect(bridge.approval).toBeNull();
+    expect(JSON.parse(values.get("tclv.bridge.session"))).toEqual({ base, token, expires: sessionExpires });
+    expect(values.get("tclv.bridge.session")).not.toContain(proof);
+    expect(values.get("tclv.bridge.session")).not.toContain(requestId);
+    const statusCalls = request.mock.calls.filter(([url, options]) => url === base + "/pair/request/" + requestId && options.method === "POST");
+    expect(statusCalls).toHaveLength(2);
+    for (const [url, options] of statusCalls) {
+      expect(url).not.toContain(proof);
+      expect(url).not.toContain(token);
+      expect(JSON.parse(options.body)).toEqual({ proof });
+    }
+    const callsAfterApproval = request.mock.calls.length;
+    await expect(bridge.pollApproval()).rejects.toMatchObject({ code: "expired" });
+    expect(request).toHaveBeenCalledTimes(callsAfterApproval);
+  });
+
+  it.each([
+    ["remote host", "https://evil.example/pair/approve/" + requestId],
+    ["localhost alias", "http://localhost:3939/pair/approve/" + requestId],
+    ["another helper port", "http://127.0.0.1:3940/pair/approve/" + requestId],
+    ["credentials", "http://user:secret@127.0.0.1:3939/pair/approve/" + requestId],
+    ["query string", base + "/pair/approve/" + requestId + "?proof=" + proof],
+    ["fragment", base + "/pair/approve/" + requestId + "#" + proof],
+    ["different request", base + "/pair/approve/" + "s".repeat(32)],
+    ["another route", base + "/media/" + requestId],
+    ["invalid URL", "not a URL"],
+  ])("rejects an approval address with %s before retaining secrets", async (_reason, approvalUrl) => {
+    const { client: bridge, values } = approvalClient({ data: { ...approvalRequest(), approvalUrl } });
+    await expect(bridge.beginApproval()).rejects.toThrow(/Invalid approval/);
+    expect(bridge.approval).toBeNull();
+    expect(bridge.status).toBe("available");
+    expect(values.size).toBe(0);
+  });
+
+  it.each([
+    ["invalid request ID", () => ({ id: "short" })],
+    ["invalid proof", () => ({ proof: "short" })],
+    ["expired request", () => ({ expires: Date.now() - 1 })],
+    ["unbounded lifetime", () => ({ expires: Date.now() + 181000 })],
+  ])("rejects %s without persisting approval data", async (_reason, override) => {
+    const { client: bridge, values } = approvalClient({ data: { ...approvalRequest(), ...override() } });
+    await expect(bridge.beginApproval()).rejects.toThrow("Invalid approval request");
+    expect(bridge.approval).toBeNull();
+    expect(values.size).toBe(0);
+  });
+
+  it("clears a denied request and never creates a session", async () => {
+    const { client: bridge, values } = approvalClient({ poll: () => json({ status: "denied" }) });
+    await bridge.beginApproval();
+    await expect(bridge.pollApproval()).rejects.toMatchObject({ code: "denied" });
+    expect(bridge.approval).toBeNull();
+    expect(bridge.status).toBe("available");
+    expect(values.size).toBe(0);
+  });
+
+  it("cancels an expired local request using the proof only in the request body", async () => {
+    const { client: bridge, request, values } = approvalClient();
+    await bridge.beginApproval();
+    bridge.approval.expires = Date.now() - 1;
+    await expect(bridge.pollApproval()).rejects.toMatchObject({ code: "expired" });
+    expect(bridge.approval).toBeNull();
+    expect(request.mock.calls.at(-1)).toEqual([
+      base + "/pair/request/" + requestId,
+      expect.objectContaining({ method: "DELETE", body: JSON.stringify({ proof }) }),
+    ]);
+    expect(values.size).toBe(0);
+  });
+
+  it("maps server expiry to an expired error and forgets the request proof", async () => {
+    const { client: bridge, request, values } = approvalClient({ poll: () => json({}, 410) });
+    await bridge.beginApproval();
+    await expect(bridge.pollApproval()).rejects.toMatchObject({ status: 410, code: "expired" });
+    expect(bridge.approval).toBeNull();
+    const callCount = request.mock.calls.length;
+    await expect(bridge.pollApproval()).rejects.toMatchObject({ code: "expired" });
+    expect(request).toHaveBeenCalledTimes(callCount);
+    expect(values.size).toBe(0);
+  });
+
+  it("forgets a cancelled request even when the helper is offline", async () => {
+    const { client: bridge, request, values } = approvalClient();
+    await bridge.beginApproval();
+    request.mockRejectedValue(new TypeError("Offline"));
+    await expect(bridge.cancelApproval()).resolves.toBeUndefined();
+    expect(bridge.approval).toBeNull();
+    expect(values.size).toBe(0);
+    const callCount = request.mock.calls.length;
+    await expect(bridge.pollApproval()).rejects.toMatchObject({ code: "expired" });
+    expect(request).toHaveBeenCalledTimes(callCount);
+  });
+
+  it("discards an approval response that arrives after cancellation", async () => {
+    const response = deferred();
+    const { client: bridge, values } = approvalClient({ poll: () => response.promise });
+    await bridge.beginApproval();
+    const polling = bridge.pollApproval();
+    await bridge.cancelApproval();
+    response.resolve(json({ status: "approved", token, expires: expires() }));
+    await expect(polling).resolves.toBe("cancelled");
+    expect(bridge.approval).toBeNull();
+    expect(bridge.status).toBe("available");
+    expect(values.size).toBe(0);
+  });
+
+  it("deletes a request created after the user already cancelled", async () => {
+    const response = deferred();
+    const creationStarted = deferred();
+    const { client: bridge, request, values, data } = approvalClient();
+    await bridge.discover();
+    const normalRequest = request.getMockImplementation();
+    request.mockImplementation((url, options) => {
+      if (url === base + "/pair/request" && options.method === "POST") {
+        creationStarted.resolve();
+        return response.promise;
+      }
+      return normalRequest(url, options);
+    });
+    const beginning = bridge.beginApproval();
+    const cancelled = expect(beginning).rejects.toMatchObject({ code: "cancelled" });
+    await creationStarted.promise;
+    await bridge.cancelApproval();
+    response.resolve(json(data));
+    await cancelled;
+    expect(bridge.approval).toBeNull();
+    expect(request.mock.calls.at(-1)).toEqual([
+      base + "/pair/request/" + requestId,
+      expect.objectContaining({ method: "DELETE", body: JSON.stringify({ proof }) }),
+    ]);
+    expect(values.size).toBe(0);
+  });
+
+  it.each([
+    ["invalid token", () => ({ token: "short", expires: expires() })],
+    ["expired session", () => ({ token, expires: Date.now() - 1 })],
+    ["unbounded session", () => ({ token, expires: Date.now() + 14 * 60 * 60 * 1000 })],
+  ])("does not retain a session after approval returns an %s", async (_reason, session) => {
+    const { client: bridge, values } = approvalClient({ poll: () => json({ status: "approved", ...session() }) });
+    await bridge.beginApproval();
+    await expect(bridge.pollApproval()).rejects.toThrow("Invalid bridge session");
+    expect(bridge.approval).toBeNull();
+    expect(bridge.connection.token).toBeUndefined();
+    expect(bridge.status).toBe("available");
+    expect(values.size).toBe(0);
+  });
+
+  it("offers legacy code pairing when the helper does not advertise approval", async () => {
+    const { client: bridge, request, values } = client();
+    await expect(bridge.beginApproval()).rejects.toMatchObject({ code: "legacy" });
+    expect(request.mock.calls.every(([url]) => url.endsWith("/ping"))).toBe(true);
+    request.mockResolvedValue(json({ token, expires: expires() }));
+    await expect(bridge.pair("A1B2C3D4E5F6")).resolves.toBeUndefined();
+    expect(bridge.status).toBe("ready");
+    expect(values.has("tclv.bridge.session")).toBe(true);
+  });
+
+  it("reports a missing helper without attempting to create an approval", async () => {
+    const { client: bridge, request } = client();
+    request.mockRejectedValue(new TypeError("Connection refused"));
+    await expect(bridge.beginApproval()).rejects.toMatchObject({ code: "missing" });
+    expect(bridge.approval).toBeNull();
+    expect(request.mock.calls.every(([url]) => url.endsWith("/ping"))).toBe(true);
+  });
+
+  it("preserves local approval support after disconnecting a paired helper", async () => {
+    const { client: bridge } = approvalClient({ poll: () => json({ status: "approved", token, expires: expires() }) });
+    await bridge.beginApproval();
+    await bridge.pollApproval();
+    await bridge.disconnect();
+    expect(bridge.status).toBe("available");
+    await expect(bridge.beginApproval()).resolves.toMatchObject({ url: base + "/pair/approve/" + requestId });
+  });
+
+  it("preserves local approval support when the helper rejects an old session", async () => {
+    const { client: bridge, request } = approvalClient({ poll: () => json({ status: "approved", token, expires: expires() }) });
+    await bridge.beginApproval();
+    await bridge.pollApproval();
+    const normalRequest = request.getMockImplementation();
+    request.mockImplementation((url, options) => url.endsWith("/open") ? json({}, 401) : normalRequest(url, options));
+    await expect(bridge.openStream("http://provider.example/live")).rejects.toMatchObject({ code: "unpaired" });
+    expect(bridge.status).toBe("available");
+    await expect(bridge.beginApproval()).resolves.toMatchObject({ url: base + "/pair/approve/" + requestId });
   });
 });

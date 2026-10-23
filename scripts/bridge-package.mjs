@@ -61,16 +61,21 @@ function crc32(bytes) {
   return (crc ^ 0xffffffff) >>> 0;
 }
 
-export async function createBridgePackage(destination, { runtime = false, loadRuntime = downloadWindowsRuntime } = {}) {
-  const files = ["start.mjs", "server.mjs", "security.mjs", "Start TCLV Bridge.cmd", "README.txt"];
-  const entries = await Promise.all(files.map(async name => ({ name: "TCLV-Bridge/" + name, data: await readFile(resolve(root, "bridge", name)) })));
-  entries.push({ name: "TCLV-Bridge/LICENSE", data: await readFile(resolve(root, "LICENSE")) });
+export async function bridgePackageFiles({ runtime = false, loadRuntime = downloadWindowsRuntime } = {}) {
+  const files = ["start.mjs", "server.mjs", "security.mjs", "pairing-page.mjs", "Start TCLV Bridge.cmd", "README.txt"];
+  const entries = await Promise.all(files.map(async name => ({ name, data: await readFile(resolve(root, "bridge", name)) })));
+  entries.push({ name: "LICENSE", data: await readFile(resolve(root, "LICENSE")) });
   if (runtime) {
     const windows = await loadRuntime();
-    entries.push({ name: "TCLV-Bridge/node.exe", data: windows.executable });
-    entries.push({ name: "TCLV-Bridge/NODE-LICENSE", data: windows.license });
-    entries.push({ name: "TCLV-Bridge/NODE-VERSION.txt", data: Buffer.from(windows.version + "\n") });
+    entries.push({ name: "node.exe", data: windows.executable });
+    entries.push({ name: "NODE-LICENSE", data: windows.license });
+    entries.push({ name: "NODE-VERSION.txt", data: Buffer.from(windows.version + "\n") });
   }
+  return entries;
+}
+
+export async function createBridgePackage(destination, options = {}) {
+  const entries = (options.files || await bridgePackageFiles(options)).map(entry => ({ ...entry, name: "TCLV-Bridge/" + entry.name }));
   const localParts = [];
   const centralParts = [];
   let offset = 0;

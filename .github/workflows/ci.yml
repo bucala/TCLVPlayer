@@ -44,6 +44,7 @@ jobs:
           export CHROMIUM_PATH="$(node -e 'console.log(require("playwright").chromium.executablePath())')"
           npm run test:browser
           BROWSER_BUILD=vercel npm run test:browser
+          npm run test:bridge-browser
 
   validate:
     name: Validate & Build

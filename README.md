@@ -36,9 +36,27 @@ Pre aktuálny balík z GitHubu otvorte **Actions → Windows** alebo **Android a
 
 Tag `v1.3.0` ukazuje na historický commit `53a7e73`, ktorý ešte neobsahuje opravu Windows testov `cbeb650` ani následné Android/EPG úpravy `7761bb5`. Pre tieto zmeny zostavujte `main`; opakované zostavenie starého tagu znovu použije starý kód.
 
-Pre web s HTTP/CORS streamami rozbaľte Windows TCLV Bridge ZIP dostupný v Nastavenia → Sieť a spustite `Start TCLV Bridge.cmd`. Spárujte ho kódom z okna. Bridge počúva len na `127.0.0.1:3939–3941`, musí bežať na rovnakom počítači a vyžaduje povolenie lokálnej siete v prehliadači. Produkčný ZIP obsahuje Node.js a jeho licenciu. `npm run bridge:portable` ho vytvorí samostatne.
+## Webové prehrávanie cez tento počítač
 
-**Web bez vzdialeného proxy:** v Nastavenia → Sieť stlačte **Vypnúť vzdialený proxy**. Video aj textové zdroje potom používajú iba priame spojenie alebo spárovaný lokálny bridge. Pre HTTP/CORS video zvoľte Auto alebo Iba lokálny bridge; samotný prehliadač nedokáže obísť tieto sieťové obmedzenia. Video neprechádza cez Vercel funkciu. Načítanie stránky, knižníc a stiahnutie bridge ZIP stále čerpajú hostingový prenos; voliteľné serverové sťahovanie EPG/playlistov ho čerpá, ak vzdialený proxy znovu zapnete.
+[WEB-PLAYBACK.md](WEB-PLAYBACK.md) dokumentuje kontrolu dátových ciest, nálezy UX, implementáciu a hranice overenia.
+
+Ak stream funguje priamo v prehliadači, pomocníka netreba. Pre HTTP/CORS streamy otvorte **Nastavenia → Sieť → Prehrávanie na tomto počítači** alebo **Nastaviť prehrávanie** nad videom. Sprievodca má tri kroky:
+
+1. **Pripravte pomocníka:** stiahnite `TCLV-Bridge-Setup.exe` a nainštalujte ho pre svoj Windows účet. Inštalátor obsahuje Node.js aj licenciu, nevyžaduje administrátora, rozbaľovanie ani príkazy. Podporuje Windows 10+ x64.
+2. **Spustite TCLV Bridge:** použite **Spustiť nainštalovaný bridge**, potvrďte otvorenie aplikácie prehliadačom a potom stlačte **Skontrolovať pripojenie**. Funguje aj odkaz **TCLV Bridge** v ponuke Štart. Okno pomocníka nechajte otvorené počas sledovania; po zatvorení sa bridge zastaví. Automaticky po prihlásení do Windows sa nespúšťa.
+3. **Potvrďte tento prehliadač:** stlačte **Pripojiť tento prehliadač**, v lokálnom okne skontrolujte adresu webu a povoľte pripojenie. Kód netreba prepisovať. Po potvrdení sa čakajúce prehrávanie zopakuje. Ak prehliadač zablokoval vyskakovacie okno, povoľte ho alebo použite **Otvoriť potvrdenie znovu**.
+
+Bridge musí bežať **na tom istom počítači ako prehliadač**. Počúva iba na `127.0.0.1:3939–3941`; Windows pomocník na inom PC sa s telefónom alebo TV nespáruje. Na Androide odporúčame natívnu aplikáciu. Ak si prehliadač vyžiada prístup k lokálnej sieti, povoľte ho pre TCLVPlayer. Po zamietnutí zmeňte povolenie v nastaveniach stránky a skúste pripojenie znova.
+
+Lokálne potvrdenie je platné dve minúty. Schválená relácia je viazaná na pôvod webu a uložená v `sessionStorage` karty najviac na 12 hodín. Po reštarte pomocníka, vypršaní relácie alebo jej zrušení treba pripojenie potvrdiť znova. Nové spárovanie rovnakého webu nahradí jeho predchádzajúcu reláciu. Nejde o trvalé spárovanie zariadení.
+
+**Prenosná verzia bez inštalácie** zostáva dostupná ako ZIP. Rozbaľte ho cez **Rozbaliť všetko**, až potom spustite `Start TCLV Bridge.cmd` a pokračujte potvrdením v prehliadači. Ručný kód je záloha pre staršieho pomocníka. Produkčný ZIP obsahuje Windows Node.js runtime; na inom systéme možno spustiť zdrojový balík cez `node start.mjs` s Node.js 22+. Balíky vytvorí `npm run prepare:vercel` v `dist/vercel/downloads/`; samostatný ZIP vytvorí `npm run bridge:portable` a inštalátor `node scripts/bridge-installer.mjs`.
+
+Zostavenie inštalátora potrebuje aj vývojové závislosti s pripnutým NSIS nástrojom z `electron-builder`. Vercel preto inštaluje cez `npm ci --include=dev --ignore-scripts`; samotnému používateľovi sa tieto nástroje neinštalujú. Build potrebuje prístup k overovaným balíkom NSIS a Windows Node.js runtime. Prepínač `--source-bridge` je iba pre ľahký vývojový/testovací build bez pribaleného runtime a EXE.
+
+Odkaz `tclvbridge://open` spúšťa iba pevný príkaz nainštalovaného pomocníka. Nepreberá URL poskytovateľa, tokeny ani argumenty z odkazu; otvorenie pomocníka samo neschváli pripojenie webu. Inštalátor nemení hlavnú Windows ani Android aplikáciu. Aktuálny inštalátor pomocníka je nepodpísaný; fyzické overenie inštalácie, systémového upozornenia a otvorenia protokolu na Windows zatiaľ neprebehlo.
+
+**Vercel a prenos dát:** video ide priamo od poskytovateľa alebo cez lokálny bridge do prehliadača a neprechádza Vercel video proxy. Načítanie stránky, knižníc a stiahnutie pomocníka naďalej používajú hostingový prenos. V **Pokročilých nastaveniach siete** možno vybrať Auto, Iba priamo alebo Iba lokálny bridge a použiť **Vypnúť vzdialený proxy**. Vzdialený source proxy je predvolene vypnutý; ak ho zapnete pre playlisty/EPG, ich serverové sťahovanie spotrebúva kapacitu príslušného hostingu. Bridge nemení kodeky ani DRM a neobchádza geo-blokovanie či chybu poskytovateľa.
 
 V prostredí, ktoré vyžaduje HTTP proxy pre Node fetch, použite podporované nastavenie runtime, napríklad `NODE_USE_ENV_PROXY=1` na Node 24. Overovanie TLS nevypínajte.
 
@@ -130,11 +148,15 @@ npm audit                # audit všetkých npm závislostí
 npm run prepare:web
 npx playwright install chromium
 npm run test:browser     # skutočný browser, syntetické zdroje
+node scripts/copy-web.mjs --vercel --source-bridge
+npm run test:bridge-browser # skutočné lokálne potvrdenie a prenos média
 ```
 
 Browser test používa Chromium nainštalované cez Playwright, aby sa jeho verzia zhodovala s CI; inú binárku možno explicitne zvoliť cez `CHROMIUM_PATH`. Regresný test 1000 kanálov preveruje opakovaný pohyb hore/dole aj Home/End, fokus po následných scroll/render udalostiach, poradie riadkov, viditeľnosť a limit 70 DOM kariet. Oprava nadväzujúca na CI logy odstránila stratu fokusu pri posune späť; podrobnosti sú v časti Unreleased v changelogu.
 
 CI používa `npm ci`, akcie pripnuté na commit, privacy check, audit, unit a browser testy. Úplné `npm run check` sa spúšťa aj na Windows; tam sa vykonajú navyše dva Windows launcher testy, ktoré sú na Linuxe vynechané. Electron testy odvodzujú file URL z načítanej cesty na danej platforme, aby kontrola dôveryhodného IPC fungovala aj s Windows diskom. Release najprv vykoná kontroly. Browser testy neuploadujú screenshoty ani lokálne používateľské dáta. End-to-end test na fyzickom Android TV je potrebný pre konkrétny firmware, kodeky, správanie PiP a napájania.
+
+Overenie inštalátora pomocníka k 24. 10. 2026: `tests/bridge-build.test.js` prešlo s 11 úspešnými testmi a 2 Windows testmi vynechanými na Linuxe. Pokrýva spoločný runtime ZIP/EXE, pevný príkaz protokolu, inštaláciu do účtu používateľa, kontrolu názvov súborov a upratanie pri chybe kompilátora. Syntax, ESLint a kontrola whitespace prešli. Linuxový NSIS skutočne zostavil Windows EXE s pripnutým a SHA‑256 overeným Node.js runtime; inštalátor sa v tomto prostredí nespúšťal. Tieto kontroly nenahrádzajú fyzický test na Windows.
 
 Overenie predchádzajúcich zmien verzie 1.3.0 k 16. 10. 2026:
 
@@ -146,7 +168,7 @@ Overenie predchádzajúcich zmien verzie 1.3.0 k 16. 10. 2026:
 
 Oprava EPG/exportu zo 17. 10. 2026 pridáva regresné scenáre pre natívny prenos odkazu na súbor, postupné parsovanie viac ako 15000 programov, párovanie diakritiky/HD/XSPF, HTTP chybu a odklad retry, zachovanie pôvodných dát, veľký lokálny export, voliteľnú EPG cache, zrušenie uloženia a zlyhanie zápisu. `tests/android-data.test.js` pri dostupnom JDK kompiluje skutočné `FileExports`/`SourceCache` a testuje lokálny HTTP server, gzip bez prípony, kódovania, limity a cleanup s Java heapom 64 MiB; platformové Android I/O nahrádzajú malé stuby. Nenahrádza test Storage Access Framework na reálnom zariadení. Redmi Pad 2/Android 16 je nahlásené zariadenie, fyzické overenie na ňom zatiaľ neprebehlo.
 
-Lokálne pripravený Windows portable EXE je nepodpísaný testovací build; pri krížovom zostavení nebola aplikovaná úprava Windows ikony/metadát. Android APK má vývojový podpis. Tieto binárne súbory sa necommitujú do repozitára a nejde o publikovaný produkčný release. Úplný NSIS installer nebol v Linux prostredí dokončený pre chýbajúce Wine; jeho build je nakonfigurovaný na Windows CI. Overenie na fyzickom Windows/Android TV a produkčný Android podpis existujúcim kľúčom zostávajú potrebné pred produkčným vydaním.
+Lokálne pripravený Windows portable EXE hlavnej aplikácie je nepodpísaný testovací build; pri krížovom zostavení nebola aplikovaná úprava Windows ikony/metadát. Android APK má vývojový podpis. Tieto binárne súbory sa necommitujú do repozitára a nejde o publikovaný produkčný release. Úplný NSIS inštalátor hlavnej Windows aplikácie nebol v Linux prostredí dokončený pre chýbajúce Wine; jeho build je nakonfigurovaný na Windows CI. Samostatný inštalátor webového pomocníka sa zostavuje inou cestou a na Linuxe bol zostavený. Overenie na fyzickom Windows/Android TV a produkčný Android podpis existujúcim kľúčom zostávajú potrebné pred produkčným vydaním.
 
 ## Štruktúra
 

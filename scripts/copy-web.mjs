@@ -1,6 +1,7 @@
 import { cp, mkdir, copyFile, rm, readFile, writeFile, readdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { createBridgePackage } from "./bridge-package.mjs";
+import { createBridgePackage, bridgePackageFiles } from "./bridge-package.mjs";
+import { createBridgeInstaller } from "./bridge-installer.mjs";
 
 const browserBuild = process.argv.includes("--vercel");
 const outDir = join("dist", browserBuild ? "vercel" : "web");
@@ -71,7 +72,10 @@ if (browserBuild) {
     .replace('<link rel="stylesheet" href="./styles.css" />', '<link rel="stylesheet" href="./styles.css" />\n    <link rel="stylesheet" href="./bridge.css" />')
     .replace('<script src="./app.js"></script>', '<script src="./bridge-client.js"></script>\n    <script src="./bridge-player.js"></script>\n    <script src="./app.js"></script>'));
   // Tests can omit the large download; the normal Vercel build is self-contained.
-  await createBridgePackage(join(outDir, "downloads", "TCLV-Bridge.zip"), {
-    runtime: !process.argv.includes("--source-bridge"),
-  });
+  const runtime = !process.argv.includes("--source-bridge");
+  const bridgeFiles = await bridgePackageFiles({ runtime });
+  await createBridgePackage(join(outDir, "downloads", "TCLV-Bridge.zip"), { files: bridgeFiles });
+  if (runtime && !process.argv.includes("--no-bridge-installer")) {
+    await createBridgeInstaller(join(outDir, "downloads", "TCLV-Bridge-Setup.exe"), { files: bridgeFiles });
+  }
 }

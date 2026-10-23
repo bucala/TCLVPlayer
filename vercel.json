@@ -1,6 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "installCommand": "npm ci --omit=dev --ignore-scripts",
+  "installCommand": "npm ci --include=dev --ignore-scripts",
   "buildCommand": "npm run prepare:vercel",
   "outputDirectory": "dist/vercel",
   "functions": {

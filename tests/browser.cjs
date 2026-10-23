@@ -336,6 +336,7 @@ const assert = require('node:assert/strict');
       const proxyRequests = [];
       page.on('request', request => { if (new URL(request.url()).pathname === '/api/proxy') proxyRequests.push(request.url()); });
       await page.evaluate(() => { state.corsProxy = dom.corsProxyInput.value = location.origin + '/api/proxy?url='; openSettings(); });
+      await page.locator('#bridgeAdvanced').evaluate(el => { el.open = true; });
       await page.locator('#bridgeLocalOnly').click();
       const bypass = await page.evaluate(async () => {
         const proxy = state.corsProxy; let rejected = false;

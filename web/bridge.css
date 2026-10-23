@@ -1,10 +1,37 @@
-.web-bridge-settings { display: grid; gap: 10px; }
+.web-bridge-settings { display: grid; gap: 14px; margin-bottom: 22px; scroll-margin-top: 132px; }
 .web-bridge-settings [hidden] { display: none !important; }
-.web-bridge-settings select { width: 100%; min-height: 40px; padding: 8px; color: var(--text, #f4f4f5); background: #25252b; border: 1px solid #45454d; border-radius: 8px; }
-.web-bridge-settings form { display: grid; gap: 10px; }
-.web-bridge-settings button, .web-bridge-bar button { min-height: 36px; padding: 7px 10px; color: #f4f4f5; background: #35353d; border: 1px solid #55555d; border-radius: 8px; cursor: pointer; }
-.web-bridge-settings button:disabled { opacity: .6; cursor: wait; }
-.bridge-download { color: #b9c7ff; font-size: 13px; text-underline-offset: 3px; }
-.web-bridge-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 10px; font-size: 12px; color: #c9c9d1; background: #1b1b21; }
-.web-bridge-bar button { font-size: 12px; max-width: 65%; }
-@media (max-width: 480px) { .web-bridge-bar { padding: 4px 6px; gap: 6px; } }
+.bridge-heading { display: grid; gap: 8px; }
+.bridge-heading h4 { margin: 0; font-size: 19px; color: var(--text, #f4f4f5); }
+.bridge-local-badge { color: #d3d3da; font-size: 12px; line-height: 1.6; }
+.web-bridge-settings .settings-hint { margin: 0; line-height: 1.6; }
+.bridge-status { margin: 0; padding: 12px; border: 1px solid #55555d; border-radius: 10px; color: #e5e5e9; background: #242429; font-size: 13px; line-height: 1.6; }
+.web-bridge-settings[data-connection="ready"] .bridge-status { border-color: #54896c; background: #1c3025; color: #c4eed3; }
+.bridge-steps { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
+.bridge-steps > li { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 10px; padding: 14px 12px; border: 1px solid #45454d; border-radius: 12px; background: #222227; }
+.bridge-step-number { display: grid; place-items: center; height: 26px; border: 1px solid #8f6b51; border-radius: 50%; color: #ffb482; font-size: 13px; }
+.bridge-steps > li[data-complete="true"] .bridge-step-number { border-color: #54896c; color: #c4eed3; }
+.bridge-step-content { display: grid; gap: 10px; min-width: 0; }
+.web-bridge-settings h5 { font-size: 14px; margin: 2px 0 0; color: #f4f4f5; }
+.bridge-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.web-bridge-settings select { width: 100%; min-height: 44px; padding: 8px; color: var(--text, #f4f4f5); background: #25252b; border: 1px solid #55555d; border-radius: 8px; }
+.web-bridge-settings form, .bridge-connected { display: grid; gap: 10px; }
+.web-bridge-settings button, .bridge-launch, .bridge-primary, .web-bridge-bar button { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; box-sizing: border-box; padding: 9px 12px; color: #f4f4f5; background: #35353d; border: 1px solid #666670; border-radius: 9px; cursor: pointer; font-size: 13px; line-height: 1.5; text-align: center; text-decoration: none; }
+.web-bridge-settings .bridge-primary { background: #ed7338; border-color: #f39b6f; color: #191411; font-weight: 700; }
+.web-bridge-settings button:disabled { opacity: .55; cursor: default; }
+.web-bridge-settings :is(button, a, select, input, summary):focus-visible, .web-bridge-bar button:focus-visible { outline: 3px solid #ffb482; outline-offset: 3px; }
+.bridge-download { color: #ffb482; font-size: 13px; text-underline-offset: 3px; overflow-wrap: anywhere; }
+.bridge-details { border-top: 1px solid #45454d; padding-top: 3px; }
+.bridge-details > summary { padding: 12px 2px; min-height: 44px; box-sizing: border-box; color: #d7d7de; cursor: pointer; font-size: 13px; line-height: 1.5; }
+.bridge-details[open] > :not(summary) { margin-top: 10px; }
+.bridge-device-hint { border-left: 3px solid #ed7338; padding-left: 10px; }
+.bridge-connected { padding: 14px; border: 1px solid #54896c; border-radius: 12px; background: #202b24; }
+.bridge-connected button { justify-self: start; }
+.web-bridge-settings .bridge-hosting-note { color: #b4b4bd; font-size: 12px; }
+.web-bridge-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 12px; font-size: 12px; color: #d1d1d9; background: #202025; border-bottom: 1px solid #424248; }
+.web-bridge-bar button { flex-shrink: 0; font-size: 12px; max-width: 60%; }
+.web-bridge-bar[data-route="unavailable"], .web-bridge-bar[data-route="error"] { color: #ffb482; }
+@media (max-width: 480px) {
+  .web-bridge-bar { padding: 6px 8px; gap: 8px; }
+  .bridge-steps > li { padding: 12px 10px; gap: 8px; }
+  .bridge-actions > :is(button, a) { width: 100%; }
+}

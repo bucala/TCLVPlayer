@@ -25,6 +25,7 @@
     "test": "vitest run",
     "privacy:check": "node scripts/privacy-check.mjs",
     "test:browser": "node tests/browser.cjs",
+    "test:bridge-browser": "node tests/bridge-browser.cjs",
     "check": "node scripts/version-check.mjs && npm run privacy:check && npm run lint && npm test"
   },
   "build": {
@@ -64,7 +65,7 @@
   "devDependencies": {
     "@capacitor/cli": "^8.5.3",
     "@eslint/js": "^10.0.1",
-    "electron": "^43.8.0",
+    "electron": "^43.8.3",
     "electron-builder": "^26.15.3",
     "eslint": "^10.4.1",
     "http-server": "^14.1.1",

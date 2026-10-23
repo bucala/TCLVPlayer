@@ -1,4 +1,4 @@
-import { readFile, mkdtemp, copyFile, cp, rm, writeFile } from "node:fs/promises";
+import { readFile, mkdtemp, copyFile, cp, rm, writeFile, access } from "node:fs/promises";
 import { execFileSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -8,7 +8,9 @@ import { inflateRawSync } from "node:zlib";
 import { createHash } from "node:crypto";
 import { Buffer } from "node:buffer";
 import { describe, expect, it, vi } from "vitest";
-import { createBridgePackage, downloadWindowsRuntime, WINDOWS_NODE_VERSION } from "../scripts/bridge-package.mjs";
+import { createBridgePackage, bridgePackageFiles, downloadWindowsRuntime, WINDOWS_NODE_VERSION } from "../scripts/bridge-package.mjs";
+
+import { createBridgeInstaller, installerScript } from "../scripts/bridge-installer.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 async function scratch(task) {
@@ -41,7 +43,7 @@ describe("web-only bridge delivery", () => {
       const output = join(folder, "bridge.zip");
       await createBridgePackage(output);
       const files = unzip(await readFile(output));
-      expect([...files.keys()]).toEqual(["TCLV-Bridge/start.mjs", "TCLV-Bridge/server.mjs", "TCLV-Bridge/security.mjs",
+      expect([...files.keys()]).toEqual(["TCLV-Bridge/start.mjs", "TCLV-Bridge/server.mjs", "TCLV-Bridge/security.mjs", "TCLV-Bridge/pairing-page.mjs",
         "TCLV-Bridge/Start TCLV Bridge.cmd", "TCLV-Bridge/README.txt", "TCLV-Bridge/LICENSE"]);
       expect(files.get("TCLV-Bridge/server.mjs").toString()).toContain("randomBytes(6)");
       expect(files.get("TCLV-Bridge/Start TCLV Bridge.cmd").toString()).not.toContain("npm");
@@ -60,6 +62,50 @@ describe("web-only bridge delivery", () => {
       expect(files.get("TCLV-Bridge/NODE-LICENSE").toString()).toBe("Test Node license");
       expect(files.get("TCLV-Bridge/NODE-VERSION.txt").toString().trim()).toBe(WINDOWS_NODE_VERSION);
       expect(files.get("TCLV-Bridge/Start TCLV Bridge.cmd").toString()).toContain('if exist "node.exe"');
+    });
+  });
+  it("builds per-user setup and ZIP from a single verified runtime payload", async () => {
+    await scratch(async folder => {
+      const loadRuntime = vi.fn().mockResolvedValue({ executable: Buffer.from("MZtest-runtime"), license: Buffer.from("Node license"), version: WINDOWS_NODE_VERSION });
+      const files = await bridgePackageFiles({ runtime: true, loadRuntime });
+      await createBridgePackage(join(folder, "bridge.zip"), { files });
+      const output = join(folder, "setup.exe");
+      const result = await createBridgeInstaller(output, { files, compiler: async () => ({ path: "compiler" }), compile: async (tool, script) => {
+        expect(tool.path).toBe("compiler");
+        const text = await readFile(script, "utf8");
+        expect(text).toContain("RequestExecutionLevel user");
+        expect(text).toContain('InstallDir "$LOCALAPPDATA\\Programs\\TCLVBridge"');
+        const protocol = text.split('\n').find(line => line.includes('WriteRegStr') && line.includes('shell\\open\\command'));
+        expect(protocol).toContain('"$INSTDIR\\node.exe" "$INSTDIR\\start.mjs" --open');
+        expect(protocol).not.toContain("%1");
+        expect(text).not.toContain("CurrentVersion\\Run");
+        expect(text).not.toContain("RMDir /r");
+        expect(text).toContain('StrCmp $0');
+        expect(await readFile(join(script, "..", "node.exe"), "utf8")).toBe("MZtest-runtime");
+        expect(text).toContain('pairing-page.mjs');
+        await writeFile(output, "MZtest-setup");
+      } });
+      expect(result.bytes).toBe(12); expect(loadRuntime).toHaveBeenCalledTimes(1);
+      expect(unzip(await readFile(join(folder, "bridge.zip"))).get("TCLV-Bridge/node.exe").toString()).toBe("MZtest-runtime");
+    });
+  });
+  it("rejects a setup without a Windows runtime and escapes build paths without allowing NSIS interpolation", async () => {
+    await scratch(async folder => {
+      await expect(createBridgeInstaller(join(folder, "setup.exe"), { files: [{ name: "node.exe", data: Buffer.from("not PE") }] })).rejects.toThrow("verified Windows runtime");
+    });
+    expect(() => installerScript({ payload: "/tmp/payload", output: "/tmp/setup.exe", files: ["../private"] })).toThrow("filename");
+    expect(() => installerScript({ payload: "/tmp/payload", output: "/tmp/setup.exe", files: [".."] })).toThrow("filename");
+    const script = installerScript({ payload: '/tmp/$unsafe"path', output: '/tmp/$setup.exe', files: ["node.exe"] });
+    expect(script).toContain('$$unsafe$\\"path'); expect(script).toContain('$$setup.exe');
+  });
+  it("cleans temporary installer input and partial output when the compiler fails", async () => {
+    await scratch(async folder => {
+      let temporary;
+      const output = join(folder, "setup.exe");
+      await expect(createBridgeInstaller(output, { files: [{ name: "node.exe", data: Buffer.from("MZtest") }], compiler: async () => ({ path: "compiler" }), compile: async (_tool, script) => {
+        temporary = script; await writeFile(output, "partial"); throw new Error("Compiler failed");
+      } })).rejects.toThrow("Compiler failed");
+      await expect(access(output)).rejects.toThrow(); await expect(access(temporary)).rejects.toThrow();
     });
   });
   it("verifies the official release checksum before bundling downloaded code", async () => {
@@ -158,7 +204,7 @@ describe("web-only bridge delivery", () => {
       const preload = join(folder, "mock-runtime.mjs");
       await writeFile(preload, `globalThis.fetch = async url => new Response(url.endsWith("SHASUMS256.txt") ?
         "${checksum}  win-x64/node.exe\\n" : url.endsWith("node.exe") ? "${executable}" : "Test Node license");\n`);
-      execFileSync(process.execPath, ["--import", pathToFileURL(preload).href, join(root, "scripts/copy-web.mjs"), "--vercel"], { cwd: folder });
+      execFileSync(process.execPath, ["--import", pathToFileURL(preload).href, join(root, "scripts/copy-web.mjs"), "--vercel", "--no-bridge-installer"], { cwd: folder });
       const files = unzip(await readFile(join(folder, "dist/vercel/downloads/TCLV-Bridge.zip")));
       expect(files.get("TCLV-Bridge/node.exe").toString()).toBe(executable);
       expect(files.get("TCLV-Bridge/NODE-LICENSE").toString()).toBe("Test Node license");
