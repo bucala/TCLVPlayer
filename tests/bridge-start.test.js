@@ -9,6 +9,13 @@ async function listening(server) {
   await new Promise(resolve => server.listen(0, "127.0.0.1", resolve));
   return server.address().port;
 }
+async function unusedPort() {
+  const reservation = http.createServer();
+  await new Promise(resolve => reservation.listen(0, "127.0.0.1", resolve));
+  const port = reservation.address().port;
+  await new Promise(resolve => reservation.close(resolve));
+  return port;
+}
 afterEach(async () => {
   for (const server of servers.splice(0)) await new Promise(resolve => { server.close(resolve); server.closeAllConnections(); });
   vi.restoreAllMocks();
@@ -49,6 +56,34 @@ describe("bridge launcher", () => {
     expect(result).toEqual({ reused: true, port });
     expect(result.server).toBeUndefined();
     expect(launch.mock.calls[0][1]).toEqual(["url.dll,FileProtocolHandler", PLAYER_URL]);
+  });
+  it.each([
+    ["protocol launch", ["--from-web"]],
+    ["protocol launch even with the guide flag", ["--from-web", "--open"]],
+  ])("reuses a helper without opening another browser for %s", async (_label, args) => {
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    const bridge = createBridge(), port = await listening(bridge.server);
+    const launch = vi.fn();
+    const result = await startBridge({ args, env: { TCLV_PROXY_PORT: String(port) }, platform: "win32", launch });
+    expect(result).toEqual({ reused: true, port });
+    expect(launch).not.toHaveBeenCalled();
+  });
+  it.each([
+    ["manual start", [], false],
+    ["Start menu or installer finish", ["--open"], true],
+    ["website protocol launch", ["--from-web"], false],
+    ["website protocol launch with both flags", ["--open", "--from-web"], false],
+  ])("starts the helper and preserves browser context for %s", async (_label, args, opensBrowser) => {
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    const port = await unusedPort();
+    const launch = vi.fn().mockReturnValue({ on() {}, unref() {} });
+    const result = await startBridge({ args, env: { TCLV_PROXY_PORT: String(port) }, platform: "win32", launch });
+    servers.push(result.server);
+    expect(result.reused).toBe(false);
+    expect(result.port).toBe(port);
+    expect(await findRunningBridge([port])).toBe(port);
+    if (opensBrowser) expect(launch).toHaveBeenCalledWith("rundll32.exe", ["url.dll,FileProtocolHandler", PLAYER_URL], { detached: true, stdio: "ignore" });
+    else expect(launch).not.toHaveBeenCalled();
   });
   it("rejects an invalid configured port before launching anything", async () => {
     const launch = vi.fn();

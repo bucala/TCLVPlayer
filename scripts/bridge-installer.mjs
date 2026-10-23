@@ -85,7 +85,7 @@ ${files.map(name => `  File "/oname=${name}" "${source}/${literal(name)}"`).join
   WriteRegStr HKCU "Software\\Classes\\tclvbridge" "" "URL:TCLV Bridge"
   WriteRegStr HKCU "Software\\Classes\\tclvbridge" "URL Protocol" ""
   ; Deliberately no %1: a URI cannot inject Node flags, paths or a provider URL.
-  WriteRegStr HKCU "Software\\Classes\\tclvbridge\\shell\\open\\command" "" '"$INSTDIR\\node.exe" "$INSTDIR\\start.mjs" --open'
+  WriteRegStr HKCU "Software\\Classes\\tclvbridge\\shell\\open\\command" "" '"$INSTDIR\\node.exe" "$INSTDIR\\start.mjs" --from-web'
   WriteRegStr HKCU "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\TCLVBridge" "DisplayName" "TCLV Bridge"
   WriteRegStr HKCU "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\TCLVBridge" "DisplayVersion" "${version}"
   WriteRegStr HKCU "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\TCLVBridge" "Publisher" "TCLVPlayer contributors"
@@ -97,7 +97,7 @@ SectionEnd
 Section "Uninstall"
   ; Do not remove a protocol that has since been registered by another install.
   ReadRegStr $0 HKCU "Software\\Classes\\tclvbridge\\shell\\open\\command" ""
-  StrCmp $0 '"$INSTDIR\\node.exe" "$INSTDIR\\start.mjs" --open' 0 +2
+  StrCmp $0 '"$INSTDIR\\node.exe" "$INSTDIR\\start.mjs" --from-web' 0 +2
   DeleteRegKey HKCU "Software\\Classes\\tclvbridge"
   ReadRegStr $0 HKCU "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\TCLVBridge" "UninstallString"
   StrCmp $0 '"$INSTDIR\\Uninstall.exe"' 0 +2

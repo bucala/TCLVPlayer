@@ -28,8 +28,10 @@ removed using Windows Installed apps or its Start menu uninstaller.
 
 The tclvbridge://open link runs a fixed installed command. It does not pass
 incoming URI arguments, provider URLs or tokens to Node.js. Opening the helper
-does not approve a website. Reopening it reuses an already running helper and
-opens the web player's connection guide.
+does not approve a website. The web link starts or reuses the helper while
+keeping your existing player tab, selected stream and browser context. The
+Start menu shortcut and installer's Start option open the connection guide in
+your default browser instead.
 
 Portable ZIP fallback
 Right-click TCLV-Bridge.zip > Extract all. Open the extracted TCLV-Bridge folder

@@ -76,8 +76,11 @@ describe("web-only bridge delivery", () => {
         expect(text).toContain("RequestExecutionLevel user");
         expect(text).toContain('InstallDir "$LOCALAPPDATA\\Programs\\TCLVBridge"');
         const protocol = text.split('\n').find(line => line.includes('WriteRegStr') && line.includes('shell\\open\\command'));
-        expect(protocol).toContain('"$INSTDIR\\node.exe" "$INSTDIR\\start.mjs" --open');
+        expect(protocol).toContain('"$INSTDIR\\node.exe" "$INSTDIR\\start.mjs" --from-web');
         expect(protocol).not.toContain("%1");
+        expect(text).toContain('StrCmp $0 \'"$INSTDIR\\node.exe" "$INSTDIR\\start.mjs" --from-web\' 0 +2');
+        expect(text).toContain('Exec \'"$INSTDIR\\node.exe" "$INSTDIR\\start.mjs" --open\'');
+        expect(text).toContain('CreateShortCut "$SMPROGRAMS\\TCLV Bridge\\TCLV Bridge.lnk" "$INSTDIR\\node.exe" \'"$INSTDIR\\start.mjs" --open\'');
         expect(text).not.toContain("CurrentVersion\\Run");
         expect(text).not.toContain("RMDir /r");
         expect(text).toContain('StrCmp $0');

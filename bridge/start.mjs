@@ -63,13 +63,18 @@ export async function startBridge({ args = process.argv.slice(2), env = process.
     throw new Error("TCLV_PROXY_PORT must be between 1024 and 65535.");
   }
   const ports = explicitPort ? [explicitPort] : DISCOVERY_PORTS;
-  const open = args.includes("--open");
+  // A protocol launch returns control to the existing player tab. Opening the
+  // OS default browser here could switch browser/profile and lose that context.
+  const fromWeb = args.includes("--from-web");
+  const open = args.includes("--open") && !fromWeb;
+  const reuse = open || fromWeb;
   const openOptions = { launch, platform };
-  if (open) {
+  if (reuse) {
     const existing = await findRunningBridge(ports);
     if (existing) {
-      console.log("TCLV Bridge is already running on this computer. Opening its connection guide.");
-      openPlayer(openOptions); return { reused: true, port: existing };
+      console.log("TCLV Bridge is already running on this computer. " + (fromWeb ? "Continue in the current player tab." : "Opening its connection guide."));
+      if (open) openPlayer(openOptions);
+      return { reused: true, port: existing };
     }
   }
   const origins = [...DEFAULT_ORIGINS, ...(env.TCLV_BRIDGE_ORIGINS || "").split(",").map(value => value.trim()).filter(Boolean)];
@@ -80,15 +85,16 @@ export async function startBridge({ args = process.argv.slice(2), env = process.
     catch (error) {
       if (error.code !== "EADDRINUSE") throw error;
       // Another launch may have won the bind after our initial discovery.
-      if (open && await findRunningBridge([candidate])) {
-        openPlayer(openOptions); return { reused: true, port: candidate };
+      if (reuse && await findRunningBridge([candidate])) {
+        if (open) openPlayer(openOptions);
+        return { reused: true, port: candidate };
       }
     }
   }
   if (!port) throw new Error("TCLV Bridge could not start. Its local ports are occupied.");
   console.log(`TCLV Bridge ${port} is running on this computer only.`);
   console.log("Pairing code (manual fallback):", bridge.pairingCode);
-  console.log("Open " + PLAYER_URL + " and approve the connection in the local confirmation window.");
+  console.log(fromWeb ? "Return to the current player tab and approve the connection in its local confirmation window." : "Open " + PLAYER_URL + " and approve the connection in the local confirmation window.");
   console.log("Video route: provider > this computer > browser. Vercel never carries video.");
   console.log("Leave this window open. Press Ctrl+C to stop.");
   if (open) openPlayer(openOptions);
