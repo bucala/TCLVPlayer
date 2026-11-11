@@ -1,14 +1,14 @@
 <div align="center">
 <img src="assets/icon.png" alt="TCLVPlayer" width="108" />
 
-# TCLVPlayer 1.3.0
+# TCLVPlayer 1.4.0
 
 IPTV prehrávač pre Windows, Android, Android TV a web.
 </div>
 
 Windows aplikácia používa izolovaný Electron runtime. Android predvolene prehráva cez natívny **Media3/ExoPlayer** s hardvérovým dekódovaním. HTML5, Video.js, ArtPlayer, flv.js, jPlayer a externé VLC/mpv zostávajú voliteľné.
 
-Kompletné zmeny verzie 1.3.0 sú v [CHANGELOG.md](CHANGELOG.md). [IMPLEMENTATION.md](IMPLEMENTATION.md) mapuje všetkých 18 nálezov auditu na opravy, ich overenie a zostávajúce obmedzenia. Návrhy ďalšieho rozvoja po preskúmaní celej histórie sú v [IMPROVEMENTS.md](IMPROVEMENTS.md).
+Kompletné zmeny verzie 1.4.0 sú v [CHANGELOG.md](CHANGELOG.md). [IMPLEMENTATION.md](IMPLEMENTATION.md) mapuje všetkých 18 nálezov auditu na opravy, ich overenie a zostávajúce obmedzenia. Návrhy ďalšieho rozvoja po preskúmaní celej histórie sú v [IMPROVEMENTS.md](IMPROVEMENTS.md).
 
 ## Súkromné dáta
 

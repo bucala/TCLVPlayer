@@ -6,7 +6,7 @@ Všetky významné zmeny v projekte sú dokumentované v tomto súbore.
 >
 > Projekt používa [sémantické verziovanie](https://semver.org/).
 
-## [Unreleased]
+## [1.4.0] — 2026-11-11
 
 ### Audit, výkon a voliteľný Vercel relay — 2026-11-11
 
