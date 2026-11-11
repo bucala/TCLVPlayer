@@ -30,6 +30,12 @@
 .web-bridge-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 12px; font-size: 12px; color: #d1d1d9; background: #202025; border-bottom: 1px solid #424248; }
 .web-bridge-bar button { flex-shrink: 0; font-size: 12px; max-width: 60%; }
 .web-bridge-bar[data-route="unavailable"], .web-bridge-bar[data-route="error"] { color: #ffb482; }
+.bridge-vercel { display: grid; gap: 10px; padding: 14px; border: 1px solid #7a6a3a; border-radius: 12px; background: #26231b; }
+.bridge-check { display: flex; align-items: flex-start; gap: 10px; min-height: 44px; color: #f4f4f5; font-size: 14px; line-height: 1.5; cursor: pointer; }
+.bridge-check input { flex-shrink: 0; width: 20px; height: 20px; margin: 1px 0 0; accent-color: #ed7338; }
+.web-bridge-settings .bridge-warning { color: #ffd486; }
+.web-bridge-settings[data-relay="vercel"] .bridge-vercel { border-color: #d9a441; }
+.web-bridge-bar[data-relay="vercel"] { color: #ffd486; background: #2b2619; border-bottom-color: #7a6a3a; }
 @media (max-width: 480px) {
   .web-bridge-bar { padding: 6px 8px; gap: 8px; }
   .bridge-steps > li { padding: 12px 10px; gap: 8px; }

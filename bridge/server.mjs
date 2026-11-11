@@ -1,7 +1,7 @@
 import http from "node:http";
 import https from "node:https";
 import { randomBytes, timingSafeEqual } from "node:crypto";
-import { gunzipSync, inflateSync, brotliDecompressSync } from "node:zlib";
+import { gunzipSync, inflateSync, brotliDecompressSync, constants as zlibConstants } from "node:zlib";
 import { bridgeError, parseTarget, resolveTarget } from "./security.mjs";
 import { URLSearchParams } from "node:url";
 import { pairingPage } from "./pairing-page.mjs";
@@ -14,6 +14,7 @@ const REDIRECTS = new Set([301, 302, 303, 307, 308]);
 const MAX_MANIFEST_BYTES = 2 * 1024 * 1024;
 const MAX_SESSION_AGE = 12 * 60 * 60 * 1000;
 const MAX_TICKETS = 10000;
+const MAX_ENCODED_SNIFF_BYTES = 4096;
 const MAX_SESSIONS = 8;
 const MAX_PAIR_REQUESTS = 16;
 const PAIR_REQUEST_AGE = 2 * 60 * 1000;
@@ -42,6 +43,12 @@ async function readJson(req) {
     if (body.length > 16384) throw bridgeError(413, "Request too large");
   }
   try { return JSON.parse(body); } catch { throw bridgeError(400, "Invalid JSON"); }
+}
+
+async function readJsonObject(req) {
+  const body = await readJson(req);
+  if (!body || typeof body !== "object" || Array.isArray(body)) throw bridgeError(400, "JSON object required");
+  return body;
 }
 
 async function readApprovalForm(req) {
@@ -108,6 +115,26 @@ async function boundedManifest(upstream, first, iterator) {
   return Buffer.concat(chunks, size);
 }
 
+// Flushing decoders accept a truncated stream, so a compressed manifest can be
+// recognised from its first bytes without buffering a compressed video body.
+const PREFIX_DECODERS = {
+  gzip: bytes => gunzipSync(bytes, { finishFlush: zlibConstants.Z_SYNC_FLUSH, maxOutputLength: MAX_MANIFEST_BYTES }),
+  deflate: bytes => inflateSync(bytes, { finishFlush: zlibConstants.Z_SYNC_FLUSH, maxOutputLength: MAX_MANIFEST_BYTES }),
+  br: bytes => brotliDecompressSync(bytes, { finishFlush: zlibConstants.BROTLI_OPERATION_FLUSH, maxOutputLength: MAX_MANIFEST_BYTES }),
+};
+
+function decodedPrefix(chunks, encoding) {
+  const bytes = Buffer.concat(chunks);
+  if (encoding === "identity") return bytes;
+  try { return PREFIX_DECODERS[encoding]?.(bytes) || Buffer.alloc(0); } catch { return Buffer.alloc(0); }
+}
+
+function partialBody(status, contentRange) {
+  if (status !== 206) return false;
+  const match = /^bytes 0-(\d+)\/(\d+)$/.exec(String(contentRange || "").trim());
+  return !match || Number(match[1]) + 1 !== Number(match[2]);
+}
+
 function decodeManifest(bytes, encoding) {
   const decoders = { gzip: gunzipSync, deflate: inflateSync, br: brotliDecompressSync };
   if (encoding && encoding !== "identity") {
@@ -139,6 +166,7 @@ export function createBridge({
   resolve,
   timeoutMs = 30000,
   now = Date.now,
+  maxTickets = MAX_TICKETS,
 } = {}) {
   const allowedOrigins = new Set(origins.map(value => {
     const parsed = new URL(value);
@@ -193,13 +221,37 @@ export function createBridge({
     res.end(pairingPage(options));
   }
 
+  // Map insertion order is the eviction order, so every use moves a ticket to
+  // the end. Playlists that players keep reloading therefore outlive old segments.
+  function touch(id) {
+    const ticket = tickets.get(id);
+    if (!ticket) return;
+    tickets.delete(id);
+    tickets.set(id, ticket);
+  }
+
+  // Runs before a rewrite issues tickets. With the playlist and every resource it
+  // references at the end of the order, eviction can only reach unrelated tickets.
+  function reserveTickets(targets, session, ticketId) {
+    if (targets.size + 1 > maxTickets) throw bridgeError(413, "HLS manifest references more resources than TCLV Bridge can track");
+    if (ticketId) touch(ticketId);
+    for (const target of targets) {
+      const id = session.resources.get(target);
+      if (id) touch(id);
+    }
+  }
+
   function resourceUrl(target, token, session) {
     const existing = session.resources.get(target);
-    if (existing && tickets.get(existing)?.expires > now()) return localUrl("/media/" + existing);
-    while (tickets.size >= MAX_TICKETS) {
+    if (existing && tickets.get(existing)?.expires > now()) {
+      touch(existing);
+      return localUrl("/media/" + existing);
+    }
+    while (tickets.size >= maxTickets) {
       const oldest = tickets.keys().next().value;
       const old = tickets.get(oldest);
-      sessions.get(old.token)?.resources.delete(old.target);
+      const owner = sessions.get(old.token);
+      if (owner?.resources.get(old.target) === oldest) owner.resources.delete(old.target);
       tickets.delete(oldest);
     }
     const id = randomBytes(24).toString("base64url");
@@ -217,7 +269,7 @@ export function createBridge({
     for (const [id, ticket] of tickets) if (ticket.token === token) tickets.delete(id);
   }
 
-  async function relay(req, res, target, token, session, rewriteHls = true) {
+  async function relay(req, res, target, token, session, rewriteHls = true, ticketId = null) {
     if (activeRequests >= 32) throw bridgeError(429, "Too many active bridge requests");
     activeRequests++;
     const controller = new AbortController();
@@ -242,25 +294,35 @@ export function createBridge({
         return;
       }
       const type = upstream.headers["content-type"] || "application/octet-stream";
+      const encoding = String(upstream.headers["content-encoding"] || "identity").trim().toLowerCase();
       const iterator = upstream[Symbol.asyncIterator]();
       const first = [];
+      let prefix = Buffer.alloc(0);
       // Sniff extensionless manifests too, without buffering a live video body.
       if (rewriteHls && manifestCandidate(result.finalUrl, type)) {
+        const limit = encoding === "identity" ? 11 : MAX_ENCODED_SNIFF_BYTES;
         let size = 0;
-        while (size < 11) {
+        while (prefix.length < 11 && size < limit) {
           const next = await iterator.next();
           if (next.done) break;
           first.push(next.value);
           size += next.value.length;
+          prefix = decodedPrefix(first, encoding);
         }
       }
-      const isManifest = first.length && Buffer.concat(first).subarray(0, 16).toString("utf8").replace(/^\uFEFF/, "").startsWith("#EXTM3U");
-      const encodedManifest = rewriteHls && upstream.headers["content-encoding"] &&
+      const isManifest = prefix.subarray(0, 16).toString("utf8").replace(/^\uFEFF/, "").startsWith("#EXTM3U");
+      const encodedManifest = rewriteHls && encoding !== "identity" &&
         (/\.m3u8$/i.test(result.finalUrl.pathname) || /mpegurl/i.test(type));
-      if ((isManifest || encodedManifest) && status === 200) {
+      if (isManifest || encodedManifest) {
+        // A byte range of a playlist cannot be rewritten; passing it through would
+        // hand the player direct provider URLs.
+        if (partialBody(status, upstream.headers["content-range"])) throw bridgeError(502, "Partial HLS manifest responses are not supported");
         manifestTimer = setTimeout(() => controller.abort(), timeoutMs);
         const bytes = await boundedManifest(upstream, first, iterator);
         const text = decodeManifest(bytes, upstream.headers["content-encoding"]);
+        const targets = new Set();
+        rewriteManifest(text, result.finalUrl, value => { targets.add(value); return value; });
+        reserveTickets(targets, session, ticketId);
         const rewritten = rewriteManifest(text, result.finalUrl, value => resourceUrl(value, token, session));
         res.writeHead(200, { "Content-Type": "application/vnd.apple.mpegurl; charset=utf-8" });
         res.end(rewritten);
@@ -336,8 +398,7 @@ export function createBridge({
       }
 
       if (url.pathname === "/pair/request" && req.method === "POST") {
-        const body = await readJson(req);
-        if (!body || typeof body !== "object" || Array.isArray(body)) throw bridgeError(400, "JSON object required");
+        await readJsonObject(req);
         prunePairRequests();
         const attempts = requestAttempts.get(origin);
         if (attempts && attempts.count >= 5) throw bridgeError(429, "Wait a minute before requesting another connection");
@@ -351,9 +412,9 @@ export function createBridge({
       }
       const requestedPair = url.pathname.match(/^\/pair\/request\/([A-Za-z0-9_-]{32})$/);
       if (requestedPair && ["POST", "DELETE"].includes(req.method)) {
-        const body = await readJson(req);
+        const body = await readJsonObject(req);
         const request = pairRequest(requestedPair[1]);
-        if (request.origin !== origin || !equalSecret(body?.proof, request.proof)) throw bridgeError(403, "Invalid pairing request proof");
+        if (request.origin !== origin || !equalSecret(body.proof, request.proof)) throw bridgeError(403, "Invalid pairing request proof");
         if (req.method === "DELETE") {
           pairRequests.delete(requestedPair[1]); res.writeHead(204); res.end(); return;
         }
@@ -369,7 +430,7 @@ export function createBridge({
       if (url.pathname === "/pair" && req.method === "POST") {
         const attempts = pairAttempts.get(origin);
         if (attempts && attempts.reset > now() && attempts.count >= 5) throw bridgeError(429, "Wait a minute before pairing again");
-        const body = await readJson(req);
+        const body = await readJsonObject(req);
         if (!equalSecret(String(body.code || "").trim().toUpperCase(), pairingCode)) {
           pairAttempts.set(origin, { count: (attempts?.reset > now() ? attempts.count : 0) + 1, reset: now() + 60000 });
           throw bridgeError(403, "Incorrect pairing code");
@@ -386,7 +447,7 @@ export function createBridge({
       }
       if (url.pathname === "/open" && req.method === "POST") {
         const { token, session } = sessionFor(req, origin);
-        const body = await readJson(req);
+        const body = await readJsonObject(req);
         const target = parseTarget(body.url);
         await resolveTarget(target, resolve);
         json(res, 200, { url: resourceUrl(target.href, token, session) });
@@ -398,14 +459,16 @@ export function createBridge({
         return;
       }
       if (mediaRequest && req.method === "GET") {
-        const ticket = tickets.get(url.pathname.slice("/media/".length));
+        const ticketId = url.pathname.slice("/media/".length);
+        const ticket = tickets.get(ticketId);
         const session = ticket && sessions.get(ticket.token);
         const site = req.headers["sec-fetch-site"];
         if (!ticket || !session || ticket.expires <= now() ||
             (origin ? origin !== ticket.origin : !["cross-site", "same-site", "same-origin"].includes(site))) {
           throw bridgeError(401, "Invalid or expired media ticket");
         }
-        await relay(req, res, ticket.target, ticket.token, session);
+        touch(ticketId);
+        await relay(req, res, ticket.target, ticket.token, session, true, ticketId);
         return;
       }
       throw bridgeError(404, "Bridge route not found");

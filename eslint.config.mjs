@@ -119,6 +119,7 @@ export default [
         AbortController: "readonly",
         setTimeout: "readonly",
         clearTimeout: "readonly",
+        process: "readonly",
       },
     },
     rules: {

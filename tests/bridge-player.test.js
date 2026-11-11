@@ -10,7 +10,7 @@ function element() {
   const listeners = new Map();
   const children = new Map();
   return {
-    hidden: false, style: {}, value: "", textContent: "", dataset: {},
+    hidden: false, style: {}, value: "", textContent: "", dataset: {}, error: { code: 4 },
     listeners,
     addEventListener: (name, callback) => listeners.set(name, callback),
     querySelector: selector => { if (!children.has(selector)) children.set(selector, element()); return children.get(selector); },
@@ -20,7 +20,7 @@ function element() {
   };
 }
 
-function player({ configuredProxy = '/api/proxy?url=' } = {}) {
+function player({ configuredProxy = '/api/proxy?url=', saved = {}, extend = () => {} } = {}) {
   const body = element();
   const ui = element();
   const bar = element();
@@ -36,7 +36,7 @@ function player({ configuredProxy = '/api/proxy?url=' } = {}) {
     state: { selectedChannelId: channel.id, multiview: true, mvChannel1: { ...channel, id: "two" }, player: "html5", corsProxy: "/api/proxy?url=" },
     dom: { video, video2, playerMessage2: element(), corsProxyInput: { closest: () => body } },
     translations: { sk: {}, en: {} },
-    t: key => key, safeGet: (_key, fallback) => fallback, safeSet: vi.fn(),
+    t: key => key, safeGet: (key, fallback) => saved[key] ?? fallback, safeSet: vi.fn(),
     detectLocalProxy: vi.fn(), detectCorsProxySync: () => configuredProxy,
     canProxyStreams: () => false, needsProxy: () => false,
     isBlockedWebStream: url => url.startsWith("http://"),
@@ -68,15 +68,28 @@ function player({ configuredProxy = '/api/proxy?url=' } = {}) {
     on(event, handler) { this.handlers.set(event, handler); }
     error(data) { this.handlers.get("error")("error", data); }
   }
-  const window = { TCLVBridgeClient: Client, Hls };
+  const window = { TCLVBridgeClient: Client, Hls, confirm: vi.fn().mockReturnValue(true) };
+  extend(window);
   const underlying = { play: host.playChannel, slot: host.playInSlot1, source: host.fetchWebSource };
+  const fetch = vi.fn();
+  const clock = { ahead: 0 };
+  class Clock extends Date {
+    constructor(...values) { if (values.length) super(...values); else super(Clock.now()); }
+    static now() { return Date.now() + clock.ahead; }
+  }
   const context = vm.createContext({
     window, document, location: { protocol: "https:", origin: "https://tclv-player.vercel.app" },
-    URL, queueMicrotask, setTimeout, clearTimeout, fetch: vi.fn(),
+    URL, queueMicrotask, setTimeout, clearTimeout, fetch, Date: Clock,
   });
   vm.runInContext(source, context);
   window.TCLVWebPlayer(host);
-  return { host, client, ui, bar, video, video2, window, underlying };
+  return { host, client, ui, bar, video, video2, window, underlying, fetch, clock };
+}
+
+function chooseMode(ui, value) {
+  const select = ui.querySelector("#webVideoMode");
+  select.value = value;
+  select.listeners.get("change")();
 }
 
 async function settle() {
@@ -274,5 +287,228 @@ describe("web-only Auto playback", () => {
   it('never migrates an old loopback source proxy to a Vercel function', () => {
     const { host } = player({ configuredProxy: 'http://127.0.0.1:3939/proxy?url=' });
     expect(host.detectCorsProxySync()).toBe('');
+  });
+});
+
+describe("opt-in playback through Vercel", () => {
+  const relayed = url => "https://tclv-player.vercel.app/api/stream?url=" + encodeURIComponent(url);
+  const httpChannel = { ...channel, url: "http://provider.example/live.m3u8" };
+
+  it("keeps video off Vercel until the viewer turns it on", async () => {
+    const { host, client, ui, bar, underlying, window } = player();
+    expect(window.TCLVWebBridge.mode).toBe("auto");
+    expect(ui.querySelector("#vercelToggle").checked).toBe(false);
+    await host.playChannel(httpChannel);
+    expect(client.openStream).toHaveBeenCalledWith(httpChannel.url);
+    expect(underlying.play).toHaveBeenCalledWith({ ...httpChannel, url: ticket });
+    expect(bar.dataset.relay).toBe("none");
+    expect(host.isBlockedWebStream(relayed(httpChannel.url))).toBe(true);
+  });
+  it("does not enable Vercel playback without a confirmation API", () => {
+    const { ui, window } = player();
+    delete window.confirm;
+    chooseMode(ui, "vercel");
+    expect(window.TCLVWebBridge.mode).toBe("auto");
+  });
+  it("ignores a cleared old-source video error while relaying the same channel", async () => {
+    const { host, ui, bar, video, fetch } = player();
+    chooseMode(ui, "vercel");
+    await host.playChannel(channel);
+    video.error = null;
+    video.listeners.get("error")();
+    await settle();
+    expect(fetch).not.toHaveBeenCalled();
+    expect(bar.dataset.relay).toBe("vercel");
+  });
+  it("keeps the quota warning for the second slot even when the first fails", async () => {
+    const { host, ui, bar, video, window, fetch } = player();
+    chooseMode(ui, "auto-vercel");
+    await host.playChannel(channel);
+    await host.playInSlot1({ ...httpChannel, id: "two" });
+    video.listeners.get("error")();
+    await settle();
+    fetch.mockResolvedValue({ ok: true, json: async () => ({ service: "tclv-video-relay", enabled: true }) });
+    host.setStreamStatus(channel.id, "error");
+    await settle();
+    expect(bar.querySelector("#webVideoRoute").textContent).toBe("bridgePlayingVercel");
+    const hls = new window.Hls();
+    host.state.hls2 = hls;
+    hls.error({ type: "mediaError", fatal: true });
+    await new Promise(resolve => setTimeout(resolve, 0));
+    expect(bar.dataset.relay).toBe("none");
+    expect(host.dom.playerMessage2.textContent).toBe("vercelFailed");
+  });
+  it("asks before spending the data limit and changes nothing when declined", () => {
+    const { host, ui, window } = player();
+    window.confirm = vi.fn().mockReturnValue(false);
+    const toggle = ui.querySelector("#vercelToggle");
+    toggle.checked = true;
+    toggle.listeners.get("change")();
+    expect(window.confirm).toHaveBeenCalledWith("vercelConfirm");
+    expect(window.TCLVWebBridge.mode).toBe("auto");
+    expect(toggle.checked).toBe(false);
+    chooseMode(ui, "vercel");
+    expect(ui.querySelector("#webVideoMode").value).toBe("auto");
+    expect(host.safeSet).not.toHaveBeenCalled();
+
+    window.confirm.mockReturnValue(true);
+    chooseMode(ui, "vercel");
+    expect(window.TCLVWebBridge.mode).toBe("vercel");
+    expect(toggle.checked).toBe(true);
+    expect(ui.dataset.relay).toBe("vercel");
+    expect(host.safeSet).toHaveBeenCalledWith("tclv.webVideoMode", "vercel");
+    // Moving between the two Vercel modes or away from them needs no new question.
+    window.confirm.mockClear();
+    chooseMode(ui, "auto-vercel");
+    chooseMode(ui, "auto");
+    expect(window.confirm).not.toHaveBeenCalled();
+    expect(ui.dataset.relay).toBe("none");
+  });
+  it("restores a saved Vercel mode and ignores unknown saved modes", () => {
+    const restored = player({ saved: { "tclv.webVideoMode": "auto-vercel" } });
+    expect(restored.window.TCLVWebBridge.mode).toBe("auto-vercel");
+    expect(restored.ui.querySelector("#vercelToggle").checked).toBe(true);
+    expect(player({ saved: { "tclv.webVideoMode": "cloud" } }).window.TCLVWebBridge.mode).toBe("auto");
+  });
+  it("relays an HTTP stream without the helper and warns in the route bar", async () => {
+    const { host, client, ui, bar, underlying, window } = player();
+    const toggle = ui.querySelector("#vercelToggle");
+    toggle.checked = true;
+    toggle.listeners.get("change")();
+    expect(window.TCLVWebBridge.mode).toBe("auto-vercel");
+    await host.playChannel(httpChannel);
+    const url = relayed(httpChannel.url);
+    expect(client.openStream).not.toHaveBeenCalled();
+    expect(underlying.play).toHaveBeenCalledWith({ ...httpChannel, url });
+    expect(window.TCLVWebBridge.route).toBe("vercel");
+    expect(bar.querySelector("#webVideoRoute").textContent).toBe("bridgePlayingVercel");
+    expect(bar.dataset.relay).toBe("vercel");
+    expect(host.getStreamType(url)).toBe("hls");
+    expect(host.isBlockedWebStream(url)).toBe(false);
+    expect(host.dom.video.canPlayType("application/vnd.apple.mpegurl")).toBe("");
+    expect(host.dom.video.canPlayType("video/mp4")).toBe("maybe");
+  });
+  it("plays HTTPS directly first and falls back to Vercel only once", async () => {
+    const { host, client, ui, bar, video, underlying, fetch } = player();
+    chooseMode(ui, "auto-vercel");
+    await host.playChannel(channel);
+    expect(underlying.play).toHaveBeenLastCalledWith(channel);
+    expect(bar.querySelector("#webVideoRoute").textContent).toBe("bridgePlayingDirect");
+    expect(bar.dataset.relay).toBe("none");
+    video.listeners.get("error")();
+    await settle();
+    expect(underlying.play).toHaveBeenLastCalledWith({ ...channel, url: relayed(channel.url) });
+    expect(bar.dataset.relay).toBe("vercel");
+    fetch.mockResolvedValue({ ok: true, json: async () => ({ service: "tclv-video-relay", enabled: true }) });
+    video.listeners.get("error")();
+    await settle();
+    video.listeners.get("error")();
+    await settle();
+    expect(underlying.play).toHaveBeenCalledTimes(2);
+    expect(client.openStream).not.toHaveBeenCalled();
+    expect(fetch).toHaveBeenCalledOnce();
+    expect(fetch.mock.calls[0][0]).toBe("/api/stream?status");
+    expect(bar.querySelector("#webVideoRoute").textContent).toBe("bridgeVideoError");
+    expect(bar.dataset.relay).toBe("none");
+    expect(host.showMessage).toHaveBeenLastCalledWith("vercelFailed", 0);
+  });
+  it("explains a relay that is missing or switched off on the hosting", async () => {
+    for (const reply of [{ ok: false }, { ok: true, json: async () => ({ service: "tclv-video-relay", enabled: false }) }, undefined]) {
+      const { host, ui, underlying, fetch } = player();
+      chooseMode(ui, "vercel");
+      fetch.mockResolvedValue(reply);
+      await host.playChannel(channel);
+      expect(underlying.play).toHaveBeenCalledWith({ ...channel, url: relayed(channel.url) });
+      host.stopInternalPlayers.mockClear();
+      host.setStreamStatus(channel.id, "error");
+      // The status request and its JSON body take more than a few microtasks.
+      await new Promise(resolve => setTimeout(resolve, 0));
+      expect(host.stopInternalPlayers).toHaveBeenCalled();
+      expect(host.showMessage).toHaveBeenLastCalledWith("vercelUnavailable", 0);
+    }
+  });
+  it("always relays in Vercel-only mode and keeps the format of the original address", async () => {
+    const { host, ui, underlying } = player();
+    chooseMode(ui, "vercel");
+    const movie = { ...channel, url: "https://provider.example/movie.mp4" };
+    await host.playChannel(movie);
+    expect(underlying.play).toHaveBeenCalledWith({ ...movie, url: relayed(movie.url) });
+    expect(host.getStreamType(relayed(movie.url))).toBe("mp4");
+    await host.playInSlot1({ ...channel, id: "two" });
+    expect(underlying.slot).toHaveBeenCalledWith({ ...channel, id: "two", url: relayed(channel.url) });
+  });
+  it("never lets a playlist address reach a relay by itself", async () => {
+    for (const mode of ["auto", "vercel"]) {
+      const { host, ui, underlying } = player();
+      chooseMode(ui, mode);
+      for (const url of [relayed("https://provider.example/live.m3u8"), "https://other.vercel.app/api/stream?url=x", "/api/stream?url=x"]) {
+        await host.playChannel({ ...channel, url });
+      }
+      expect(underlying.play).not.toHaveBeenCalled();
+      expect(host.ensureHls).not.toHaveBeenCalled();
+    }
+  });
+  it("reconnects a continuous stream that the relay ended at its time limit", async () => {
+    const { host, ui, underlying, window, clock } = player();
+    const handlers = new Map();
+    window.mpegts = {
+      Events: { ERROR: "error", LOADING_COMPLETE: "loading_complete" }, ErrorTypes: { NETWORK_ERROR: "NetworkError" },
+      createPlayer: () => ({ on: (name, callback) => handlers.set(name, callback) }),
+    };
+    chooseMode(ui, "vercel");
+    const live = { ...channel, url: "https://provider.example/live.ts" };
+    await host.playChannel(live);
+    host.state.mpegtsPlayer = window.mpegts.createPlayer();
+    handlers.get("loading_complete")();
+    await settle();
+    expect(underlying.play).toHaveBeenCalledOnce();
+    clock.ahead = 61000;
+    handlers.get("loading_complete")();
+    await settle();
+    expect(underlying.play).toHaveBeenCalledTimes(2);
+    expect(underlying.play).toHaveBeenLastCalledWith({ ...live, url: relayed(live.url) });
+
+    const direct = player();
+    direct.window.mpegts = window.mpegts;
+    await direct.host.playChannel(live);
+    direct.host.state.mpegtsPlayer = direct.window.mpegts.createPlayer();
+    direct.clock.ahead = 61000;
+    handlers.get("loading_complete")();
+    await settle();
+    expect(direct.underlying.play).toHaveBeenCalledOnce();
+  });
+  it("estimates how much this browser relayed this month", () => {
+    let report;
+    class PerformanceObserver {
+      constructor(callback) { report = entries => callback({ getEntries: () => entries }); }
+      observe(options) { expect(options).toEqual({ type: "resource", buffered: true }); }
+    }
+    const month = new Date().toISOString().slice(0, 7);
+    const { host, ui, window } = player({
+      extend: window => { window.PerformanceObserver = PerformanceObserver; },
+      saved: { "tclv.vercelRelayUsage": JSON.stringify({ month, bytes: 1000000 }) },
+    });
+    expect(ui.querySelector("#vercelUsage").hidden).toBe(false);
+    report([
+      { name: relayed("https://provider.example/seg1.ts"), transferSize: 4000000 },
+      { name: relayed("https://provider.example/seg2.ts"), transferSize: 0, encodedBodySize: 500000 },
+      { name: "https://provider.example/direct.ts", transferSize: 9000000 },
+      { name: "https://tclv-player.vercel.app/app.js", transferSize: 300000 },
+    ]);
+    expect(window.TCLVWebBridge.relayBytes).toBe(5500000);
+    expect(host.safeSet).toHaveBeenLastCalledWith("tclv.vercelRelayUsage", JSON.stringify({ month, bytes: 5500000 }));
+
+    const stale = player({ saved: { "tclv.vercelRelayUsage": JSON.stringify({ month: "2001-01", bytes: 5 }) } });
+    expect(stale.window.TCLVWebBridge.relayBytes).toBe(0);
+    expect(stale.ui.querySelector("#vercelUsage").hidden).toBe(true);
+  });
+  it("turns Vercel playback off together with the remote proxy", () => {
+    const { host, ui, window } = player();
+    chooseMode(ui, "auto-vercel");
+    ui.querySelector("#bridgeLocalOnly").listeners.get("click")();
+    expect(window.TCLVWebBridge.mode).toBe("auto");
+    expect(ui.querySelector("#vercelToggle").checked).toBe(false);
+    expect(host.safeSet).toHaveBeenCalledWith("tclv.webVideoMode", "auto");
+    expect(host.state.corsProxy).toBe("");
   });
 });

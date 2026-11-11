@@ -3,9 +3,14 @@
   "installCommand": "npm ci --include=dev --ignore-scripts",
   "buildCommand": "npm run prepare:vercel",
   "outputDirectory": "dist/vercel",
+  "regions": ["fra1"],
   "functions": {
     "api/proxy.js": {
       "maxDuration": 20
+    },
+    "api/stream.js": {
+      "maxDuration": 300,
+      "supportsCancellation": true
     }
   },
   "headers": [

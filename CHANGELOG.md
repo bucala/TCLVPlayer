@@ -8,6 +8,16 @@ Všetky významné zmeny v projekte sú dokumentované v tomto súbore.
 
 ## [Unreleased]
 
+### Audit, výkon a voliteľný Vercel relay — 2026-11-11
+
+- Web môže prehrávať bez lokálneho bridge cez samostatný `/api/stream`, až po výslovnom potvrdení spotreby mesačného limitu dát. Režimy priamo → Vercel a iba Vercel, trvalé varovanie v lište a lokálny odhad prenosu. Predvolené priame/lokálne Auto sa nemení.
+- Relay používa overené DNS s pripnutými keep-alive spojeniami, kontrolované redirecty, Range, HLS rewriting, časové limity, cancellation a obmedzenia súbehu. `TCLV_VIDEO_RELAY=off` ho vypne. Vercel limity a zákaz proxy v jeho fair-use podmienkach sú výslovne uvedené v UI a dokumentácii; funkcia nebola nasadená.
+- EPG opätovne používa dva jazykové `Intl.DateTimeFormat` namiesto tisícov konštrukcií pri každom vykreslení. Stavové media listenery sa pri novom štarte zrušia; oneskorené chyby starého zdroja neoznačujú nový stream za chybný. Aktualizácia statusu nepoužíva ID ako CSS selektor.
+- VLC/mpv sa spúšťajú cez `spawn` s ignorovaným výstupom, aby dlhé logovanie neukončilo prehrávanie po prekročení `execFile` buffera.
+- Bridge zachováva práve používané media tickets, pred vytvorením manifestu overuje kapacitu, rozpozná komprimované extensionless HLS a bezpečne spracuje čiastočné manifesty. Neobjektové JSON požiadavky dostanú 400.
+- Cielené bezpečnostné opravy tranzitívnych závislostí: `fast-uri` 3.1.9, `follow-redirects` 1.16.3, `rimraf` 6.1.4/`glob` 14.0.5 a obmedzený override zraniteľných `minimatch` 7–11.0.0 na 11.0.8. Bez `npm audit fix --force`; aktuálny audit nehlási zraniteľnosti.
+- Regresné testy relay sú súčasťou CI. Opravený Windows testovací HTTP fixture pre Android limit 64 MiB, bez zmiernenia produkčného limitu. Merania, rozsah, overenie a zostávajúce riziká sú v [AUDIT-2026-11.md](AUDIT-2026-11.md).
+
 ### Webové prehrávanie — 2026-10-24
 
 - [WEB-PLAYBACK.md](WEB-PLAYBACK.md) zaznamenáva kontrolu dátových ciest, pôvodné problémy UX, dokončené kroky a hranice overenia.

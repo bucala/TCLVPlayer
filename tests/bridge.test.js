@@ -1,5 +1,5 @@
 import http from "node:http";
-import { gzipSync } from "node:zlib";
+import { brotliCompressSync, deflateSync, gzipSync } from "node:zlib";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createBridge, rewriteManifest } from "../bridge/server.mjs";
 import { isPublicAddress, parseTarget, resolveTarget } from "../bridge/security.mjs";
@@ -276,6 +276,145 @@ describe("paired standalone bridge", () => {
     providerResponse = (_req, res) => { res.writeHead(200, { "Content-Type": "application/vnd.apple.mpegurl" }); res.end("#EXTM3U\n" + " ".repeat(2 * 1024 * 1024)); };
     const media = (await (await open()).json()).url;
     expect((await fetch(media, { headers: { Origin: origin } })).status).toBe(413);
+  });
+  it("rewrites compressed extensionless HLS but streams compressed media untouched", async () => {
+    await pair();
+    const encoders = { gzip: gzipSync, deflate: deflateSync, br: brotliCompressSync };
+    for (const [encoding, encode] of Object.entries(encoders)) {
+      providerResponse = (_req, res) => {
+        res.writeHead(200, { "Content-Type": "text/plain", "Content-Encoding": encoding });
+        res.end(encode("#EXTM3U\n#EXTINF:4,\nhttp://provider.example/cdn/segment.ts\n#EXT-X-ENDLIST"));
+      };
+      const media = (await (await open("http://provider.example/live")).json()).url;
+      const response = await fetch(media, { headers: { Origin: origin } });
+      const manifest = await response.text();
+      expect(response.status).toBe(200);
+      expect(response.headers.get("content-encoding")).toBeNull();
+      expect(response.headers.get("content-type")).toContain("mpegurl");
+      expect(manifest).toContain("/media/");
+      expect(manifest).not.toContain("provider.example");
+    }
+    providerResponse = (_req, res) => {
+      res.writeHead(200, { "Content-Type": "application/octet-stream", "Content-Encoding": "gzip" });
+      res.end(gzipSync("binary-video"));
+    };
+    const media = (await (await open("http://provider.example/stream")).json()).url;
+    const response = await fetch(media, { headers: { Origin: origin } });
+    expect(response.status).toBe(200);
+    expect(await response.text()).toBe("binary-video");
+  });
+  it("rewrites a whole-body 206 manifest and rejects partial manifests", async () => {
+    await pair();
+    const body = "#EXTM3U\n#EXTINF:4,\nhttp://provider.example/segment.ts\n#EXT-X-ENDLIST";
+    let range = `bytes 0-${body.length - 1}/${body.length}`;
+    providerResponse = (_req, res) => {
+      res.writeHead(206, { "Content-Type": "application/vnd.apple.mpegurl", "Content-Range": range });
+      res.end(body);
+    };
+    const media = (await (await open()).json()).url;
+    const whole = await fetch(media, { headers: { Origin: origin, Range: "bytes=0-" } });
+    const manifest = await whole.text();
+    expect(whole.status).toBe(200);
+    expect(whole.headers.get("content-range")).toBeNull();
+    expect(manifest).toContain("/media/");
+    expect(manifest).not.toContain("provider.example");
+    range = `bytes 0-20/${body.length + 100}`;
+    const partial = await fetch(media, { headers: { Origin: origin, Range: "bytes=0-20" } });
+    expect(partial.status).toBe(502);
+    expect(await partial.text()).not.toContain("provider.example");
+  });
+  it("answers JSON bodies that are not objects with 400", async () => {
+    await pair();
+    for (const body of ["null", "[]", "1"]) {
+      const opened = await request("/open", {
+        method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token }, body,
+      });
+      expect(opened.status).toBe(400);
+      expect(await opened.json()).toEqual({ error: "JSON object required" });
+      const paired = await request("/pair", { method: "POST", headers: { "Content-Type": "application/json" }, body });
+      expect(paired.status).toBe(400);
+    }
+  });
+
+  describe("bounded media tickets", () => {
+    let small;
+    let smallBase;
+    let smallToken;
+    beforeEach(async () => {
+      small = createBridge({ pairingCode, resolve, timeoutMs: 1000, now: () => time, maxTickets: 4 });
+      await listen(small.server);
+      smallBase = `http://127.0.0.1:${small.server.address().port}`;
+      const response = await fetch(smallBase + "/pair", {
+        method: "POST", headers: { Origin: origin, "Content-Type": "application/json" }, body: JSON.stringify({ code: pairingCode }),
+      });
+      smallToken = (await response.json()).token;
+    });
+    afterEach(() => close(small.server));
+    async function smallOpen(url) {
+      const response = await fetch(smallBase + "/open", {
+        method: "POST", headers: { Origin: origin, "Content-Type": "application/json", Authorization: "Bearer " + smallToken },
+        body: JSON.stringify({ url }),
+      });
+      return (await response.json()).url;
+    }
+    const get = url => fetch(url, { headers: { Origin: origin } });
+    const live = sequence => "#EXTM3U\n#EXT-X-TARGETDURATION:2\n#EXT-X-MEDIA-SEQUENCE:" + sequence +
+      `\n#EXTINF:2,\ns${sequence}.ts\n#EXTINF:2,\ns${sequence + 1}.ts`;
+
+    it("keeps a reloaded live playlist valid while old segments are evicted", async () => {
+      let sequence = 0;
+      providerResponse = (req, res) => {
+        if (req.url === "/live.m3u8") { res.writeHead(200, { "Content-Type": "application/vnd.apple.mpegurl" }); res.end(live(sequence)); }
+        else { res.writeHead(200, { "Content-Type": "video/mp2t" }); res.end(req.url); }
+      };
+      const playlist = await smallOpen(target);
+      const issued = [];
+      for (; sequence < 8; sequence++) {
+        const response = await get(playlist);
+        expect(response.status).toBe(200);
+        const segments = (await response.text()).split("\n").filter(line => line.startsWith("http://"));
+        issued.push(segments[0]);
+        const newest = await get(segments.at(-1));
+        expect(newest.status).toBe(200);
+        expect(await newest.text()).toBe(`/s${sequence + 1}.ts`);
+      }
+      expect((await get(issued[0])).status).toBe(401);
+    });
+    it("refuses a manifest larger than ticket capacity without evicting it or other streams", async () => {
+      providerResponse = (req, res) => {
+        if (req.url === "/big.m3u8") {
+          res.writeHead(200, { "Content-Type": "application/vnd.apple.mpegurl" });
+          res.end("#EXTM3U\n" + [0, 1, 2, 3].map(index => `#EXTINF:2,\nbig${index}.ts`).join("\n"));
+        } else { res.writeHead(200, { "Content-Type": "video/mp2t" }); res.end("video"); }
+      };
+      const other = await smallOpen("http://provider.example/other.ts");
+      const big = await smallOpen("http://provider.example/big.m3u8");
+      const refused = await get(big);
+      expect(refused.status).toBe(413);
+      expect(await refused.text()).not.toContain("/media/");
+      expect((await get(other)).status).toBe(200);
+      expect((await get(big)).status).toBe(413);
+    });
+    it("serves a manifest that exactly fits without returning evicted children", async () => {
+      providerResponse = (req, res) => {
+        if (req.url === "/fit.m3u8") {
+          res.writeHead(200, { "Content-Type": "application/vnd.apple.mpegurl" });
+          res.end("#EXTM3U\n" + [0, 1, 2].map(index => `#EXTINF:2,\nfit${index}.ts`).join("\n"));
+        } else { res.writeHead(200, { "Content-Type": "video/mp2t" }); res.end(req.url); }
+      };
+      await smallOpen("http://provider.example/other.ts");
+      const fit = await smallOpen("http://provider.example/fit.m3u8");
+      const response = await get(fit);
+      expect(response.status).toBe(200);
+      const segments = (await response.text()).split("\n").filter(line => line.startsWith("http://"));
+      expect(segments).toHaveLength(3);
+      for (const [index, segment] of segments.entries()) {
+        const media = await get(segment);
+        expect(media.status).toBe(200);
+        expect(await media.text()).toBe(`/fit${index}.ts`);
+      }
+      expect((await get(fit)).status).toBe(200);
+    });
   });
   it("times out a provider that never responds", async () => {
     await pair();

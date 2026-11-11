@@ -14,7 +14,7 @@ Kompletné zmeny verzie 1.3.0 sú v [CHANGELOG.md](CHANGELOG.md). [IMPLEMENTATIO
 
 Playlisty, kanály, EPG a prístupové údaje ostávajú v súkromnom úložisku zariadenia (IndexedDB a na Androide aj súkromná súborová EPG cache). Aplikácia ich nepublikuje na GitHub a neobsahuje poskytovateľské playlisty. Zálohovanie a prenos medzi zariadeniami prebieha cez **explicitný export/import súboru**. Úplná záloha obsahuje aj lokálny obsah a pôvodné prihlasovacie URL; uchovávajte ju v súkromí.
 
-Na webe je vzdialený source proxy predvolene vypnutý. Zdroje sa načítajú od poskytovateľa alebo cez spárovaný bridge na rovnakom počítači. Voliteľný vzdialený proxy dostane URL a obsah požiadavky, ak ho používateľ sám nastaví. Video sa neposiela cez Vercel proxy. Verejné indexy log môžu byť načítané z ich pôvodných GitHub zdrojov; používateľské playlisty sa týmto zdrojom neposielajú.
+Na webe je vzdialený source proxy predvolene vypnutý. Zdroje sa načítajú od poskytovateľa alebo cez spárovaný bridge na rovnakom počítači. Voliteľný vzdialený proxy dostane URL a obsah požiadavky, ak ho používateľ sám nastaví. Video ide cez Vercel iba po výslovnom zapnutí a potvrdení upozornenia na mesačný limit dát. Vtedy hosting dostane aj pôvodné URL streamov vrátane prípadných prihlasovacích parametrov. Verejné indexy log môžu byť načítané z ich pôvodných GitHub zdrojov; používateľské playlisty sa týmto zdrojom neposielajú.
 
 Adresáre `private/`, `exports/`, `backups/`, `local-data/`, exporty, playlistové súbory, balíky a podpisové kľúče sú ignorované Gitom. `npm run privacy:check` kontroluje sledované a staged súbory. Osobné súbory nevkladajte do zdrojového stromu; screenshoty a testovacie výstupy ukladajte mimo neho. Testy používajú iba syntetické fixture dáta na doménach `.example`.
 
@@ -40,6 +40,16 @@ Tag `v1.3.0` ukazuje na historický commit `53a7e73`, ktorý ešte neobsahuje op
 
 [WEB-PLAYBACK.md](WEB-PLAYBACK.md) dokumentuje kontrolu dátových ciest, nálezy UX, implementáciu a hranice overenia.
 
+### Bez pomocníka, cez Vercel
+
+V **Nastavenia → Sieť → Bez pomocníka: cez Vercel** zapnite **Prehrávať cez Vercel, keď video nejde priamo** a potvrďte upozornenie. Lokálny TCLV Bridge potom netreba. Auto najprv skúša priamu cestu, až potom Vercel; v pokročilých nastaveniach je aj **Iba cez Vercel**. Lišta nad videom upozorňuje, že sa míňa mesačný limit dát. Voľba sa pamätá v tomto prehliadači; vypnete ju rovnakým prepínačom alebo cez **Vypnúť vzdialený proxy**.
+
+**Pozor:** Hobby má podľa [aktuálnych limitov](https://vercel.com/docs/plans/hobby) 10 GB Fast Origin Transfer a 100 GB Fast Data Transfer; relay čerpá oba aj kapacitu funkcií. Pri 8 Mbit/s je 10 GB približne 2,8 hodiny jedného streamu, bez ďalšej réžie a používania webu. Po vyčerpaní môže byť služba nedostupná až 30 dní. Lokálny odhad v UI nie je účtovná kvóta, presné čerpanie sledujte vo Vercel Usage.
+
+Vercel navyše uvádza proxy medzi [„Never fair use“](https://vercel.com/docs/limits/fair-use-guidelines#never-fair-use) na všetkých plánoch. Funkcia nie je prísľubom povolenej prevádzky; pred nasadením si overte podmienky s Vercelom. Správca ju vypne premennou `TCLV_VIDEO_RELAY=off` a novým nasadením. Obyčajný statický hosting ani `npm run web` tento serverový endpoint neposkytujú. Predvolené priame/lokálne prehrávanie zostáva dostupné.
+
+### Lokálny pomocník bez čerpania video prenosu Vercelu
+
 Ak stream funguje priamo v prehliadači, pomocníka netreba. Pre HTTP/CORS streamy otvorte **Nastavenia → Sieť → Prehrávanie na tomto počítači** alebo **Nastaviť prehrávanie** nad videom. Sprievodca má tri kroky:
 
 1. **Pripravte pomocníka:** stiahnite `TCLV-Bridge-Setup.exe` a nainštalujte ho pre svoj Windows účet. Inštalátor obsahuje Node.js aj licenciu, nevyžaduje administrátora, rozbaľovanie ani príkazy. Podporuje Windows 10+ x64.
@@ -56,7 +66,7 @@ Zostavenie inštalátora potrebuje aj vývojové závislosti s pripnutým NSIS n
 
 Odkaz `tclvbridge://open` spúšťa iba pevný príkaz nainštalovaného pomocníka. Nepreberá URL poskytovateľa, tokeny ani argumenty z odkazu; otvorenie pomocníka samo neschváli pripojenie webu. Inštalátor nemení hlavnú Windows ani Android aplikáciu. Aktuálny inštalátor pomocníka je nepodpísaný; fyzické overenie inštalácie, systémového upozornenia a otvorenia protokolu na Windows zatiaľ neprebehlo.
 
-**Vercel a prenos dát:** video ide priamo od poskytovateľa alebo cez lokálny bridge do prehliadača a neprechádza Vercel video proxy. Načítanie stránky, knižníc a stiahnutie pomocníka naďalej používajú hostingový prenos. V **Pokročilých nastaveniach siete** možno vybrať Auto, Iba priamo alebo Iba lokálny bridge a použiť **Vypnúť vzdialený proxy**. Vzdialený source proxy je predvolene vypnutý; ak ho zapnete pre playlisty/EPG, ich serverové sťahovanie spotrebúva kapacitu príslušného hostingu. Bridge nemení kodeky ani DRM a neobchádza geo-blokovanie či chybu poskytovateľa.
+**Vercel a prenos dát:** v predvolenom režime video ide priamo od poskytovateľa alebo cez lokálny bridge a neprechádza Vercelom. Voľba cez Vercel je samostatná a výslovne potvrdená. Načítanie stránky, knižníc a stiahnutie pomocníka naďalej používajú hostingový prenos. V **Pokročilých nastaveniach siete** možno vybrať priamu, lokálnu alebo Vercel cestu. **Vypnúť vzdialený proxy** vypína source proxy aj Vercel video. Vzdialený source proxy pre playlisty/EPG zostáva predvolene vypnutý. Žiadna cesta nemení kodeky/DRM ani neodstraňuje obmedzenia poskytovateľa, ktorý môže blokovať IP dátového centra.
 
 V prostredí, ktoré vyžaduje HTTP proxy pre Node fetch, použite podporované nastavenie runtime, napríklad `NODE_USE_ENV_PROXY=1` na Node 24. Overovanie TLS nevypínajte.
 
