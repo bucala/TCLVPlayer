@@ -86,6 +86,7 @@ describe("web-only bridge delivery", () => {
         expect(text).toContain('StrCmp $0');
         expect(await readFile(join(script, "..", "node.exe"), "utf8")).toBe("MZtest-runtime");
         expect(text).toContain('pairing-page.mjs');
+        expect(text).toContain(`File "/oname=start.mjs" "${join(script, "..", "start.mjs")}"`);
         await writeFile(output, "MZtest-setup");
       } });
       expect(result.bytes).toBe(12); expect(loadRuntime).toHaveBeenCalledTimes(1);

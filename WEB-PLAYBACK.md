@@ -1,6 +1,23 @@
-# Webové prehrávanie a lokálny pomocník
+# Webové prehrávanie, Vercel a lokálny pomocník
 
 Kontrola a implementácia: 24. 10. 2026. Rozsah: webový build, lokálny TCLV Bridge a jeho doručenie používateľovi Windows. Natívne prehrávanie Android/Windows má samostatnú cestu.
+
+## Doplnenie 11. 11. 2026: cez Vercel bez bridge
+
+Nová voľba **Nastavenia → Sieť → Bez pomocníka: cez Vercel** potrebuje potvrdenie upozornenia na mesačný limit. Predvolene je vypnutá. **Auto: priamo → cez Vercel** používa relay až pri HTTP na HTTPS webe alebo po chybe priameho spojenia; **Iba cez Vercel** ho používa vždy. Zapnutie obnoví aj čakajúci stream, odopnutie prepne späť na priame/lokálne Auto. Nastavenie sa uchováva lokálne. Windows/Android aplikácie tento webový modul nepoužívajú.
+
+- `/api/stream` prenáša video, HLS varianty, segmenty, titulky a HTTP(S) AES kľúče. `/api/proxy` zostáva oddelený a obmedzený na malé playlisty/EPG.
+- Lišta nad videom zobrazuje varovanie aj pri prenose druhého obrazu. V nastaveniach je odhad bajtov z Resource Timing za kalendárny mesiac UTC len v tomto prehliadači. Nezahŕňa spoľahlivo prerušené požiadavky ani iné zariadenia, nie je rozpočtový limit a nemusí zodpovedať 30-dňovému obdobiu hostingu. Presné údaje sú vo Vercel Usage.
+- [Hobby](https://vercel.com/docs/plans/hobby): 10 GB Fast Origin Transfer, 100 GB Fast Data Transfer, navyše limity CPU/pamäte/volaní funkcií. Relay bez cache čerpá origin aj CDN prenos. 8 Mbit/s znamená približne 3,6 GB/h, teda 2,8 h na 10 GB pred réžiou. Po prekročení môže byť funkcia pozastavená až 30 dní.
+- [Vercel fair use](https://vercel.com/docs/limits/fair-use-guidelines#never-fair-use) uvádza proxy medzi **Never fair use**, aj na platených plánoch. Samotné upozornenie v aplikácii nezaručuje súlad s podmienkami. Prevádzku si pred nasadením overte s Vercelom; lokálny bridge zostáva odporúčanou cestou bez video prenosu hostingu.
+- Správca vypne endpoint cez `TCLV_VIDEO_RELAY=off` (aj `0`/`false`) a nové nasadenie. Lokálne vypnutie používateľom neblokuje endpoint ostatným používateľom.
+- Same-origin kontrola chráni pred použitím z iného webu, nie pred klientom, ktorý si HTTP hlavičky podvrhne. Limity 900 požiadaviek/minútu, 16 streamov/klienta a 128/proces sú iba lokálne jednej inštancii. Nie sú globálny účet, autentifikácia ani ochrana fakturačného rozpočtu; na verejné nasadenie treba aj obmedzenia hostingu/prístupov.
+- Vercel dostane URL poskytovateľa vrátane query parametrov, obsah a klientsku IP. URL môže byť v platformových access logoch; aplikácia ho sama neloguje ani neposiela cudziemu analytickému systému. Cookies a Authorization prehliadača sa poskytovateľovi neposielajú. Odpovede sú `private, no-store`.
+- Funkcie sú v regióne `fra1`. Server má 15 s limit na hlavičky, 30 s nečinnosti a celkový limit 280 s vrátane čítania manifestu; Vercel má `maxDuration: 300` a cancellation. HLS vytvára nové krátke požiadavky, dlhý TS/FLV sa po ukončení znovu pripojí. Pri kontinuálnom toku môže vzniknúť krátky výpadok. Bežné MP4 podporuje Range; čiastočný HLS manifest relay odmietne.
+- HLS manifest je najviac 2 MiB. Nepodporované sú premenné manifestov, DRM `data:`/`skd:` URI, content steering a plná LL-HLS semantika. Žiadne transkódovanie, obchádzanie DRM, oprava kodekov ani záruka dostupnosti poskytovateľa. Hosting môže byť blokovaný alebo stream viazaný na inú IP.
+- Obyčajný statický server endpoint nemá. Na Verceli sa zostaví z `api/stream.js`; na inom Node hostingu potrebuje vlastné zapojenie handlera.
+
+Regresné `npm run test:relay-browser` používa skutočný lokálny server a syntetického poskytovateľa bez dekódovateľného videa. Kontroluje predvolené vypnutie, odmietnutie/potvrdenie, HLS/segmenty, route varovanie, odhad a perzistenciu. Samostatný opt-in test s `RELAY_LIVE_URL` prehral verejný Mux test stream s dekódovaným obrazom a časom >3 s; osobné playlisty neboli použité. Toto nie je test nasadeného Vercelu ani záruka pre konkrétny platený IPTV účet. [Výsledky auditu](AUDIT-2026-11.md).
 
 ## Čo používa kapacitu Vercelu
 
@@ -8,11 +25,12 @@ Kontrola a implementácia: 24. 10. 2026. Rozsah: webový build, lokálny TCLV Br
 | --- | --- | --- |
 | Podporované HTTPS video | poskytovateľ → prehliadač | Video ju nepoužíva |
 | HTTP/CORS video cez bridge | poskytovateľ → pomocník na tomto počítači → prehliadač | Video ani HLS segmenty ju nepoužívajú |
+| Výslovne zapnuté video cez Vercel | poskytovateľ → `/api/stream` → prehliadač | Míňa mesačný dátový limit aj kapacitu funkcií |
 | HTML, JavaScript, knižnice, inštalátor/ZIP | hosting → prehliadač | Používajú hostingový prenos |
 | Playlist/EPG priamo alebo cez bridge | poskytovateľ → prehliadač/pomocník | Vercel proxy sa nepoužíva |
 | Používateľom zapnutý vzdialený source proxy | poskytovateľ → proxy → prehliadač | Používa príslušný hosting; predvolene vypnuté |
 
-`host.canProxyStreams()` a `host.needsProxy()` vo webovom prehrávači zakazujú serverovú video cestu. HLS manifesty lokálny server prepíše na nepriehľadné loopback adresy. `/api/proxy` je iba voliteľná cesta pre malé zdroje playlistov/EPG. Voľba **Vypnúť vzdialený proxy** ju vymaže bez odpojenia lokálneho pomocníka.
+`host.canProxyStreams()` a `host.needsProxy()` zakazujú starý automatický video fallback cez source proxy. Nový `/api/stream` sa používa samostatne len vo výslovne zapnutých Vercel režimoch. HLS manifesty lokálny server prepíše na nepriehľadné loopback adresy, Vercel handler na vlastné relay URL. `/api/proxy` je iba voliteľná cesta pre malé zdroje playlistov/EPG. **Vypnúť vzdialený proxy** ju vymaže a vypne Vercel video bez odpojenia lokálneho pomocníka.
 
 ## Nálezy a vykonané zmeny
 

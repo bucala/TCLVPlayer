@@ -26,6 +26,8 @@
     "privacy:check": "node scripts/privacy-check.mjs",
     "test:browser": "node tests/browser.cjs",
     "test:bridge-browser": "node tests/bridge-browser.cjs",
+    "test:relay-browser": "node tests/relay-browser.cjs",
+    "test:performance": "node tests/performance.cjs",
     "check": "node scripts/version-check.mjs && npm run privacy:check && npm run lint && npm test"
   },
   "build": {
@@ -76,6 +78,7 @@
     "node": ">=22.19.0"
   },
   "overrides": {
+    "minimatch@>=7 <11.0.1": "11.0.8",
     "xcode": {
       "uuid": "^11.1.1"
     },

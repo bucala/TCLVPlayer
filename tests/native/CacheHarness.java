@@ -48,7 +48,13 @@ public final class CacheHarness {
             switch (path) {
                 case "/404": exchange.sendResponseHeaders(404, -1); exchange.close(); return;
                 case "/redirect": exchange.getResponseHeaders().set("Location", "/plain"); exchange.sendResponseHeaders(302, -1); exchange.close(); return;
-                case "/huge": exchange.sendResponseHeaders(200, 65L * 1024 * 1024); exchange.close(); return;
+                case "/huge":
+                    exchange.sendResponseHeaders(200, 65L * 1024 * 1024);
+                    // Flush headers before intentionally truncating the body.
+                    // Windows can otherwise reset the socket before the client
+                    // sees Content-Length, so it never exercises the size gate.
+                    try (OutputStream out = exchange.getResponseBody()) { out.write(0); out.flush(); } catch (IOException ignored) {}
+                    exchange.close(); return;
                 case "/bomb":
                     exchange.sendResponseHeaders(200, bomb.length());
                     try (OutputStream out = exchange.getResponseBody()) { Files.copy(bomb.toPath(), out); } catch (IOException ignored) {}

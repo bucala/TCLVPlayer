@@ -1,5 +1,7 @@
 # Implementované opravy auditu a natívne prehrávanie — 1.3.0
 
+Aktuálny následný audit z 11. 11. 2026, opravy a merania sú v [AUDIT-2026-11.md](AUDIT-2026-11.md). Nový webový Vercel relay a jeho dátové/prevádzkové obmedzenia sú v [WEB-PLAYBACK.md](WEB-PLAYBACK.md). Nižšie uvedené počty testov a platformové buildy opisujú historické overenie pôvodnej verzie, nie nové nasadenie.
+
 Tento dokument opisuje zmeny zdrojového kódu verzie 1.3.0 a ich overenie. Commit zdrojov nezahŕňa publikovanie binárneho release ani prenos používateľských playlistov. Testovacie kanály sa generujú v pamäti a používajú iba domény `.example`.
 
 ## Pokrytie auditu

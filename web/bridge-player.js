@@ -88,6 +88,39 @@ window.TCLVWebPlayer = function(host) {
     bridgePrivacy: "Video goes directly or through this computer. Vercel does not relay it.", bridgeHosting: "The page, libraries and helper download still use hosting.",
     bridgeNeeded: "This stream needs a local connection. Click Set up playback above the video; playback will resume once connected.",
   });
+  // Relaying video through the hosting is opt-in and always shown with its cost.
+  Object.assign(labels.sk, {
+    vercelTitle: "Bez pomocníka: cez Vercel", vercelToggle: "Prehrávať cez Vercel, keď video nejde priamo",
+    vercelWarning: "Pozor: video prenesené cez Vercel míňa mesačný limit dát tohto nasadenia. Plán Hobby má na prenos z funkcií približne 10 GB mesačne, čo stačí len na niekoľko hodín HD videa. Po vyčerpaní môže Vercel stránku pozastaviť až na 30 dní a proxy prenos uvádza medzi Never fair use. Lokálny pomocník tento Vercel limit nemíňa.",
+    vercelConfirm: "Zapnúť prehrávanie cez Vercel?\n\nKaždé takto prehrané video míňa mesačný limit dát Vercel účtu, na ktorom táto stránka beží (plán Hobby: približne 10 GB, teda niekoľko hodín HD videa). Po jeho vyčerpaní môže Vercel stránku pozastaviť.",
+    vercelUsage: "Odhad prenosu cez Vercel z tohto prehliadača za tento mesiac: {size}. Presné čerpanie ukazuje Vercel v časti Usage.",
+    bridgeAutoVercel: "Auto: priamo → cez Vercel (míňa limit dát)", bridgeVercelOnly: "Iba cez Vercel (míňa limit dát)",
+    bridgePlayingVercel: "Cesta videa: cez Vercel – míňa mesačný limit dát", bridgeConnectingVercel: "Pripájam video cez Vercel…",
+    vercelFailed: "Stream sa cez Vercel nepodarilo prehrať. Poskytovateľ môže blokovať dátové centrá alebo viazať stream na vašu IP adresu; vtedy použite lokálneho pomocníka.",
+    vercelUnavailable: "Prehrávanie cez Vercel nie je na tomto hostingu dostupné alebo ho správca vypol. Použite lokálneho pomocníka.",
+    bridgeIntro: "Ak video hrá priamo, nič ďalšie nepotrebujete. Ostatné streamy pripojíte cez lokálneho pomocníka alebo bez inštalácie cez Vercel.",
+    bridgePrivacy: "Video ide priamo alebo cez tento počítač. Cez Vercel iba vtedy, keď to sami zapnete.",
+    bridgeLimits: "V predvolenom režime video nečerpá prenos Vercelu. Stránka, knižnice a stiahnutie pomocníka stále používajú hosting. Vypnutím vzdialeného proxy obídete aj serverové sťahovanie playlistov a EPG a vypnete prehrávanie cez Vercel.",
+    bridgeLocalOnlyDone: "Vzdialený proxy aj prehrávanie cez Vercel sú vypnuté. Video, playlisty aj EPG používajú priame spojenia alebo spárovaný lokálny bridge.",
+    bridgeNeeded: "Na tento stream treba lokálne pripojenie alebo prehrávanie cez Vercel. Kliknite na Nastaviť prehrávanie nad videom; po pripojení sa stream obnoví.",
+    bridgeDirectBlocked: "HTTP video na HTTPS webe nie je povolené. V Nastaveniach › Sieť vyberte Auto, lokálny bridge alebo Vercel.",
+  });
+  Object.assign(labels.en, {
+    vercelTitle: "No helper: through Vercel", vercelToggle: "Play through Vercel when video cannot play directly",
+    vercelWarning: "Warning: video relayed through Vercel uses up this deployment's monthly data limit. The Hobby plan includes roughly 10 GB of function transfer a month, enough for only a few hours of HD video. Once it is used up, Vercel may pause the site for up to 30 days, and it lists proxying under Never fair use. The local helper does not use this Vercel quota.",
+    vercelConfirm: "Turn on playback through Vercel?\n\nEvery video played this way uses up the monthly data limit of the Vercel account hosting this site (Hobby plan: roughly 10 GB, a few hours of HD video). Once it is used up, Vercel may pause the site.",
+    vercelUsage: "Estimated transfer through Vercel from this browser this month: {size}. Vercel shows the exact figure under Usage.",
+    bridgeAutoVercel: "Auto: direct → through Vercel (uses data limit)", bridgeVercelOnly: "Through Vercel only (uses data limit)",
+    bridgePlayingVercel: "Video route: through Vercel – uses the monthly data limit", bridgeConnectingVercel: "Connecting video through Vercel…",
+    vercelFailed: "The stream could not play through Vercel. The provider may block data centres or tie the stream to your IP address; use the local helper for it.",
+    vercelUnavailable: "Playback through Vercel is not available on this hosting or its administrator switched it off. Use the local helper.",
+    bridgeIntro: "If the video plays directly, you need nothing else. Connect other streams through the local helper or, without installing anything, through Vercel.",
+    bridgePrivacy: "Video goes directly or through this computer. It goes through Vercel only if you turn that on.",
+    bridgeLimits: "By default video does not use Vercel transfer. The page, libraries and helper download still use hosting. Disabling the remote proxy also avoids server-side playlist and EPG downloads and turns off playback through Vercel.",
+    bridgeLocalOnlyDone: "The remote proxy and playback through Vercel are off. Video, playlists and EPG use direct connections or the paired local bridge.",
+    bridgeNeeded: "This stream needs a local connection or playback through Vercel. Click Set up playback above the video; playback will resume once connected.",
+    bridgeDirectBlocked: "HTTP video is blocked on an HTTPS website. Select Auto, local bridge or Vercel in Settings > Network.",
+  });
   Object.assign(host.translations.sk, labels.sk, {
     labelCorsProxy: "Proxy pre playlisty a EPG (len web)",
     webNetworkHint: labels.sk.bridgePrivacy,
@@ -98,9 +131,11 @@ window.TCLVWebPlayer = function(host) {
     webNetworkHint: labels.en.bridgePrivacy,
     webStreamHint: labels.en.bridgeNeeded,
   });
+  const RELAY_PATH = "/api/stream";
   let mode = host.safeGet("tclv.webVideoMode", "auto");
-  if (!["auto", "direct", "bridge"].includes(mode)) mode = "auto";
-  const slots = [0, 1].map(index => ({ index, run: 0, channel: null, route: "", retried: false, pending: false }));
+  if (!["auto", "direct", "bridge", "auto-vercel", "vercel"].includes(mode)) mode = "auto";
+  const usesVercel = (value = mode) => value === "auto-vercel" || value === "vercel";
+  const slots = [0, 1].map(index => ({ index, run: 0, channel: null, route: "", retried: false, pending: false, since: 0 }));
   const mediaTypes = new Map();
   const body = host.dom.corsProxyInput?.closest(".settings-body");
   if (!body) return;
@@ -131,9 +166,13 @@ window.TCLVWebPlayer = function(host) {
       </div></li>
     </ol>
     <div id="bridgeConnected" class="bridge-connected" hidden><h5 id="bridgeReadyTitle" tabindex="-1" data-i18n="bridgeReadyTitle"></h5><p class="settings-hint" data-i18n="bridgeReadyHint"></p><button id="bridgeDisconnect" type="button" data-i18n="bridgeDisconnect"></button></div>
+    <div class="bridge-vercel"><h5 data-i18n="vercelTitle"></h5>
+      <label class="bridge-check"><input id="vercelToggle" type="checkbox" aria-describedby="vercelWarning" /><span data-i18n="vercelToggle"></span></label>
+      <p id="vercelWarning" class="settings-hint bridge-warning" data-i18n="vercelWarning"></p>
+      <p id="vercelUsage" class="settings-hint" hidden></p></div>
     <details class="bridge-details"><summary tabindex="0" data-i18n="bridgeTrouble"></summary><p class="settings-hint" data-i18n="bridgePermission"></p><p class="settings-hint" data-i18n="bridgeCodec"></p></details>
     <details id="bridgeAdvanced" class="bridge-details"><summary tabindex="0" data-i18n="bridgeAdvanced"></summary>
-      <label class="field-label"><span data-i18n="bridgeMode"></span><select id="webVideoMode"><option value="auto" data-i18n="bridgeAuto"></option><option value="direct" data-i18n="bridgeDirect"></option><option value="bridge" data-i18n="bridgeOnly"></option></select></label>
+      <label class="field-label"><span data-i18n="bridgeMode"></span><select id="webVideoMode"><option value="auto" data-i18n="bridgeAuto"></option><option value="direct" data-i18n="bridgeDirect"></option><option value="bridge" data-i18n="bridgeOnly"></option><option value="auto-vercel" data-i18n="bridgeAutoVercel"></option><option value="vercel" data-i18n="bridgeVercelOnly"></option></select></label>
       <div class="field-row"><button id="bridgeLocalOnly" type="button" data-i18n="bridgeLocalOnly"></button></div><p class="settings-hint" data-i18n="bridgeLimits"></p>
     </details><p class="settings-hint bridge-hosting-note" data-i18n="bridgeHosting"></p>`;
   const advanced = ui.querySelector("#bridgeAdvanced");
@@ -151,6 +190,7 @@ window.TCLVWebPlayer = function(host) {
   const disconnectButton = query("#bridgeDisconnect"), pairForm = query("#bridgePairForm"), codeInput = query("#bridgePairCode");
   const approveButton = query("#bridgeApprove"), cancelButton = query("#bridgeCancel"), approvalLink = query("#bridgeApprovalLink");
   const routeLabel = bar.querySelector("#webVideoRoute"), quickButton = bar.querySelector("#bridgeQuickConnect");
+  const relayToggle = query("#vercelToggle"), usageLabel = query("#vercelUsage");
   const userAgent = (window.navigator?.userAgentData?.platform || "") + " " + (window.navigator?.userAgent || "");
   const mobile = /Android|iPhone|iPad/i.test(userAgent) || (window.navigator?.platform === "MacIntel" && window.navigator?.maxTouchPoints > 1);
   const windows = /Windows|Win32/i.test(userAgent);
@@ -161,6 +201,41 @@ window.TCLVWebPlayer = function(host) {
   let noticeKey = "", approvalBusy = false, approvalRun = 0, approvalPopup = null, approvalTimer;
   let setupStarted = false, discoveryAttempted = false;
   modeSelect.value = mode;
+  relayToggle.checked = usesVercel();
+
+  function isRelayUrl(value) {
+    try {
+      const url = new URL(value, location.origin);
+      return url.origin === location.origin && url.pathname === RELAY_PATH;
+    } catch { return false; }
+  }
+
+  // Counts what this browser pulled through the relay, so the warning shows a
+  // real number. Players that stop a download early are not always reported.
+  const usageMonth = () => new Date().toISOString().slice(0, 7);
+  let usage = { month: usageMonth(), bytes: 0 };
+  try {
+    const saved = JSON.parse(host.safeGet("tclv.vercelRelayUsage", "null"));
+    if (saved?.month === usage.month && saved.bytes > 0) usage.bytes = Number(saved.bytes) || 0;
+  } catch { /* Start a new estimate. */ }
+  function addUsage(bytes) {
+    if (usage.month !== usageMonth()) usage = { month: usageMonth(), bytes: 0 };
+    usage.bytes += bytes;
+    host.safeSet("tclv.vercelRelayUsage", JSON.stringify(usage));
+    renderUsage();
+  }
+  function renderUsage() {
+    const size = usage.bytes >= 1e9 ? (usage.bytes / 1e9).toFixed(2) + " GB" : Math.ceil(usage.bytes / 1e6) + " MB";
+    usageLabel.hidden = !usage.bytes;
+    usageLabel.textContent = host.t("vercelUsage").replace("{size}", size);
+  }
+  try {
+    new window.PerformanceObserver(list => {
+      let bytes = 0;
+      for (const entry of list.getEntries()) if (isRelayUrl(entry.name)) bytes += entry.transferSize || entry.encodedBodySize || 0;
+      if (bytes) addUsage(bytes);
+    }).observe({ type: "resource", buffered: true });
+  } catch { /* The warning stays; only the estimate is missing. */ }
   const client = new window.TCLVBridgeClient({ onChange: renderStatus });
 
   function renderStatus(status = client.status) {
@@ -186,18 +261,45 @@ window.TCLVWebPlayer = function(host) {
     findButton.disabled = status === "searching" || approvalBusy;
     quickButton.textContent = host.t(ready ? "bridgeQuickManage" : "bridgeQuickSetup");
     const slot = slots[0];
-    const routeKey = !slot.channel ? "bridgeIdle" : slot.pending ? "bridgeUnavailable" : slot.phase === "error" ? "bridgeVideoError" :
-      slot.phase === "connecting" ? "bridgeConnecting" : slot.route === "bridge" ? "bridgePlayingLocal" : "bridgePlayingDirect";
+    // Either slot can spend the limit, so the bar warns for both.
+    const relaying = slots.some(item => item.channel && item.route === "vercel" && !item.pending && item.phase !== "error");
+    const routeKey = relaying ? (slot.route === "vercel" && slot.phase === "connecting" ? "bridgeConnectingVercel" : "bridgePlayingVercel") :
+      !slot.channel ? "bridgeIdle" : slot.pending ? "bridgeUnavailable" : slot.phase === "error" ? "bridgeVideoError" :
+      slot.phase === "connecting" ? (slot.route === "vercel" ? "bridgeConnectingVercel" : "bridgeConnecting") :
+      slot.route === "bridge" ? "bridgePlayingLocal" : relaying ? "bridgePlayingVercel" : "bridgePlayingDirect";
     routeLabel.textContent = host.t(routeKey);
     bar.dataset.route = !slot.channel ? "idle" : slot.pending ? "unavailable" : slot.phase || slot.route;
+    bar.dataset.relay = relaying ? "vercel" : "none";
+    ui.dataset.relay = usesVercel() ? "vercel" : "none";
+    renderUsage();
   }
 
   function eligible(url) {
     try {
       const parsed = new URL(url, location.origin);
+      // A playlist must not reach a cloud relay on its own; only start() may.
       return ["http:", "https:"].includes(parsed.protocol) && !parsed.username && !parsed.password &&
-        !(parsed.pathname === "/api/proxy" && (parsed.origin === location.origin || parsed.hostname.endsWith(".vercel.app")));
+        !(/^\/api\/(?:proxy|stream)$/.test(parsed.pathname) && (parsed.origin === location.origin || parsed.hostname.endsWith(".vercel.app")));
     } catch { return false; }
+  }
+
+  async function relayAvailable() {
+    try {
+      const response = await fetch(RELAY_PATH + "?status", { cache: "no-store", signal: window.AbortSignal?.timeout?.(5000) });
+      const data = response.ok ? await response.json() : null;
+      return data?.service === "tclv-video-relay" && data.enabled === true;
+    } catch { return false; }
+  }
+
+  async function relayFailed(slot) {
+    if (slot.phase === "error") return;
+    slot.phase = "error";
+    renderStatus();
+    const run = slot.run;
+    const available = await relayAvailable();
+    if (!current(slot, run)) return;
+    if (!available) stop(slot);
+    message(slot, host.t(available ? "vercelFailed" : "vercelUnavailable"));
   }
 
   function current(slot, run) {
@@ -241,7 +343,8 @@ window.TCLVWebPlayer = function(host) {
     if (type === "hls") await host.ensureHls();
   }
 
-  async function start(slot, channel, bridge = false) {
+  // fallback is true once the direct attempt failed, or to reconnect a relay.
+  async function start(slot, channel, fallback = false) {
     const run = ++slot.run;
     slot.channel = channel;
     slot.pending = false;
@@ -253,9 +356,11 @@ window.TCLVWebPlayer = function(host) {
       return;
     }
     const mixed = location.protocol === "https:" && /^http:\/\//i.test(channel.url);
-    const useBridge = bridge || mode === "bridge" || (mixed && mode === "auto");
-    slot.route = useBridge ? "bridge" : "direct";
-    slot.phase = useBridge ? "connecting" : "starting";
+    const relayed = mode !== "direct" && (fallback || mixed || mode === "bridge" || mode === "vercel");
+    const route = !relayed ? "direct" : usesVercel() ? "vercel" : "bridge";
+    const useBridge = route === "bridge";
+    slot.route = route;
+    slot.phase = relayed ? "connecting" : "starting";
     renderStatus();
     if (mixed && mode === "direct") {
       originalStatus(channel.id, "error");
@@ -269,18 +374,21 @@ window.TCLVWebPlayer = function(host) {
         message(slot, host.t("reconnecting"));
         url = await client.openStream(channel.url);
         if (!current(slot, run)) return;
+      } else if (relayed) url = location.origin + RELAY_PATH + "?url=" + encodeURIComponent(channel.url);
+      if (relayed) {
+        // Relay addresses carry no file extension to detect the format from.
         mediaTypes.set(url, original.getStreamType(channel.url));
         if (mediaTypes.size > 100) mediaTypes.delete(mediaTypes.keys().next().value);
       }
       await preload(channel, slot);
       if (!current(slot, run)) return;
-      if (useBridge && slot.index === 0 && window.Hls?.isSupported?.() && !host.dom.video._tclvBridgeHls) {
-        // Native browser HLS cannot reliably consume rewritten loopback manifests.
-        // Keep that path for direct streams; use HLS.js for authenticated tickets.
+      if (relayed && slot.index === 0 && window.Hls?.isSupported?.() && !host.dom.video._tclvBridgeHls) {
+        // Native browser HLS cannot reliably consume rewritten relay manifests.
+        // Keep that path for direct streams; use HLS.js for relayed ones.
         const canPlayType = host.dom.video.canPlayType.bind(host.dom.video);
         host.dom.video.canPlayType = function(type) {
           if (client.isMediaUrl(this.src) && /mpegurl/i.test(type)) return "";
-          if (slots[0].route === "bridge" && /mpegurl/i.test(type)) return "";
+          if (["bridge", "vercel"].includes(slots[0].route) && /mpegurl/i.test(type)) return "";
           return canPlayType(type);
         };
         host.dom.video._tclvBridgeHls = true;
@@ -288,7 +396,7 @@ window.TCLVWebPlayer = function(host) {
       const routed = { ...channel, url };
       if (slot.index === 1) await original.playInSlot1(routed);
       else await original.playChannel(routed);
-      if (current(slot, run)) { slot.phase = "started"; renderStatus(); }
+      if (current(slot, run)) { slot.phase = "started"; slot.since = Date.now(); renderStatus(); }
       if (current(slot, run) && slot.index === 0 && host.state.artPlayer?.on) {
         host.state.artPlayer.on("video:error", () => { if (current(slot, run)) retry(slot); });
       }
@@ -303,13 +411,14 @@ window.TCLVWebPlayer = function(host) {
     } catch (error) {
       if (!current(slot, run)) return;
       if (useBridge) help(slot, error);
-      else if (mode === "auto" && !slot.retried) retry(slot);
+      else if (relayed) void relayFailed(slot);
+      else if (["auto", "auto-vercel"].includes(mode) && !slot.retried) retry(slot);
       else { slot.phase = "error"; renderStatus(); message(slot, host.t("html5Notice")); }
     }
   }
 
   function retry(slot) {
-    if (mode !== "auto" || slot.route !== "direct" || slot.retried || !current(slot, slot.run)) return;
+    if (!["auto", "auto-vercel"].includes(mode) || slot.route !== "direct" || slot.retried || !current(slot, slot.run)) return;
     slot.retried = true;
     void start(slot, slot.channel, true);
   }
@@ -322,11 +431,14 @@ window.TCLVWebPlayer = function(host) {
       constructor(config) {
         super(config);
         this.on(Hls.Events.ERROR, (_event, data) => {
-          if (data.type !== "networkError") return;
           const slot = host.state.hls === this ? slots[0] : host.state.hls2 === this ? slots[1] : null;
           if (!slot) return;
           const run = slot.run;
-          queueMicrotask(() => { if (current(slot, run)) retry(slot); });
+          queueMicrotask(() => {
+            if (!current(slot, run)) return;
+            if (slot.route === "vercel" && data.fatal) void relayFailed(slot);
+            else if (data.type === "networkError") retry(slot);
+          });
         });
       }
     }
@@ -352,6 +464,14 @@ window.TCLVWebPlayer = function(host) {
           const run = slot.run;
           queueMicrotask(() => { if (current(slot, run)) retry(slot); });
         });
+        // The relay ends a continuous stream before the hosting time limit.
+        // Reconnect it, unless it ended so soon that the provider closed it.
+        if (library.Events.LOADING_COMPLETE) player.on(library.Events.LOADING_COMPLETE, () => {
+          const slot = host.state[fields[0]] === player ? slots[0] : fields[1] && host.state[fields[1]] === player ? slots[1] : null;
+          if (!slot || slot.route !== "vercel" || slot.phase !== "started" || Date.now() - slot.since < 60000) return;
+          const run = slot.run;
+          queueMicrotask(() => { if (current(slot, run)) void start(slot, slot.channel, true); });
+        });
         return player;
       } };
     }
@@ -376,7 +496,12 @@ window.TCLVWebPlayer = function(host) {
   };
   host.canProxyStreams = () => false;
   host.needsProxy = () => false;
-  host.isBlockedWebStream = url => client.isMediaUrl(url) ? false : original.isBlockedWebStream(url);
+  host.isBlockedWebStream = url => client.isMediaUrl(url) ? false : isRelayUrl(url) ? !usesVercel() : original.isBlockedWebStream(url);
+  host.setStreamStatus = function(id, status) {
+    originalStatus(id, status);
+    const slot = slots[0];
+    if (status === "error" && slot.route === "vercel" && slot.channel?.id === id && current(slot, slot.run)) void relayFailed(slot);
+  };
   host.getStreamType = url => mediaTypes.get(url) || original.getStreamType(url);
   host.playChannel = function(channel) {
     slots[0].retried = false;
@@ -412,9 +537,11 @@ window.TCLVWebPlayer = function(host) {
   host.translateUi = function() { original.translateUi(); renderStatus(); };
   for (const [index, video] of [host.dom.video, host.dom.video2].entries()) {
     video?.addEventListener("error", () => {
+      if (!video.error) return;
       const slot = slots[index];
       if (!slot.channel || !current(slot, slot.run)) return;
-      if (slot.route === "bridge" || mode === "direct") { slot.phase = "error"; renderStatus(); }
+      if (slot.route === "vercel") void relayFailed(slot);
+      else if (slot.route === "bridge" || mode === "direct") { slot.phase = "error"; renderStatus(); }
       else retry(slot);
     });
   }
@@ -562,22 +689,34 @@ window.TCLVWebPlayer = function(host) {
     }
     await client.disconnect();
   });
-  modeSelect.addEventListener("change", () => {
-    mode = modeSelect.value;
+  function setMode(next, confirmed = false) {
+    // Spending the hosting's data limit always needs an explicit yes.
+    const declined = usesVercel(next) && !usesVercel() && !confirmed && (!window.confirm || !window.confirm(host.t("vercelConfirm")));
+    if (!declined) mode = next;
+    modeSelect.value = mode;
+    relayToggle.checked = usesVercel();
+    if (declined) return;
     host.safeSet("tclv.webVideoMode", mode);
+    renderStatus();
     for (const slot of slots) if (slot.channel && current(slot, slot.run)) {
       slot.retried = false;
       void start(slot, slot.channel);
     }
-  });
+  }
+  modeSelect.addEventListener("change", () => setMode(modeSelect.value));
+  relayToggle.addEventListener("change", () => setMode(relayToggle.checked ? "auto-vercel" : "auto"));
   query("#bridgeLocalOnly").addEventListener("click", () => {
     host.state.corsProxy = "";
     host.safeSet("tclv.corsProxy", "");
     host.dom.corsProxyInput.value = "";
+    if (usesVercel()) setMode("auto");
     noticeKey = "bridgeLocalOnlyDone";
     renderStatus();
   });
   host.translateUi();
   // Test/diagnostic status contains no provider URLs, session tokens, or pairing code.
-  window.TCLVWebBridge = { get status() { return client.status; }, get mode() { return mode; } };
+  window.TCLVWebBridge = {
+    get status() { return client.status; }, get mode() { return mode; },
+    get route() { return slots[0].route; }, get relayBytes() { return usage.bytes; },
+  };
 };

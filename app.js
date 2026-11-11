@@ -501,7 +501,12 @@ function channelEpgKeys(channel) { return [...new Set([channel.tvgId, channel.id
 function parseXml(text) { const doc = new DOMParser().parseFromString(text, "application/xml"); const error = doc.querySelector("parsererror"); if (error) throw new Error(error.textContent || "XML parse error"); return doc; }
 function textOf(root, selector) { return root.querySelector(selector)?.textContent?.trim() || ""; }
 function escapeHtml(value) { const span = document.createElement("span"); span.textContent = String(value || ""); return span.innerHTML; }
-function formatTime(date) { return new Intl.DateTimeFormat(state.language === "sk" ? "sk-SK" : "en-US", { hour: "2-digit", minute: "2-digit" }).format(date); }
+const timeFormatters = new Map();
+function formatTime(date) {
+  const locale = state.language === "sk" ? "sk-SK" : "en-US";
+  if (!timeFormatters.has(locale)) timeFormatters.set(locale, new Intl.DateTimeFormat(locale, { hour: "2-digit", minute: "2-digit" }));
+  return timeFormatters.get(locale).format(date);
+}
 function floorToHalfHour(date) { const next = new Date(date); next.setMinutes(date.getMinutes() < 30 ? 0 : 30, 0, 0); return next; }
 
 function parseM3U(text) { return globalThis.TCLVParsers.parseM3U(text); }
@@ -869,7 +874,7 @@ function setStreamStatus(channelId, status) {
   updateChannelStatusDot(channelId);
 }
 function updateChannelStatusDot(channelId) {
-  var card = dom.channelGrid.querySelector('[data-id="' + channelId + '"]');
+  var card = [...dom.channelGrid.querySelectorAll('.channel-card')].find(node => node.dataset.channelId === channelId);
   if (!card) return;
   var dot = card.querySelector('.status-dot');
   if (!dot) return;
@@ -880,24 +885,30 @@ function syncAndroidPlaybackActive(active) {
   if (getPlatform() !== 'android') return;
   window.Capacitor?.Plugins?.TCLVPlayer?.setPlaybackActive({ active: !!active }).catch(function() {});
 }
+const videoStatusBindings = new WeakMap();
 function bindVideoStatusEvents(videoEl, expectedId) {
+  videoStatusBindings.get(videoEl)?.abort();
+  const binding = new AbortController();
+  videoStatusBindings.set(videoEl, binding);
   var markOk = function() {
     if (state.selectedChannelId === expectedId) setStreamStatus(expectedId, 'ok');
   };
   var markError = function() {
-    if (state.selectedChannelId === expectedId) {
+    // load() clears MediaError but a previous source's error event may already
+    // be queued, including when retrying the same channel through another route.
+    if (videoEl.error && state.selectedChannelId === expectedId) {
       setStreamStatus(expectedId, 'error');
       syncAndroidPlaybackActive(false);
     }
   };
   ['playing', 'canplay', 'loadeddata'].forEach(function(eventName) {
-    videoEl.addEventListener(eventName, markOk, { once: true });
+    videoEl.addEventListener(eventName, markOk, { once: true, signal: binding.signal });
   });
   videoEl.addEventListener('timeupdate', function onTimeUpdate() {
     if (state.selectedChannelId === expectedId && videoEl.currentTime > 0) setStreamStatus(expectedId, 'ok');
     videoEl.removeEventListener('timeupdate', onTimeUpdate);
-  });
-  videoEl.addEventListener('error', markError, { once: true });
+  }, { signal: binding.signal });
+  videoEl.addEventListener('error', markError, { signal: binding.signal });
 }
 async function addXtreamSource() {
   var server = (dom.xtreamServer?.value || '').trim().replace(/\/+$/, '');
@@ -1092,7 +1103,8 @@ function renderChannels() {
   const channels = virtual ? allChannels.slice(start, start + CHANNEL_WINDOW_SIZE) : allChannels;
   const scrollTop = dom.channelGrid.scrollTop;
   const existing = new Map([...dom.channelGrid.querySelectorAll('.channel-card')].map(node => [node.dataset.channelId, node]));
-  for (const node of dom.channelGrid.querySelectorAll('.channel-card')) if (!channels.some(ch => ch.id === node.dataset.channelId)) node.remove();
+  const visibleIds = new Set(channels.map(channel => channel.id));
+  for (const [id, node] of existing) if (!visibleIds.has(id)) node.remove();
   let top = dom.channelGrid.querySelector('.channel-spacer-top'), bottom = dom.channelGrid.querySelector('.channel-spacer-bottom');
   if (!top) { top = document.createElement('div'); top.className = 'channel-spacer-top'; top.setAttribute('aria-hidden', 'true'); dom.channelGrid.prepend(top); }
   if (!bottom) { bottom = document.createElement('div'); bottom.className = 'channel-spacer-bottom'; bottom.setAttribute('aria-hidden', 'true'); dom.channelGrid.append(bottom); }
@@ -1857,7 +1869,7 @@ function isBlockedWebStream(url) {
   if (isNativePlatform()) return false;
   try {
     var parsed = new URL(url, location.origin);
-    if (parsed.origin === location.origin && parsed.pathname === '/api/proxy') return true;
+    if (parsed.origin === location.origin && ['/api/proxy', '/api/stream'].includes(parsed.pathname)) return true;
   } catch {}
   return getPlatform() === 'web-https' && isMixedContent(url) && !canProxyStreams();
 }

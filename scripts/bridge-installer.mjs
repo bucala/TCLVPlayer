@@ -19,8 +19,10 @@ function literal(value) { return String(value).replace(/\$/g, () => '$$').replac
 export function installerScript({ payload, output, version = BRIDGE_VERSION, files }) {
   if (!/^\d+\.\d+\.\d+$/.test(version)) throw new Error("Invalid bridge installer version");
   if (files.some(name => !/^[A-Za-z0-9][A-Za-z0-9 ._-]*$/.test(name))) throw new Error("Invalid installer payload filename");
-  const source = literal(payload.replace(/\\/g, '/'));
-  const destination = literal(output.replace(/\\/g, '/'));
+  // NSIS File uses Win32 file matching on Windows, which does not accept
+  // forward-slash absolute paths. Keep the build host's native separators.
+  const source = name => literal(join(payload, name));
+  const destination = literal(output);
   return `Unicode true
 !include "MUI2.nsh"
 !include "LogicLib.nsh"
@@ -43,7 +45,7 @@ VIAddVersionKey /LANG=1033 "LegalCopyright" "TCLVPlayer contributors"
 !define MUI_WELCOMEPAGE_TITLE "TCLV Bridge"
 !define MUI_WELCOMEPAGE_TEXT "Play web video through this computer, without a remote video proxy.$\\r$\\n$\\r$\\nInstalls for your Windows account. No administrator password or separate Node.js installation is needed.$\\r$\\n$\\r$\\nKeep the bridge window open while watching. It does not start automatically with Windows."
 !insertmacro MUI_PAGE_WELCOME
-!insertmacro MUI_PAGE_LICENSE "${source}/LICENSE"
+!insertmacro MUI_PAGE_LICENSE "${source("LICENSE")}"
 !insertmacro MUI_PAGE_INSTFILES
 !define MUI_FINISHPAGE_RUN
 !define MUI_FINISHPAGE_RUN_TEXT "Start TCLV Bridge and open the web player"
@@ -77,7 +79,7 @@ FunctionEnd
 
 Section "TCLV Bridge" Main
   SetOutPath "$INSTDIR"
-${files.map(name => `  File "/oname=${name}" "${source}/${literal(name)}"`).join('\n')}
+${files.map(name => `  File "/oname=${name}" "${source(name)}"`).join('\n')}
   WriteUninstaller "$INSTDIR\\Uninstall.exe"
   CreateDirectory "$SMPROGRAMS\\TCLV Bridge"
   CreateShortCut "$SMPROGRAMS\\TCLV Bridge\\TCLV Bridge.lnk" "$INSTDIR\\node.exe" '"$INSTDIR\\start.mjs" --open' "$INSTDIR\\node.exe" 0

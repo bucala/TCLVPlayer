@@ -2,7 +2,7 @@
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 const { app, BrowserWindow, session, Menu, ipcMain, dialog } = require('electron');
-const { execFile } = require('node:child_process');
+const { spawn } = require('node:child_process');
 const WEB_ROOT = path.resolve(__dirname, '../../dist/web');
 const APP_URL = pathToFileURL(path.join(WEB_ROOT, 'index.html')).href;
 const players = new Map();
@@ -52,7 +52,7 @@ ipcMain.handle('open-external-player', async (event, data) => {
   const command = process.env[data.player === 'mpv' ? 'TCLV_MPV_PATH' : 'TCLV_VLC_PATH'] || data.player;
   const previous = players.get(data.player); if (previous && !previous.killed) previous.kill();
   return new Promise((resolve, reject) => {
-    const child = execFile(command, data.player === 'mpv' ? ['--force-window', '--', url.href] : ['--', url.href], { windowsHide: false });
+    const child = spawn(command, data.player === 'mpv' ? ['--force-window', '--', url.href] : ['--', url.href], { windowsHide: false, stdio: 'ignore' });
     child.once('error', () => reject(new Error('Prehrávač sa nepodarilo spustiť. Skontrolujte inštaláciu a cestu k VLC/mpv.')));
     child.once('spawn', () => { players.set(data.player, child); resolve({ started: true }); });
     child.once('exit', () => { if (players.get(data.player) === child) players.delete(data.player); });
