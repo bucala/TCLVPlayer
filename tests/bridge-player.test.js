@@ -488,6 +488,36 @@ describe("opt-in playback through Vercel", () => {
     await off.host.playChannel(channel);
     expect(off.window.TCLVWebBridge.diagnostics).toEqual([]);
   });
+  it("names an unsupported codec instead of blaming the Vercel route", async () => {
+    const { host, ui, window, fetch } = player();
+    chooseMode(ui, "vercel");
+    fetch.mockResolvedValue({ ok: true, json: async () => ({ service: "tclv-video-relay", enabled: true }) });
+    await host.playChannel(channel);
+    const hls = new window.Hls();
+    host.state.hls = hls;
+    hls.error({ type: "mediaError", details: "bufferAddCodecError", fatal: true,
+      reason: "Failed to execute 'addSourceBuffer' on 'MediaSource': The type provided ('video/mp4;codecs=hvc1.1.6.L0.B0') is unsupported." });
+    // The player reports the error and shows its generic message synchronously.
+    host.setStreamStatus(channel.id, "error");
+    host.showMessage("streamUnavailable", 0);
+    await settle();
+    expect(host.showMessage).toHaveBeenLastCalledWith("codecUnsupported", 0);
+    expect(host.showMessage).not.toHaveBeenCalledWith("vercelFailed", 0);
+    expect(fetch).not.toHaveBeenCalled();
+
+    const mpegts = player();
+    const handlers = new Map();
+    mpegts.window.mpegts = {
+      Events: { ERROR: "error" }, ErrorTypes: { NETWORK_ERROR: "NetworkError", MEDIA_ERROR: "MediaError" },
+      createPlayer: () => ({ on: (name, callback) => handlers.set(name, callback) }),
+    };
+    chooseMode(mpegts.ui, "vercel");
+    await mpegts.host.playChannel({ ...channel, url: "https://provider.example/live.ts" });
+    mpegts.host.state.mpegtsPlayer = mpegts.window.mpegts.createPlayer();
+    handlers.get("error")("MediaError", "MediaMSEError", { msg: "Failed to execute 'addSourceBuffer' on 'MediaSource': The type provided ('video/mp4;codecs=hev1.1.6.L120.90') is unsupported." });
+    await settle();
+    expect(mpegts.host.showMessage).toHaveBeenLastCalledWith("codecUnsupported", 0);
+  });
   it("does not probe addresses whose extension already names the format", async () => {
     const { host, ui, fetch } = player();
     chooseMode(ui, "vercel");

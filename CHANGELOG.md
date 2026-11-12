@@ -14,6 +14,7 @@ Všetky významné zmeny v projekte sú dokumentované v tomto súbore.
 - Kanály bez prípony v URL (napr. Xtream `…/user/pass/1234`) sa cez Vercel prehrávali ako HLS. Živý MPEG-TS sa potom ~20 s sťahoval ako nekonečný playlist a skončil chybou. Webový prehrávač si formát raz overí z hlavičiek relay a relay pri generickom `application/octet-stream` rozpozná kontajner z prvých bajtov.
 - ArtPlayer prehráva MPEG-TS a FLV cez mpegts.js; predtým ich odovzdal prehliadaču, ktorý ich nevie prehrať.
 - Relay posiela poskytovateľovi `Referer` a `Origin` jeho vlastnej adresy, ako pôvodný proxy, s ktorým tieto streamy hrali. Niektoré IPTV panely a CDN požiadavky bez nich odmietajú.
+- Keď prehliadač nevie dekódovať kodek streamu (typicky H.265/HEVC v Chrome bez hardvérovej podpory), web to povie priamo. Predtým hlásil, že zlyhal Vercel alebo poskytovateľ, hoci sa stream načítal správne.
 
 ### Pridané
 

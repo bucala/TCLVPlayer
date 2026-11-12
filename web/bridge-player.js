@@ -106,6 +106,7 @@ window.TCLVWebPlayer = function(host) {
     vercelFailed: "Stream sa cez Vercel nepodarilo prehrať. Poskytovateľ môže blokovať dátové centrá alebo viazať stream na vašu IP adresu; vtedy použite lokálneho pomocníka. Presný dôvod ukáže Diagnostika prehrávania v Nastaveniach.",
     diagTitle: "Diagnostika prehrávania", diagToggle: "Zaznamenávať priebeh prehrávania",
     diagHint: "Záznam ostáva v tomto prehliadači. Neobsahuje adresy streamov, mená ani heslá, iba stavy, typy, časy a chyby prehrávača. Zapnite, spustite kanál a záznam skopírujte.",
+    codecUnsupported: "Tento kanál používa kodek {codec}, ktorý tento prehliadač nevie dekódovať. Stream sa načítal správne, nejde o chybu Vercelu ani poskytovateľa. Skúste prehliadač so zapnutou hardvérovou akceleráciou a podporou HEVC (napr. Edge s HEVC Video Extensions alebo Safari), prípadne aplikáciu pre Android alebo Windows.",
     diagCopy: "Kopírovať záznam", diagClear: "Vymazať", diagEmpty: "Zatiaľ bez záznamu. Zapnite diagnostiku a spustite kanál.",
   });
   Object.assign(labels.en, {
@@ -125,6 +126,7 @@ window.TCLVWebPlayer = function(host) {
     vercelFailed: "The stream could not play through Vercel. The provider may block data centres or tie the stream to your IP address; use the local helper for it. Playback diagnostics in Settings show the exact reason.",
     diagTitle: "Playback diagnostics", diagToggle: "Record playback steps",
     diagHint: "The record stays in this browser. It contains no stream addresses, user names or passwords, only statuses, types, timings and player errors. Turn it on, start the channel and copy the record.",
+    codecUnsupported: "This channel uses the {codec} codec, which this browser cannot decode. The stream loaded correctly; this is not a Vercel or provider fault. Try a browser with hardware acceleration and HEVC support (for example Edge with HEVC Video Extensions, or Safari), or the Android or Windows app.",
     diagCopy: "Copy record", diagClear: "Clear", diagEmpty: "Nothing recorded yet. Turn on diagnostics and start a channel.",
   });
   Object.assign(host.translations.sk, labels.sk, {
@@ -363,7 +365,27 @@ window.TCLVWebPlayer = function(host) {
     } catch { return false; }
   }
 
+  // MSE rejects the codec before any frame plays; retrying or blaming the
+  // route would only waste transfer.
+  function unsupportedCodec(text) {
+    const match = String(text || "").match(/codecs?="?([\w.]+)/i)?.[1] || "";
+    if (/^(?:hvc1|hev1)/i.test(match) || /\b(?:hevc|h\.?265)\b/i.test(text)) return "H.265/HEVC";
+    if (/^(?:av01)/i.test(match)) return "AV1";
+    return /addSourceBuffer|not supported|unsupported/i.test(text) && match ? match.replace(/[^\w.]/g, "") : "";
+  }
+
+  function codecFailed(slot) {
+    if (slot.phase === "error") return;
+    slot.phase = "error";
+    renderStatus();
+    trace("codec-unsupported", { slot: slot.index, codec: slot.codec });
+    const run = slot.run;
+    // The player shows its generic stream error right after reporting it.
+    queueMicrotask(() => { if (current(slot, run)) message(slot, host.t("codecUnsupported").replace("{codec}", slot.codec)); });
+  }
+
   async function relayFailed(slot) {
+    if (slot.codec) { codecFailed(slot); return; }
     if (slot.phase === "error") return;
     slot.phase = "error";
     renderStatus();
@@ -454,6 +476,7 @@ window.TCLVWebPlayer = function(host) {
     const route = !relayed ? "direct" : usesVercel() ? "vercel" : "bridge";
     const useBridge = route === "bridge";
     slot.route = route;
+    slot.codec = "";
     slot.phase = relayed ? "connecting" : "starting";
     if (diag.on) {
       diag.seen = 0;
@@ -547,9 +570,13 @@ window.TCLVWebPlayer = function(host) {
           const slot = host.state.hls === this ? slots[0] : host.state.hls2 === this ? slots[1] : null;
           if (!slot) return;
           const run = slot.run;
+          if (data?.details === "bufferAddCodecError" || data?.type === "mediaError") {
+            slot.codec = unsupportedCodec(data?.reason || data?.error?.message) || slot.codec;
+          }
           queueMicrotask(() => {
             if (!current(slot, run)) return;
-            if (slot.route === "vercel" && data.fatal) void relayFailed(slot);
+            if (slot.codec && data.fatal) codecFailed(slot);
+            else if (slot.route === "vercel" && data.fatal) void relayFailed(slot);
             else if (data.type === "networkError") retry(slot);
           });
         });
@@ -572,10 +599,16 @@ window.TCLVWebPlayer = function(host) {
         const player = library.createPlayer(...args);
         player.on(library.Events.ERROR, (type, detail, info) => {
           trace(libraryName + " error", { type, detail, info: info?.msg || info?.code });
-          if (type !== library.ErrorTypes.NETWORK_ERROR) return;
           const slot = host.state[fields[0]] === player ? slots[0] : fields[1] && host.state[fields[1]] === player ? slots[1] : null;
           if (!slot) return;
           const run = slot.run;
+          const codec = type !== library.ErrorTypes.NETWORK_ERROR && unsupportedCodec(info?.msg);
+          if (codec) {
+            slot.codec = codec;
+            queueMicrotask(() => { if (current(slot, run)) codecFailed(slot); });
+            return;
+          }
+          if (type !== library.ErrorTypes.NETWORK_ERROR) return;
           queueMicrotask(() => { if (current(slot, run)) retry(slot); });
         });
         if (library.Events.MEDIA_INFO) player.on(library.Events.MEDIA_INFO, info => {
