@@ -166,8 +166,9 @@ async function close(server) {
       assert.ok(providerRequests.some(request => request.path === '/live/seg-0.ts?' + fixtureKey), 'Segments reach the provider through the relay');
       for (const request of providerRequests) {
         assert.equal(request.headers.cookie, undefined);
-        assert.equal(request.headers.referer, undefined);
-        assert.equal(request.headers.origin, undefined);
+        // The provider sees its own origin, never the viewer's page.
+        assert.equal(request.headers.referer, 'http://provider.example/');
+        assert.equal(request.headers.origin, 'http://provider.example');
         assert.equal(request.headers['accept-encoding'], 'identity');
       }
     }

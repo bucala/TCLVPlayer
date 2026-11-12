@@ -460,6 +460,34 @@ describe("opt-in playback through Vercel", () => {
       expect(underlying.play).toHaveBeenCalledWith({ ...xtream, url });
     }
   });
+  it("records opt-in playback diagnostics without stream addresses or credentials", async () => {
+    let report;
+    class PerformanceObserver {
+      constructor(callback) { report = entries => callback({ getEntries: () => entries }); }
+      observe() {}
+    }
+    const { host, ui, fetch, window } = player({ saved: { "tclv.debug": "1" }, extend: window => { window.PerformanceObserver = PerformanceObserver; } });
+    expect(ui.querySelector("#diagToggle").checked).toBe(true);
+    chooseMode(ui, "vercel");
+    const xtream = { ...channel, url: "http://provider.example/live/user/pass/1234" };
+    fetch.mockResolvedValue({ ok: true, status: 200, headers: new Headers({ "content-type": "video/mp2t", "server-timing": 'relay;desc="media video/mp2t"' }) });
+    await host.playChannel(xtream);
+    report([{ name: relayed(xtream.url), initiatorType: "xmlhttprequest", responseStatus: 200, contentType: "video/mp2t", transferSize: 64000, duration: 812,
+      serverTiming: [{ name: "provider", description: "200 application/octet-stream", duration: 140 }] }]);
+    new window.Hls().error({ type: "networkError", details: "fragLoadError", fatal: true, reason: "failed " + relayed(xtream.url) });
+    const record = window.TCLVWebBridge.diagnostics.join("\n");
+    expect(record).toMatch(/start slot=0 route=vercel .*scheme=http: .*extension=no/);
+    expect(record).toMatch(/probe status=200 type=video\/mp2t/);
+    expect(record).toContain("format type=ts");
+    expect(record).toMatch(/request by=xmlhttprequest status=200 type=video\/mp2t kB=64 ms=812 server=provider:200 application\/octet-stream\/140ms/);
+    expect(record).toContain("hls error type=networkError details=fragLoadError fatal=true reason=failed [url]");
+    expect(record).not.toMatch(/provider\.example|user\/pass|1234/);
+    expect(ui.querySelector("#diagLog").textContent).toBe(record);
+
+    const off = player();
+    await off.host.playChannel(channel);
+    expect(off.window.TCLVWebBridge.diagnostics).toEqual([]);
+  });
   it("does not probe addresses whose extension already names the format", async () => {
     const { host, ui, fetch } = player();
     chooseMode(ui, "vercel");

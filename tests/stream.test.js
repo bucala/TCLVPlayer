@@ -218,7 +218,29 @@ describe("opt-in Vercel video relay", () => {
     expect(response.headers["x-provider-secret"]).toBeUndefined();
     const [url, init] = request.mock.calls[0];
     expect(url).toBe("https://provider.example/movie.ts");
-    expect(init.headers).toEqual({ "User-Agent": "TestPlayer/1.0", Accept: "*/*", "Accept-Encoding": "identity", Range: "bytes=0-99", "If-Range": '"v1"' });
+    expect(init.headers).toEqual({
+      "User-Agent": "TestPlayer/1.0", Accept: "*/*", "Accept-Encoding": "identity", Range: "bytes=0-99", "If-Range": '"v1"',
+      Referer: "https://provider.example/", Origin: "https://provider.example",
+    });
+  });
+
+  it("describes what the provider answered in Server-Timing without any address", async () => {
+    const { get } = await relay({ env: { VERCEL_REGION: "fra1" }, request: async () => new Response(packets, { headers: { "content-type": "application/octet-stream" } }) });
+    const response = await get(relayUrl("https://provider.example/live/user/pass/1234"));
+    const timing = response.headers["server-timing"];
+    expect(timing).toMatch(/^relay;desc="media video\/mp2t";dur=\d+, region;desc="fra1", provider;desc="200 application\/octet-stream";dur=\d+, hops;desc="0"$/);
+    expect(timing).not.toMatch(/provider\.example|user|pass/);
+
+    const refused = await relay({ request: async () => { throw new TypeError("fetch failed", { cause: Object.assign(new Error("connect ECONNREFUSED 93.184.216.34:80"), { code: "ECONNREFUSED" }) }); } });
+    const failed = await refused.get(relayUrl("https://provider.example/live.ts"));
+    expect(failed.json()).toEqual({ error: "Provider request failed", hint: "provider", detail: "ECONNREFUSED" });
+    expect(failed.headers["server-timing"]).toMatch(/^relay;desc="error ECONNREFUSED"/);
+    expect(failed.headers["server-timing"]).not.toContain("93.184.216.34");
+
+    const rejected = await relay({ request: async () => new Response("denied", { status: 403, headers: { "content-type": "text/html" } }) });
+    const forbidden = await rejected.get(relayUrl("https://provider.example/live.ts"));
+    expect(forbidden.status).toBe(403);
+    expect(forbidden.headers["server-timing"]).toMatch(/relay;desc="error provider".*provider;desc="403 text\/html"/);
   });
 
   it("never passes provider URLs through in a partial HLS manifest", async () => {

@@ -189,7 +189,7 @@ export function createRelay({
       if (signal.aborted) throw relayError(499, "Viewer closed the stream");
       const upstream = await request(current.href, { headers, dispatcher, redirect: "manual", signal });
       const location = REDIRECTS.has(upstream.status) ? upstream.headers.get("location") : null;
-      if (!location) return { upstream, finalUrl: current };
+      if (!location) return { upstream, finalUrl: current, hops: hop };
       await upstream.body?.cancel().catch(() => {});
       current = parseTarget(new URL(location, current).href);
     }
@@ -197,6 +197,16 @@ export function createRelay({
   }
 
   return async function handler(req, res) {
+    const started = now();
+    const provider = {};
+    // Server-Timing reaches the page through Resource Timing, so the player's
+    // diagnostics can show what the provider answered without any URL.
+    function timing(kind) {
+      const clean = value => String(value).replace(/[^\x20-\x7e]|["\\]/g, "").slice(0, 80);
+      const parts = [`relay;desc="${clean(kind)}";dur=${now() - started}`, `region;desc="${clean(env.VERCEL_REGION || "local")}"`];
+      if (provider.status) parts.push(`provider;desc="${clean(provider.status + " " + (provider.type || "-"))}";dur=${provider.ms}`, `hops;desc="${provider.hops}"`);
+      return parts.join(", ");
+    }
     res.setHeader("Cache-Control", "private, no-store");
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("Content-Security-Policy", "default-src 'none'; sandbox; frame-ancestors 'none'");
@@ -244,6 +254,7 @@ export function createRelay({
     const admission = admit(clientKey(req));
     if (!admission.entry) {
       res.setHeader("Retry-After", String(admission.retryAfter));
+      res.setHeader("Server-Timing", timing("error relay-limit"));
       send(res, 429, { error: "Video relay limit reached", hint: "relay-limit" });
       return;
     }
@@ -272,7 +283,12 @@ export function createRelay({
     res.once("close", cancel);
 
     try {
-      const headers = { "User-Agent": userAgent(req), Accept: "*/*", "Accept-Encoding": "identity" };
+      // Some IPTV panels and CDNs refuse requests without the provider's own
+      // Referer/Origin; the relay that played those streams before sent both.
+      const headers = {
+        "User-Agent": userAgent(req), Accept: "*/*", "Accept-Encoding": "identity",
+        Referer: target.origin + "/", Origin: target.origin,
+      };
       const range = req.headers.range;
       if (typeof range === "string" && /^bytes=(?:\d+-\d*|-\d+)$/.test(range)) {
         headers.Range = range;
@@ -280,9 +296,10 @@ export function createRelay({
         if (typeof condition === "string" && condition.length <= 256) headers["If-Range"] = condition;
       }
 
-      const { upstream, finalUrl } = await open(target, headers, controller.signal);
+      const { upstream, finalUrl, hops } = await open(target, headers, controller.signal);
       clearTimeout(headersTimer);
       const status = upstream.status;
+      Object.assign(provider, { status, type: upstream.headers.get("content-type"), ms: now() - started, hops });
       reader = upstream.body?.getReader();
       if (controller.signal.aborted) throw relayError(499, "Viewer closed the stream");
       if (status < 200 || status >= 300) {
@@ -315,6 +332,7 @@ export function createRelay({
         } catch { throw relayError(502, "Unsupported HLS manifest", "unsupported-manifest"); }
         res.statusCode = 200;
         res.setHeader("Content-Type", "application/vnd.apple.mpegurl; charset=utf-8");
+        res.setHeader("Server-Timing", timing("manifest"));
         res.end(rewritten);
         return;
       }
@@ -326,7 +344,7 @@ export function createRelay({
         sniffMedia(head) || (whole && sniffed === 16 ? "application/octet-stream" : "");
       if (!media) throw relayError(415, "Only video and audio streams can be relayed", "not-media");
 
-      const outgoing = { "Content-Type": media };
+      const outgoing = { "Content-Type": media, "Server-Timing": timing("media " + media) };
       const encoding = (upstream.headers.get("content-encoding") || "identity").toLowerCase();
       for (const name of PASSTHROUGH) {
         const value = upstream.headers.get(name);
@@ -345,10 +363,15 @@ export function createRelay({
       if (res.destroyed) return;
       if (res.headersSent) { if (streamLimit) res.end(); else res.destroy(); return; }
       if (error?.statusCode) {
+        res.setHeader("Server-Timing", timing("error " + (error.hint || error.statusCode)));
         send(res, error.statusCode, { error: error.message, hint: error.hint });
         return;
       }
-      send(res, timedOut ? 504 : 502, { error: timedOut ? "Provider timed out" : "Provider request failed", hint: "provider" });
+      // A network code such as UND_ERR_CONNECT_TIMEOUT or ECONNRESET tells a
+      // blocked data centre apart from a provider outage; it holds no URL.
+      const detail = String(error?.cause?.code || error?.code || error?.name || "error").replace(/[^\w.-]/g, "").slice(0, 40);
+      res.setHeader("Server-Timing", timing("error " + (timedOut ? "timeout" : detail)));
+      send(res, timedOut ? 504 : 502, { error: timedOut ? "Provider timed out" : "Provider request failed", hint: "provider", detail: timedOut ? "timeout" : detail });
     } finally {
       clearTimeout(headersTimer);
       clearTimeout(streamTimer);

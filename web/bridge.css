@@ -23,6 +23,7 @@
 .bridge-details { border-top: 1px solid #45454d; padding-top: 3px; }
 .bridge-details > summary { padding: 12px 2px; min-height: 44px; box-sizing: border-box; color: #d7d7de; cursor: pointer; font-size: 13px; line-height: 1.5; }
 .bridge-details[open] > :not(summary) { margin-top: 10px; }
+.bridge-diag-log { max-height: 220px; overflow: auto; margin: 0; padding: 8px; border: 1px solid #45454d; border-radius: 6px; background: #111114; color: #d7d7de; font: 11px/1.45 ui-monospace, Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
 .bridge-device-hint { border-left: 3px solid #ed7338; padding-left: 10px; }
 .bridge-connected { padding: 14px; border: 1px solid #54896c; border-radius: 12px; background: #202b24; }
 .bridge-connected button { justify-self: start; }
