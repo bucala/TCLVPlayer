@@ -62,9 +62,10 @@ function player({ configuredProxy = '/api/proxy?url=', saved = {}, extend = () =
     }
   }
   class Hls {
-    static Events = { ERROR: "error", FRAG_LOADED: "hlsFragLoaded" };
+    static Events = { ERROR: "error" };
+    static DefaultConfig = { loader: class { load(context, _settings, callbacks) { callbacks.onSuccess({ data: context.payload }, {}, context); } } };
     static isSupported() { return true; }
-    constructor() { this.handlers = new Map(); }
+    constructor(config) { this.config = config; this.handlers = new Map(); }
     on(event, handler) { this.handlers.set(event, handler); }
     error(data) { this.handlers.get("error")("error", data); }
   }
@@ -489,9 +490,11 @@ describe("opt-in playback through Vercel", () => {
     segment.set([0x47, 0x40, 0x00, 0x10, 0x00, 0x00, 0xb0, 0x0d, 0x00, 0x01, 0xc1, 0x00, 0x00, 0x00, 0x01, 0xf0, 0x00, 0, 0, 0, 0], 0);
     segment.set([0x47, 0x50, 0x00, 0x10, 0x00, 0x02, 0xb0, 0x17, 0x00, 0x01, 0xc1, 0x00, 0x00, 0xe1, 0x00, 0xf0, 0x00,
       0x1b, 0xe1, 0x00, 0xf0, 0x00, 0x0f, 0xe1, 0x01, 0xf0, 0x00, 0, 0, 0, 0], 188);
-    const hls = new window.Hls();
-    hls.handlers.get("hlsFragLoaded")("hlsFragLoaded", { payload: segment.buffer });
-    hls.handlers.get("hlsFragLoaded")("hlsFragLoaded", { payload: new Uint8Array([1, 2, 3]).buffer });
+    const { fLoader: Loader } = new window.Hls({}).config;
+    const delivered = vi.fn();
+    for (const payload of [segment.buffer, new Uint8Array([1, 2, 3]).buffer, segment.buffer]) new Loader().load({ payload }, {}, { onSuccess: delivered });
+    // The player still receives every segment unchanged.
+    expect(delivered.mock.calls.map(call => call[0].data)).toEqual([segment.buffer, expect.any(ArrayBuffer), segment.buffer]);
     const segments = window.TCLVWebBridge.diagnostics.filter(line => line.includes(" segment "));
     expect(segments).toEqual([expect.stringContaining("segment kB=0 ts=0x1b:H.264,0x0f:AAC"), expect.stringContaining("segment kB=0 ts=not MPEG-TS")]);
 

@@ -590,17 +590,29 @@ window.TCLVWebPlayer = function(host) {
     if (!Hls || Hls === installedHls) return Hls;
     class WebHls extends Hls {
       constructor(config) {
+        // hls.js hands segment bytes to its worker before FRAG_LOADED fires, so
+        // the program table is read in the fragment loader instead.
+        let inspected = 0;
+        const Loader = config?.fLoader || Hls.DefaultConfig?.loader;
+        if (diag.on && Loader) {
+          config = { ...config, fLoader: class extends Loader {
+            load(context, settings, callbacks) {
+              super.load(context, settings, { ...callbacks, onSuccess: (response, ...rest) => {
+                const data = response?.data;
+                if (inspected < 2 && data?.byteLength) {
+                  inspected++;
+                  trace("segment", { kB: Math.round(data.byteLength / 1000), ts: tsStreams(data) || "not MPEG-TS" });
+                }
+                callbacks.onSuccess(response, ...rest);
+              } });
+            }
+          } };
+        }
         super(config);
         if (Hls.Events.MANIFEST_PARSED) this.on(Hls.Events.MANIFEST_PARSED, (_event, data) => {
           const level = data?.levels?.[0];
           trace("hls manifest", { levels: data?.levels?.length, codecs: level?.codecs || [level?.videoCodec, level?.audioCodec].filter(Boolean).join(","),
             size: level?.width ? level.width + "x" + level.height : "" });
-        });
-        let inspected = 0;
-        if (Hls.Events.FRAG_LOADED) this.on(Hls.Events.FRAG_LOADED, (_event, data) => {
-          if (!diag.on || inspected >= 2 || !data?.payload) return;
-          inspected++;
-          trace("segment", { kB: Math.round(data.payload.byteLength / 1000), ts: tsStreams(data.payload) || "not MPEG-TS" });
         });
         if (Hls.Events.BUFFER_CODECS) this.on(Hls.Events.BUFFER_CODECS, (_event, data) => {
           trace("hls codecs", { video: data?.video?.codec, audio: data?.audio?.codec || data?.audiovideo?.codec });
