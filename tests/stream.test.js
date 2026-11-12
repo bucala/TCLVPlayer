@@ -13,7 +13,7 @@ const video = { "content-type": "video/mp2t" };
 const relayUrl = target => "/api/stream?url=" + encodeURIComponent(target);
 
 async function relay(options = {}) {
-  const handler = createRelay({ resolve: publicDns, env: {}, ...options });
+  const handler = createRelay({ resolve: publicDns, env: {}, log: () => {}, ...options });
   const server = http.createServer((req, res) => { void handler(req, res); });
   await new Promise(resolve => server.listen(0, "127.0.0.1", resolve));
   servers.push(server);
@@ -230,6 +230,14 @@ describe("opt-in Vercel video relay", () => {
     const timing = response.headers["server-timing"];
     expect(timing).toMatch(/^relay;desc="media video\/mp2t";dur=\d+, region;desc="fra1", provider;desc="200 application\/octet-stream";dur=\d+, hops;desc="0"$/);
     expect(timing).not.toMatch(/provider\.example|user|pass/);
+
+    const logged = [];
+    const logging = await relay({ log: line => logged.push(line), request: async () => new Response(packets, { headers: video }) });
+    await logging.get(relayUrl("https://provider.example/live/user/pass/1234.ts"));
+    await until(() => logged.length === 2);
+    expect(logged[0]).toMatch(/^\[relay\] relay;desc="media video\/mp2t"/);
+    expect(logged[1]).toMatch(/^\[relay\] end provider-closed kB=0 dur=\d+$/);
+    expect(logged.join(" ")).not.toMatch(/provider\.example|user|pass/);
 
     const refused = await relay({ request: async () => { throw new TypeError("fetch failed", { cause: Object.assign(new Error("connect ECONNREFUSED 93.184.216.34:80"), { code: "ECONNREFUSED" }) }); } });
     const failed = await refused.get(relayUrl("https://provider.example/live.ts"));

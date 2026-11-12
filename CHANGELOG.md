@@ -17,7 +17,7 @@ Všetky významné zmeny v projekte sú dokumentované v tomto súbore.
 
 ### Pridané
 
-- Diagnostika prehrávania v Nastaveniach › Sieť (alebo `?debug=1`): zaznamená trasu, zistený formát, odpovede relay, chyby hls.js/mpegts.js a udalosti videa bez adries streamov a prihlasovacích údajov. Relay pridáva do odpovedí `Server-Timing` so stavom a typom odpovede poskytovateľa, regiónom a sieťovým kódom chyby.
+- Diagnostika prehrávania v Nastaveniach › Sieť (alebo `?debug=1`): zaznamená trasu, zistený formát, odpovede relay, chyby hls.js/mpegts.js a udalosti videa bez adries streamov a prihlasovacích údajov. Relay pridáva do odpovedí `Server-Timing` so stavom a typom odpovede poskytovateľa, regiónom a sieťovým kódom chyby. Rovnaký riadok, aj s dôvodom a objemom ukončeného streamu, zapisuje do runtime logov Vercelu; diagnostika prehliadača sa zrkadlí do konzoly ako `[TCLV diag]`.
 
 ## [1.4.0] — 2026-11-11
 

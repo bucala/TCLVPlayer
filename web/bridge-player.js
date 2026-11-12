@@ -221,7 +221,9 @@ window.TCLVWebPlayer = function(host) {
     if (!diag.on) return;
     const details = Object.entries(fields).filter(([, value]) => value !== undefined && value !== null && value !== "")
       .map(([key, value]) => key + "=" + redact(value)).join(" ");
-    diag.lines.push(`+${((Date.now() - diag.since) / 1000).toFixed(1)}s ${event}${details ? " " + details : ""}`);
+    const line = `+${((Date.now() - diag.since) / 1000).toFixed(1)}s ${event}${details ? " " + details : ""}`;
+    diag.lines.push(line);
+    window.console?.info?.("[TCLV diag] " + line);
     if (diag.lines.length > 300) diag.lines.shift();
     renderDiag();
   }

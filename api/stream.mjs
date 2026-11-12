@@ -126,6 +126,7 @@ export function createRelay({
   request = providerFetch,
   env = process.env,
   now = Date.now,
+  log = message => console.log(message),
   limits: limitOverrides,
 } = {}) {
   const limits = { ...DEFAULT_LIMITS, ...limitOverrides };
@@ -205,8 +206,12 @@ export function createRelay({
       const clean = value => String(value).replace(/[^\x20-\x7e]|["\\]/g, "").slice(0, 80);
       const parts = [`relay;desc="${clean(kind)}";dur=${now() - started}`, `region;desc="${clean(env.VERCEL_REGION || "local")}"`];
       if (provider.status) parts.push(`provider;desc="${clean(provider.status + " " + (provider.type || "-"))}";dur=${provider.ms}`, `hops;desc="${provider.hops}"`);
-      return parts.join(", ");
+      const value = parts.join(", ");
+      // Runtime logs show each outcome; the line holds no provider address.
+      log("[relay] " + value);
+      return value;
     }
+    let sent = 0;
     res.setHeader("Cache-Control", "private, no-store");
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("Content-Security-Policy", "default-src 'none'; sandbox; frame-ancestors 'none'");
@@ -352,16 +357,23 @@ export function createRelay({
         if (value && (encoding === "identity" || !["content-length", "content-range"].includes(name))) outgoing[name] = value;
       }
       res.writeHead(status, outgoing);
-      for (const chunk of first) await write(res, chunk, limits.idleMs);
+      for (const chunk of first) { await write(res, chunk, limits.idleMs); sent += chunk.byteLength; }
       while (reader) {
         const { done, value } = await read();
         if (done) break;
         await write(res, value, limits.idleMs);
+        sent += value.byteLength;
       }
       res.end();
+      log(`[relay] end provider-closed kB=${Math.round(sent / 1000)} dur=${now() - started}`);
     } catch (error) {
       if (res.destroyed) return;
-      if (res.headersSent) { if (streamLimit) res.end(); else res.destroy(); return; }
+      if (res.headersSent) {
+        const reason = streamLimit ? "time-limit" : timedOut ? "provider-idle" : controller.signal.aborted ? "viewer-closed" : "provider-error";
+        log(`[relay] end ${reason} kB=${Math.round(sent / 1000)} dur=${now() - started}`);
+        if (streamLimit) res.end(); else res.destroy();
+        return;
+      }
       if (error?.statusCode) {
         res.setHeader("Server-Timing", timing("error " + (error.hint || error.statusCode)));
         send(res, error.statusCode, { error: error.message, hint: error.hint });
