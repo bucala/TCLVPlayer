@@ -477,7 +477,7 @@ describe("opt-in playback through Vercel", () => {
       serverTiming: [{ name: "provider", description: "200 application/octet-stream", duration: 140 }] }]);
     new window.Hls().error({ type: "networkError", details: "fragLoadError", fatal: true, reason: "failed " + relayed(xtream.url) });
     const record = window.TCLVWebBridge.diagnostics.join("\n");
-    expect(record).toMatch(/start slot=0 route=vercel .*scheme=http: .*extension=no/);
+    expect(record).toMatch(/start slot=0 channel=#[0-9a-f]{6} route=vercel .*scheme=http: .*extension=no/);
     expect(record).toMatch(/probe status=200 type=video\/mp2t/);
     expect(record).toContain("format type=ts");
     expect(record).toMatch(/request by=xmlhttprequest status=200 type=video\/mp2t kB=64 ms=812 server=provider:200 application\/octet-stream\/140ms/);

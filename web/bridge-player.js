@@ -271,6 +271,12 @@ window.TCLVWebPlayer = function(host) {
     } catch { /* A diagnostic must never disturb playback. */ }
     return "";
   }
+  // A short hash tells channels apart in a record without naming them.
+  function channelTag(channel) {
+    let hash = 0x811c9dc5;
+    for (const char of String(channel?.url || channel?.id || "")) hash = Math.imul(hash ^ char.charCodeAt(0), 0x01000193) >>> 0;
+    return "#" + hash.toString(16).padStart(8, "0").slice(0, 6);
+  }
   function mediaError(video) {
     return video?.error ? { code: video.error.code, message: video.error.message } : {};
   }
@@ -512,7 +518,7 @@ window.TCLVWebPlayer = function(host) {
     slot.phase = relayed ? "connecting" : "starting";
     if (diag.on) {
       diag.seen = 0;
-      trace("start", { slot: slot.index, route, mode, player: host.state.player, scheme: new URL(channel.url, location.origin).protocol,
+      trace("start", { slot: slot.index, channel: channelTag(channel), route, mode, player: host.state.player, scheme: new URL(channel.url, location.origin).protocol,
         guessed: original.getStreamType(channel.url), extension: knownExtension(channel.url) ? "yes" : "no", retry: fallback ? "yes" : "no" });
     }
     renderStatus();
