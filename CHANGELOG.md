@@ -18,6 +18,7 @@ Všetky významné zmeny v projekte sú dokumentované v tomto súbore.
 
 ### Pridané
 
+- Softvérové dekódovanie H.265/HEVC na webe: prepínač v Nastaveniach › Sieť. Keď prehliadač H.265 nevie dekódovať, prekóduje video priamo v prehliadači na H.264 (WebAssembly dekodér hevc.js + kódovanie cez WebCodecs). Funguje pre HLS a MPEG-TS vo všetkých webových prehrávačoch; súbory MP4/MKV nie. Výrazne zaťažuje procesor a štart sa oneskorí o 2–3 s. Prehliadače s natívnym H.265 (Edge s HEVC doplnkom, Safari, Chrome s funkčnou hardvérovou akceleráciou) ho nepoužijú. Lišta nad videom ukazuje, keď prekódovanie beží, a varuje, ak procesor nestíha. Android a Windows aplikácie sa nemenia.
 - Diagnostika prehrávania v Nastaveniach › Sieť (alebo `?debug=1`): zaznamená trasu, zistený formát, odpovede relay, chyby hls.js/mpegts.js a udalosti videa bez adries streamov a prihlasovacích údajov. Relay pridáva do odpovedí `Server-Timing` so stavom a typom odpovede poskytovateľa, regiónom a sieťovým kódom chyby. Rovnaký riadok, aj s dôvodom a objemom ukončeného streamu, zapisuje do runtime logov Vercelu; diagnostika prehliadača sa zrkadlí do konzoly ako `[TCLV diag]`. Pri HLS zapíše aj typy streamov z MPEG-TS tabuľky prvých segmentov (napr. H.264 alebo H.265) a kodeky, ktoré z nich určil hls.js.
 
 ## [1.4.0] — 2026-11-11

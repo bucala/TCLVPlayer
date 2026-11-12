@@ -2,6 +2,18 @@
 
 Kontrola a implementácia: 24. 10. 2026. Rozsah: webový build, lokálny TCLV Bridge a jeho doručenie používateľovi Windows. Natívne prehrávanie Android/Windows má samostatnú cestu.
 
+## Doplnenie 12. 11. 2026: softvérové dekódovanie H.265
+
+Kanály vysielané v H.265/HEVC predtým v prehliadačoch bez natívneho dekódovania (Chrome/Edge na Windows bez hardvérovej podpory HEVC) skončili chybou `bufferAddCodecError`. Nová voľba **Nastavenia → Sieť → Softvérové dekódovanie H.265** je predvolene vypnutá a uchováva sa lokálne (`tclv.softDecode`).
+
+- Použitá knižnica [hevc.js](https://github.com/lid-labs/hevc.js) (`@hevcjs/hlsjs-plugin` 0.1.13, MIT): WebAssembly dekodér H.265 v workroch, kódovanie do H.264 cez WebCodecs `VideoEncoder`, zásah do `MediaSource.isTypeSupported`/`addSourceBuffer`. Zasahuje globálne do MSE, preto funguje pre hls.js aj mpegts.js cesty (HLS aj živý MPEG-TS). Nepotrebuje COOP/COEP hlavičky; beží jednovláknovo v workroch (predvolený fond 2 workery).
+- Výber overený aj voči alternatívam: libmedia AVPlayer (LGPL, najlepší výkon vyžaduje SharedArrayBuffer, teda COOP/COEP, ktoré by rozbili lokálny bridge aj obrázky kanálov), h265web.js (vlastná licencia CYL_Free-1.0, samostatný prehrávač), libde265.js (starší port bez MSE pipeline).
+- Zapnutie/vypnutie za chodu reštartuje práve hrajúci kanál. Pri natívnom H.265 sa detekcia neaktivuje a nič sa nemení. Detekcia je oneskorená až do prvého štartu, aby sa 0,8 MB súborov dekodéra načítalo len pri použití.
+- Obmedzenia: video-only transkódovanie; zvuk (AAC) prechádza pôvodnou cestou. Nevzťahuje sa na súbory MP4/MKV prehrávané natívne ani na DRM. Vyžaduje WebCodecs H.264 enkodér (Chrome/Edge 94+, Firefox 130+; Safari má H.265 natívne). LL-HLS nie je podporované knižnicou.
+- Výkon na referenčnom stroji (16 jadier, Chrome 157, vypnuté HW dekódovanie): 1080p25 ~2,0× rýchlosť prehrávania, 1080p50 ~1,07×. Prvý segment pridá 2–3 s. Lišta nad videom zobrazí „H.265 softvérovo“, pri opakovanom nedostatočnom výkone „procesor nestíha“. Diagnostika zapisuje `transcode speed=…` riadky.
+- CSP hlavička aj meta tag webového buildu pribúdajú o `'wasm-unsafe-eval'` v `script-src` (kompilácia WebAssembly). Natívne Windows/Android buildy sa nemenia a tento modul nepoužívajú (`window.TCLVNative`/`Capacitor` skráti inicializáciu).
+- Zostavenie: `scripts/copy-web.mjs --vercel` zbalí plugin cez rolldown (devDependency) do `vendor/hevcjs/hevc-support.js` a skopíruje worker aj WASM. Overenie: unit testy v `tests/bridge-player.test.js`; E2E skript s lokálnym HEVC MPEG-TS HLS poskytovateľom cez relay prehral v Chrome s vypnutým hardvérovým dekódovaním 1080p video bez zahodených snímkov.
+
 ## Doplnenie 11. 11. 2026: cez Vercel bez bridge
 
 Nová voľba **Nastavenia → Sieť → Bez pomocníka: cez Vercel** potrebuje potvrdenie upozornenia na mesačný limit. Predvolene je vypnutá. **Auto: priamo → cez Vercel** používa relay až pri HTTP na HTTPS webe alebo po chybe priameho spojenia; **Iba cez Vercel** ho používa vždy. Zapnutie obnoví aj čakajúci stream, odopnutie prepne späť na priame/lokálne Auto. Nastavenie sa uchováva lokálne. Windows/Android aplikácie tento webový modul nepoužívajú.

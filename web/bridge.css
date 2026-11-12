@@ -32,6 +32,9 @@
 .web-bridge-bar button { flex-shrink: 0; font-size: 12px; max-width: 60%; }
 .web-bridge-bar[data-route="unavailable"], .web-bridge-bar[data-route="error"] { color: #ffb482; }
 .bridge-vercel { display: grid; gap: 10px; padding: 14px; border: 1px solid #7a6a3a; border-radius: 12px; background: #26231b; }
+.bridge-soft { display: grid; gap: 10px; padding: 14px; border: 1px solid #45454d; border-radius: 12px; background: #222227; }
+.web-bridge-settings[data-soft="active"] .bridge-soft { border-color: #54896c; }
+.web-bridge-settings .bridge-soft-status { color: #d7d7de; }
 .bridge-check { display: flex; align-items: flex-start; gap: 10px; min-height: 44px; color: #f4f4f5; font-size: 14px; line-height: 1.5; cursor: pointer; }
 .bridge-check input { flex-shrink: 0; width: 20px; height: 20px; margin: 1px 0 0; accent-color: #ed7338; }
 .web-bridge-settings .bridge-warning { color: #ffd486; }

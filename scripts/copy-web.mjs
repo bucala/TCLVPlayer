@@ -1,5 +1,6 @@
 import { cp, mkdir, copyFile, rm, readFile, writeFile, readdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { createBridgePackage, bridgePackageFiles } from "./bridge-package.mjs";
 import { createBridgeInstaller } from "./bridge-installer.mjs";
 
@@ -56,6 +57,22 @@ if (browserBuild) {
   for (const file of ["bridge-client.js", "bridge-player.js", "bridge.css"]) {
     await copyFile(join("web", file), join(outDir, file));
   }
+  // Opt-in software H.265 for browsers without an H.265 decoder. The plugin
+  // ships as ES modules; the page loads classic same-origin scripts only.
+  const hevcDir = join(outDir, "vendor", "hevcjs");
+  await mkdir(hevcDir, { recursive: true });
+  const { rolldown } = await import("rolldown");
+  const bundle = await rolldown({ input: fileURLToPath(new URL("./hevc-support-entry.mjs", import.meta.url)), platform: "browser", logLevel: "warn" });
+  await bundle.write({ file: join(hevcDir, "hevc-support.js"), format: "iife", name: "TCLVHevc", minify: true });
+  await bundle.close();
+  for (const [source, target] of [["transcode-worker.js", "transcode-worker.js"], ["wasm/hevc-decode.js", "hevc-decode.js"], ["wasm/hevc-decode.wasm", "hevc-decode.wasm"]]) {
+    await cp(new URL("../node_modules/@hevcjs/core/dist/" + source, import.meta.url), join(hevcDir, target));
+  }
+  for (const name of ["@hevcjs/hlsjs-plugin", "@hevcjs/core", "mp4box"]) {
+    const destination = join(outDir, "vendor", "licenses", name, "LICENSE");
+    await mkdir(dirname(destination), { recursive: true });
+    await cp(new URL("../node_modules/" + name + "/LICENSE", import.meta.url), destination);
+  }
   const hostNames = [
     "state", "dom", "translations", "safeGet", "safeSet", "t", "detectLocalProxy", "detectCorsProxySync",
     "canProxyStreams", "needsProxy", "isBlockedWebStream", "getStreamType", "playChannel", "playInSlot1",
@@ -68,7 +85,10 @@ if (browserBuild) {
   if (!/init\(\);\s*$/.test(app)) throw new Error("Cannot attach browser-only bridge before init");
   await writeFile(join(outDir, "app.js"), app.replace(/init\(\);\s*$/, `window.TCLVWebPlayer({\n${host}\n});\ninit();\n`));
   const html = await readFile("index.html", "utf8");
+  // WebAssembly compilation needs its own grant; the native builds keep the stricter policy.
+  if (!html.includes("script-src 'self';")) throw new Error("Cannot allow WebAssembly in the browser build policy");
   await writeFile(join(outDir, "index.html"), html
+    .replace("script-src 'self';", "script-src 'self' 'wasm-unsafe-eval';")
     .replace('<link rel="stylesheet" href="./styles.css" />', '<link rel="stylesheet" href="./styles.css" />\n    <link rel="stylesheet" href="./bridge.css" />')
     .replace('<script src="./app.js"></script>', '<script src="./bridge-client.js"></script>\n    <script src="./bridge-player.js"></script>\n    <script src="./app.js"></script>'));
   // Tests can omit the large download; the normal Vercel build is self-contained.

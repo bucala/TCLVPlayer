@@ -515,7 +515,7 @@ describe("opt-in playback through Vercel", () => {
     host.setStreamStatus(channel.id, "error");
     host.showMessage("streamUnavailable", 0);
     await settle();
-    expect(host.showMessage).toHaveBeenLastCalledWith("codecUnsupported", 0);
+    expect(host.showMessage).toHaveBeenLastCalledWith("codecUnsupported softSuggest", 0);
     expect(host.showMessage).not.toHaveBeenCalledWith("vercelFailed", 0);
     expect(fetch).not.toHaveBeenCalled();
 
@@ -530,7 +530,7 @@ describe("opt-in playback through Vercel", () => {
     mpegts.host.state.mpegtsPlayer = mpegts.window.mpegts.createPlayer();
     handlers.get("error")("MediaError", "MediaMSEError", { msg: "Failed to execute 'addSourceBuffer' on 'MediaSource': The type provided ('video/mp4;codecs=hev1.1.6.L120.90') is unsupported." });
     await settle();
-    expect(mpegts.host.showMessage).toHaveBeenLastCalledWith("codecUnsupported", 0);
+    expect(mpegts.host.showMessage).toHaveBeenLastCalledWith("codecUnsupported softSuggest", 0);
   });
   it("does not probe addresses whose extension already names the format", async () => {
     const { host, ui, fetch } = player();
@@ -613,5 +613,76 @@ describe("opt-in playback through Vercel", () => {
     expect(ui.querySelector("#vercelToggle").checked).toBe(false);
     expect(host.safeSet).toHaveBeenCalledWith("tclv.webVideoMode", "auto");
     expect(host.state.corsProxy).toBe("");
+  });
+});
+
+describe("opt-in software H.265 decoding", () => {
+  function softWindow(window) {
+    const cleanup = vi.fn();
+    window.MediaSource = { isTypeSupported: vi.fn().mockReturnValue(false) };
+    window.TCLVHevc = {
+      attachHevcSupport: vi.fn().mockImplementation(async () => { window.MediaSource.isTypeSupported = () => true; return cleanup; }),
+      subscribeSegmentStat: vi.fn(),
+    };
+    return cleanup;
+  }
+  it("stays off by default and attaches only after the switch", async () => {
+    const { host, ui, window } = player({ extend: softWindow });
+    expect(window.TCLVWebBridge.softDecode).toBe("off");
+    expect(ui.querySelector("#softToggle").checked).toBe(false);
+    ui.querySelector("#softToggle").checked = true;
+    await ui.querySelector("#softToggle").listeners.get("change")();
+    expect(window.TCLVHevc.attachHevcSupport).toHaveBeenCalledTimes(1);
+    const config = window.TCLVHevc.attachHevcSupport.mock.calls[0][0];
+    expect(config.workerUrl).toBe("https://tclv-player.vercel.app/vendor/hevcjs/transcode-worker.js");
+    expect(config.wasmBinaryUrl).toBe("https://tclv-player.vercel.app/vendor/hevcjs/hevc-decode.wasm");
+    expect(window.TCLVWebBridge.softDecode).toBe("active");
+    expect(ui.querySelector("#softToggle").checked).toBe(true);
+    expect(host.safeSet).toHaveBeenCalledWith("tclv.softDecode", "1");
+  });
+  it("never loads the decoder inside a native runtime", () => {
+    const window = { TCLVNative: {} };
+    const context = vm.createContext({ window });
+    vm.runInContext(source, context);
+    expect(() => window.TCLVWebPlayer({ safeGet: () => "1" })).not.toThrow();
+  });
+  it("detaches with the switch and restarts the playing channel on change", async () => {
+    const cleanup = vi.fn();
+    const { host, ui, underlying } = player({
+      extend: window => { window.MediaSource = { isTypeSupported: () => false };
+        window.TCLVHevc = { attachHevcSupport: vi.fn().mockImplementation(async () => { window.MediaSource.isTypeSupported = () => true; return cleanup; }), subscribeSegmentStat: vi.fn() }; },
+    });
+    chooseMode(ui, "direct");
+    await host.playChannel({ ...channel, url: "https://provider.example/live.m3u8" });
+    expect(underlying.play).toHaveBeenCalledTimes(1);
+    ui.querySelector("#softToggle").checked = true;
+    await ui.querySelector("#softToggle").listeners.get("change")();
+    expect(underlying.play).toHaveBeenCalledTimes(2);
+    ui.querySelector("#softToggle").checked = false;
+    await ui.querySelector("#softToggle").listeners.get("change")();
+    expect(cleanup).toHaveBeenCalledTimes(1);
+    expect(underlying.play).toHaveBeenCalledTimes(3);
+    expect(host.safeSet).toHaveBeenLastCalledWith("tclv.softDecode", "");
+  });
+  it("attaches a saved switch during the next start, not at startup", async () => {
+    const { host, window } = player({ saved: { "tclv.softDecode": "1" }, extend: softWindow });
+    expect(window.TCLVHevc.attachHevcSupport).not.toHaveBeenCalled();
+    await host.playChannel({ ...channel, url: "https://provider.example/live.m3u8" });
+    expect(window.TCLVHevc.attachHevcSupport).toHaveBeenCalledTimes(1);
+    expect(window.TCLVWebBridge.softDecode).toBe("active");
+  });
+  it("points to the switch only while it is off", async () => {
+    const off = player();
+    off.host.state.hls = new off.window.Hls({});
+    off.host.playChannel({ ...channel, url: "https://provider.example/live.m3u8" });
+    off.host.state.hls.error({ fatal: true, type: "mediaError", details: "bufferAddCodecError", reason: "codecs=hvc1.1.6.L0.B0" });
+    await settle();
+    expect(off.host.showMessage).toHaveBeenLastCalledWith("codecUnsupported softSuggest", 0);
+    const on = player({ saved: { "tclv.softDecode": "1" }, extend: softWindow });
+    on.host.state.hls = new on.window.Hls({});
+    on.host.playChannel({ ...channel, url: "https://provider.example/live.m3u8" });
+    on.host.state.hls.error({ fatal: true, type: "mediaError", details: "bufferAddCodecError", reason: "codecs=hvc1.1.6.L0.B0" });
+    await settle();
+    expect(on.host.showMessage).toHaveBeenLastCalledWith("codecUnsupported", 0);
   });
 });

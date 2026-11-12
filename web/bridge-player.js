@@ -129,6 +129,29 @@ window.TCLVWebPlayer = function(host) {
     codecUnsupported: "This channel uses the {codec} codec, which this browser cannot decode. The stream loaded correctly; this is not a Vercel or provider fault. Try a browser with hardware acceleration and HEVC support (for example Edge with HEVC Video Extensions, or Safari), or the Android or Windows app.",
     diagCopy: "Copy record", diagClear: "Clear", diagEmpty: "Nothing recorded yet. Turn on diagnostics and start a channel.",
   });
+  // Software H.265 is opt-in: it costs a lot of processor time.
+  Object.assign(labels.sk, {
+    softTitle: "Softvérové dekódovanie H.265", softToggle: "Dekódovať H.265 softvérovo, keď to prehliadač nevie",
+    softHint: "Pre kanály v H.265/HEVC, ktoré tento prehliadač nevie dekódovať. Video sa priamo v prehliadači prekóduje na H.264. Výrazne to zaťaží procesor, štart sa oneskorí o 2–3 s a kvalita mierne klesne. Funguje pre HLS a MPEG-TS, nie pre súbory MP4 alebo MKV. Ak prehliadač H.265 dekóduje sám, nič sa nemení. Najprv skúste zapnúť hardvérovú akceleráciu videa v prehliadači.",
+    softStateLoading: "Pripravujem softvérový dekodér…", softStateActive: "Softvérový dekodér je pripravený. Použije sa pri kanáloch v H.265.",
+    softStateNative: "Tento prehliadač dekóduje H.265 sám. Softvérový dekodér sa nepoužije.",
+    softStateUnsupported: "Tento prehliadač softvérové dekódovanie nepodporuje. Chýba mu kódovanie H.264 cez WebCodecs alebo MediaSource.",
+    softStateFailed: "Softvérový dekodér sa nepodarilo načítať. Skúste to znovu.",
+    softPlaying: " · H.265 softvérovo", softSlow: " · H.265 softvérovo, procesor nestíha",
+    softSuggest: "Bez zmeny prehliadača pomôže Softvérové dekódovanie H.265 v Nastaveniach › Sieť.",
+    codecUnsupported: "Tento kanál používa kodek {codec}, ktorý tento prehliadač nevie dekódovať. Stream sa načítal správne, nejde o chybu Vercelu ani poskytovateľa. Zapnite v prehliadači hardvérovú akceleráciu videa (v Chrome Nastavenia › Systém a chrome://flags › Hardware-accelerated video decode), použite Edge s HEVC Video Extensions alebo Safari, prípadne aplikáciu pre Android alebo Windows.",
+  });
+  Object.assign(labels.en, {
+    softTitle: "Software H.265 decoding", softToggle: "Decode H.265 in software when the browser cannot",
+    softHint: "For H.265/HEVC channels this browser cannot decode. The video is re-encoded to H.264 inside the browser. This uses a lot of processor time, delays the start by 2–3 s and lowers quality slightly. It works for HLS and MPEG-TS, not for MP4 or MKV files. Nothing changes if the browser decodes H.265 itself. Try turning on hardware video acceleration in the browser first.",
+    softStateLoading: "Preparing the software decoder…", softStateActive: "The software decoder is ready. It is used for H.265 channels.",
+    softStateNative: "This browser decodes H.265 itself. The software decoder is not used.",
+    softStateUnsupported: "This browser does not support software decoding. It lacks WebCodecs H.264 encoding or MediaSource.",
+    softStateFailed: "The software decoder could not be loaded. Try again.",
+    softPlaying: " · H.265 in software", softSlow: " · H.265 in software, processor cannot keep up",
+    softSuggest: "Without changing the browser, Software H.265 decoding in Settings > Network can help.",
+    codecUnsupported: "This channel uses the {codec} codec, which this browser cannot decode. The stream loaded correctly; this is not a Vercel or provider fault. Turn on hardware video acceleration in the browser (in Chrome: Settings > System and chrome://flags > Hardware-accelerated video decode), use Edge with HEVC Video Extensions or Safari, or the Android or Windows app.",
+  });
   Object.assign(host.translations.sk, labels.sk, {
     labelCorsProxy: "Proxy pre playlisty a EPG (len web)",
     webNetworkHint: labels.sk.bridgePrivacy,
@@ -183,6 +206,10 @@ window.TCLVWebPlayer = function(host) {
         <p class="settings-hint" data-i18n="diagHint"></p>
         <div class="bridge-actions"><button id="diagCopy" type="button" data-i18n="diagCopy"></button><button id="diagClear" type="button" data-i18n="diagClear"></button></div>
         <pre id="diagLog" class="bridge-diag-log" tabindex="0"></pre></details></div>
+    <div class="bridge-soft"><h5 data-i18n="softTitle"></h5>
+      <label class="bridge-check"><input id="softToggle" type="checkbox" aria-describedby="softHint" /><span data-i18n="softToggle"></span></label>
+      <p id="softHint" class="settings-hint" data-i18n="softHint"></p>
+      <p id="softStatus" class="settings-hint bridge-soft-status" role="status" aria-live="polite" hidden></p></div>
     <details class="bridge-details"><summary tabindex="0" data-i18n="bridgeTrouble"></summary><p class="settings-hint" data-i18n="bridgePermission"></p><p class="settings-hint" data-i18n="bridgeCodec"></p></details>
     <details id="bridgeAdvanced" class="bridge-details"><summary tabindex="0" data-i18n="bridgeAdvanced"></summary>
       <label class="field-label"><span data-i18n="bridgeMode"></span><select id="webVideoMode"><option value="auto" data-i18n="bridgeAuto"></option><option value="direct" data-i18n="bridgeDirect"></option><option value="bridge" data-i18n="bridgeOnly"></option><option value="auto-vercel" data-i18n="bridgeAutoVercel"></option><option value="vercel" data-i18n="bridgeVercelOnly"></option></select></label>
@@ -204,6 +231,7 @@ window.TCLVWebPlayer = function(host) {
   const approveButton = query("#bridgeApprove"), cancelButton = query("#bridgeCancel"), approvalLink = query("#bridgeApprovalLink");
   const routeLabel = bar.querySelector("#webVideoRoute"), quickButton = bar.querySelector("#bridgeQuickConnect");
   const relayToggle = query("#vercelToggle"), usageLabel = query("#vercelUsage");
+  const softToggle = query("#softToggle"), softStatus = query("#softStatus");
   const userAgent = (window.navigator?.userAgentData?.platform || "") + " " + (window.navigator?.userAgent || "");
   const mobile = /Android|iPhone|iPad/i.test(userAgent) || (window.navigator?.platform === "MacIntel" && window.navigator?.maxTouchPoints > 1);
   const windows = /Windows|Win32/i.test(userAgent);
@@ -216,6 +244,11 @@ window.TCLVWebPlayer = function(host) {
   // Diagnostics are opt-in and never record stream addresses, tokens or credentials.
   const diagLog = query("#diagLog"), diagToggle = query("#diagToggle");
   const diag = { on: host.safeGet("tclv.debug", "") === "1" || /[?&]debug=1(?:&|$)/.test(location.search || ""), lines: [], since: Date.now(), seen: 0 };
+  const SOFT_PATH = "./vendor/hevcjs/", HEVC_TYPE = 'video/mp4; codecs="hvc1.1.6.L93.B0"';
+  const mseSupports = type => { try { return window.MediaSource?.isTypeSupported?.(type) ? "yes" : "no"; } catch { return "no"; } };
+  // native is read before the decoder can patch MediaSource to accept H.265.
+  const soft = { on: host.safeGet("tclv.softDecode", "") === "1", attached: false, state: "off", native: mseSupports(HEVC_TYPE),
+    handle: null, queue: Promise.resolve(), watching: false, active: false, slow: false, behind: 0, seen: 0 };
   function redact(value) {
     return String(value ?? "").replace(/(?:[a-z][\w+.-]*:\/\/|\/api\/stream\?url=)\S+/gi, "[url]").replace(/\s+/g, " ").slice(0, 300);
   }
@@ -234,10 +267,9 @@ window.TCLVWebPlayer = function(host) {
     return Array.from(list || [], item => item.name + ":" + (item.description || "") + (item.duration ? "/" + Math.round(item.duration) + "ms" : "")).join(" | ");
   }
   function environment() {
-    const support = type => { try { return window.MediaSource?.isTypeSupported?.(type) ? "yes" : "no"; } catch { return "no"; } };
     const agent = (window.navigator?.userAgent || "").match(/(?:Edg|OPR|Firefox|Chrome|Version)\/[\d.]+/g)?.join(" ") || "unknown";
-    trace("environment", { browser: agent, mse: window.MediaSource ? "yes" : "no", h264: support('video/mp4; codecs="avc1.64001f"'),
-      hevc: support('video/mp4; codecs="hvc1.1.6.L93.B0"'), aac: support('audio/mp4; codecs="mp4a.40.2"'), mode, player: host.state.player });
+    trace("environment", { browser: agent, mse: window.MediaSource ? "yes" : "no", h264: mseSupports('video/mp4; codecs="avc1.64001f"'),
+      hevc: soft.native, aac: mseSupports('audio/mp4; codecs="mp4a.40.2"'), soft: soft.on ? soft.state : "off", mode, player: host.state.player });
   }
   // Stream types declared in the MPEG-TS program table, read from bytes the
   // player already loaded. This is what the provider sent, not what hls.js guessed.
@@ -379,11 +411,13 @@ window.TCLVWebPlayer = function(host) {
       !slot.channel ? "bridgeIdle" : slot.pending ? "bridgeUnavailable" : slot.phase === "error" ? "bridgeVideoError" :
       slot.phase === "connecting" ? (slot.route === "vercel" ? "bridgeConnectingVercel" : "bridgeConnecting") :
       slot.route === "bridge" ? "bridgePlayingLocal" : relaying ? "bridgePlayingVercel" : "bridgePlayingDirect";
-    routeLabel.textContent = host.t(routeKey);
+    const transcoding = soft.active && slot.channel && !slot.pending && slot.phase !== "error";
+    routeLabel.textContent = host.t(routeKey) + (transcoding ? host.t(soft.slow ? "softSlow" : "softPlaying") : "");
     bar.dataset.route = !slot.channel ? "idle" : slot.pending ? "unavailable" : slot.phase || slot.route;
     bar.dataset.relay = relaying ? "vercel" : "none";
     ui.dataset.relay = usesVercel() ? "vercel" : "none";
     renderUsage();
+    renderSoft();
   }
 
   function eligible(url) {
@@ -403,6 +437,71 @@ window.TCLVWebPlayer = function(host) {
     } catch { return false; }
   }
 
+  function loadScript(src) {
+    return new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+      script.src = src;
+      script.onload = resolve;
+      script.onerror = () => { script.remove(); reject(new Error("Asset unavailable")); };
+      document.head.append(script);
+    });
+  }
+
+  function renderSoft() {
+    const key = { loading: "softStateLoading", active: "softStateActive", native: "softStateNative",
+      unsupported: "softStateUnsupported", failed: "softStateFailed" }[soft.state];
+    softToggle.checked = soft.on;
+    softStatus.hidden = !key;
+    softStatus.textContent = key ? host.t(key) : "";
+    ui.dataset.soft = soft.state;
+  }
+
+  function onTranscoded(stat) {
+    const speed = Number(stat?.speedX) || 0;
+    soft.behind = speed < 1 ? soft.behind + 1 : 0;
+    const slow = soft.behind >= 2;
+    if (!soft.active || slow !== soft.slow) { soft.active = true; soft.slow = slow; renderStatus(); }
+    if (soft.seen < 3 || (speed < 1 && soft.seen < 30)) {
+      soft.seen++;
+      trace("transcode", { speed: speed.toFixed(2) + "x", frames: stat?.frames, size: stat?.width ? stat.width + "x" + stat.height : "" });
+    }
+  }
+
+  // Brings the installed decoder in line with the switch. Changes are queued:
+  // the library patches MediaSource globally and must not attach twice.
+  function softDecode() {
+    soft.queue = soft.queue.then(async () => {
+      if (soft.on === soft.attached) return;
+      if (!soft.on) {
+        try { soft.handle?.(); } catch { /* Already removed. */ }
+        soft.handle = null; soft.attached = false; soft.active = false; soft.state = "off";
+        trace("soft-decode", { state: soft.state });
+        renderStatus();
+        return;
+      }
+      soft.state = "loading";
+      renderSoft();
+      try {
+        const before = window.MediaSource?.isTypeSupported;
+        if (!window.TCLVHevc) await loadScript(SOFT_PATH + "hevc-support.js");
+        const base = new URL(SOFT_PATH, location.href || location.origin + "/").href;
+        soft.handle = await window.TCLVHevc.attachHevcSupport({ workerUrl: base + "transcode-worker.js", wasmUrl: base + "hevc-decode.js",
+          wasmBinaryUrl: base + "hevc-decode.wasm", logLevel: diag.on ? "info" : "error" });
+        soft.attached = true;
+        // The library reports nothing; it replaces isTypeSupported only when it will transcode.
+        soft.state = window.MediaSource && window.MediaSource.isTypeSupported !== before ? "active" : soft.native === "yes" ? "native" : "unsupported";
+        if (soft.state === "active" && !soft.watching) { soft.watching = true; window.TCLVHevc.subscribeSegmentStat?.(onTranscoded); }
+      } catch (error) {
+        // Left unattached, so the next start tries again.
+        soft.state = "failed";
+        trace("soft-decode", { error: error?.message });
+      }
+      trace("soft-decode", { state: soft.state });
+      renderStatus();
+    });
+    return soft.queue;
+  }
+
   // MSE rejects the codec before any frame plays; retrying or blaming the
   // route would only waste transfer.
   function unsupportedCodec(text) {
@@ -419,7 +518,8 @@ window.TCLVWebPlayer = function(host) {
     trace("codec-unsupported", { slot: slot.index, codec: slot.codec });
     const run = slot.run;
     // The player shows its generic stream error right after reporting it.
-    queueMicrotask(() => { if (current(slot, run)) message(slot, host.t("codecUnsupported").replace("{codec}", slot.codec)); });
+    const suggest = /^H\.265/.test(slot.codec) && !soft.on ? " " + host.t("softSuggest") : "";
+    queueMicrotask(() => { if (current(slot, run)) message(slot, host.t("codecUnsupported").replace("{codec}", slot.codec) + suggest); });
   }
 
   async function relayFailed(slot) {
@@ -515,6 +615,7 @@ window.TCLVWebPlayer = function(host) {
     const useBridge = route === "bridge";
     slot.route = route;
     slot.codec = "";
+    soft.active = false; soft.slow = false; soft.behind = 0; soft.seen = 0;
     slot.phase = relayed ? "connecting" : "starting";
     if (diag.on) {
       diag.seen = 0;
@@ -548,13 +649,18 @@ window.TCLVWebPlayer = function(host) {
       }
       await preload(type, slot);
       if (!current(slot, run)) return;
-      if (relayed && slot.index === 0 && window.Hls?.isSupported?.() && !host.dom.video._tclvBridgeHls) {
-        // Native browser HLS cannot reliably consume rewritten relay manifests.
-        // Keep that path for direct streams; use HLS.js for relayed ones.
+      if (soft.on !== soft.attached) {
+        await softDecode();
+        if (!current(slot, run)) return;
+      }
+      if ((relayed || soft.state === "active") && slot.index === 0 && window.Hls?.isSupported?.() && !host.dom.video._tclvBridgeHls) {
+        // Native browser HLS cannot reliably consume rewritten relay manifests
+        // and bypasses the software decoder. Keep that path for other direct
+        // streams; use HLS.js for these.
         const canPlayType = host.dom.video.canPlayType.bind(host.dom.video);
         host.dom.video.canPlayType = function(type) {
           if (client.isMediaUrl(this.src) && /mpegurl/i.test(type)) return "";
-          if (["bridge", "vercel"].includes(slots[0].route) && /mpegurl/i.test(type)) return "";
+          if ((["bridge", "vercel"].includes(slots[0].route) || soft.state === "active") && /mpegurl/i.test(type)) return "";
           return canPlayType(type);
         };
         host.dom.video._tclvBridgeHls = true;
@@ -614,6 +720,8 @@ window.TCLVWebPlayer = function(host) {
             }
           } };
         }
+        // The software decoder only intercepts classic MediaSource.
+        if (soft.state === "active" && window.MediaSource) config = { ...config, preferManagedMediaSource: false };
         super(config);
         if (Hls.Events.MANIFEST_PARSED) this.on(Hls.Events.MANIFEST_PARSED, (_event, data) => {
           const level = data?.levels?.[0];
@@ -912,6 +1020,15 @@ window.TCLVWebPlayer = function(host) {
       void start(slot, slot.channel);
     }
   }
+  softToggle.addEventListener("change", async () => {
+    soft.on = softToggle.checked;
+    host.safeSet("tclv.softDecode", soft.on ? "1" : "");
+    await softDecode();
+    for (const slot of slots) if (slot.channel && current(slot, slot.run)) {
+      slot.retried = false;
+      void start(slot, slot.channel);
+    }
+  });
   modeSelect.addEventListener("change", () => setMode(modeSelect.value));
   relayToggle.addEventListener("change", () => setMode(relayToggle.checked ? "auto-vercel" : "auto"));
   query("#bridgeLocalOnly").addEventListener("click", () => {
@@ -927,6 +1044,6 @@ window.TCLVWebPlayer = function(host) {
   window.TCLVWebBridge = {
     get status() { return client.status; }, get mode() { return mode; },
     get route() { return slots[0].route; }, get relayBytes() { return usage.bytes; },
-    get diagnostics() { return diag.lines.slice(); },
+    get diagnostics() { return diag.lines.slice(); }, get softDecode() { return soft.state; },
   };
 };
