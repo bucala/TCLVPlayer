@@ -82,3 +82,56 @@ it("updates channel status without treating a channel ID as a CSS selector", () 
   expect(() => context.updateChannelStatusDot(id)).not.toThrow();
   expect(dot.className).toBe("status-dot ok");
 });
+
+describe("ArtPlayer formats that need MSE", () => {
+  function runtime(type) {
+    const created = [], players = [];
+    const state = { selectedChannelId: "one", artPlayer: null, mpegtsPlayer: null };
+    class Artplayer {
+      constructor(options) { this.options = options; this.handlers = new Map(); created.push(this); }
+      on(name, callback) { this.handlers.set(name, callback); }
+      destroy() {}
+    }
+    const mpegts = {
+      Events: { ERROR: "error" },
+      isSupported: () => true,
+      createPlayer: vi.fn(config => {
+        const player = { config, handlers: new Map(), on(name, callback) { this.handlers.set(name, callback); }, attachMediaElement: vi.fn(), load: vi.fn() };
+        players.push(player);
+        return player;
+      }),
+    };
+    const status = vi.fn(), destroyHls = vi.fn(), ensureMpegts = vi.fn();
+    const context = vm.createContext({
+      state, window: { Artplayer, mpegts, Hls: { isSupported: () => true } },
+      dom: { video: { pause: vi.fn(), removeAttribute: vi.fn(), load: vi.fn(), style: {} }, artPlayerHost: { style: {} } },
+      getStreamType: () => type, streamUrl: url => url, showMessage: vi.fn(), t: key => key,
+      stopVideoJs: vi.fn(), ensureArtPlayer: vi.fn(), ensureHls: vi.fn(), ensureMpegts, destroyHls, setStreamStatus: status,
+    });
+    vm.runInContext(section("async function playArtPlayer(", "function setPlayerActive("), context);
+    return { context, created, players, mpegts, state, status, destroyHls, ensureMpegts };
+  }
+  it.each([["ts", "mpegts"], ["flv", "flv"]])("plays %s through mpegts.js instead of the native video element", async (type, library) => {
+    const { context, created, players, state, status, destroyHls, ensureMpegts } = runtime(type);
+    await context.playArtPlayer({ id: "one", url: "/api/stream?url=x" });
+    expect(ensureMpegts).toHaveBeenCalled();
+    const art = created[0].options;
+    expect(art.type).toBe("mpegts");
+    const video = {};
+    art.customType.mpegts(video, art.url);
+    expect(destroyHls).toHaveBeenCalled();
+    expect(players[0].config).toEqual({ type: library, isLive: true, url: "/api/stream?url=x" });
+    expect(players[0].attachMediaElement).toHaveBeenCalledWith(video);
+    expect(players[0].load).toHaveBeenCalled();
+    expect(state.mpegtsPlayer).toBe(players[0]);
+    players[0].handlers.get("error")();
+    expect(status).toHaveBeenCalledWith("one", "error");
+  });
+  it("leaves formats the browser plays itself to ArtPlayer", async () => {
+    const { context, created, ensureMpegts } = runtime("mp4");
+    await context.playArtPlayer({ id: "one", url: "https://provider.example/movie.mp4" });
+    expect(ensureMpegts).not.toHaveBeenCalled();
+    expect(created[0].options.type).toBe("");
+    expect(created[0].options.customType).toBeUndefined();
+  });
+});

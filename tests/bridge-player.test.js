@@ -79,7 +79,7 @@ function player({ configuredProxy = '/api/proxy?url=', saved = {}, extend = () =
   }
   const context = vm.createContext({
     window, document, location: { protocol: "https:", origin: "https://tclv-player.vercel.app" },
-    URL, queueMicrotask, setTimeout, clearTimeout, fetch, Date: Clock,
+    URL, queueMicrotask, setTimeout, clearTimeout, fetch, Date: Clock, AbortController,
   });
   vm.runInContext(source, context);
   window.TCLVWebPlayer(host);
@@ -436,6 +436,37 @@ describe("opt-in playback through Vercel", () => {
     expect(host.getStreamType(relayed(movie.url))).toBe("mp4");
     await host.playInSlot1({ ...channel, id: "two" });
     expect(underlying.slot).toHaveBeenCalledWith({ ...channel, id: "two", url: relayed(channel.url) });
+  });
+  it("asks the relay for the format of a provider address without a file extension", async () => {
+    const xtream = { ...channel, url: "http://provider.example/live/user/pass/1234" };
+    for (const [reply, expected] of [
+      [{ ok: true, headers: new Headers({ "content-type": "video/mp2t" }) }, "ts"],
+      [{ ok: true, headers: new Headers({ "content-type": "application/vnd.apple.mpegurl; charset=utf-8" }) }, "hls"],
+      [{ ok: true, headers: new Headers({ "content-type": "video/x-flv" }) }, "flv"],
+      [{ ok: false, headers: new Headers({ "content-type": "application/json" }) }, "hls"],
+      [Promise.reject(new TypeError("offline")), "hls"],
+    ]) {
+      const { host, ui, underlying, fetch } = player();
+      chooseMode(ui, "vercel");
+      let signal;
+      fetch.mockImplementation((_url, init) => { signal = init.signal; return Promise.resolve(reply); });
+      await host.playChannel(xtream);
+      const url = relayed(xtream.url);
+      expect(fetch).toHaveBeenCalledExactlyOnceWith(url, expect.objectContaining({ cache: "no-store" }));
+      // Only the headers are read; the body must not keep using the transfer quota.
+      expect(signal.aborted).toBe(true);
+      expect(host.getStreamType(url), expected).toBe(expected);
+      if (expected === "ts") { expect(host.ensureMpegts).toHaveBeenCalled(); expect(host.ensureHls).not.toHaveBeenCalled(); }
+      expect(underlying.play).toHaveBeenCalledWith({ ...xtream, url });
+    }
+  });
+  it("does not probe addresses whose extension already names the format", async () => {
+    const { host, ui, fetch } = player();
+    chooseMode(ui, "vercel");
+    for (const url of ["https://provider.example/live.m3u8", "http://provider.example/live/user/pass/1234.ts", "https://provider.example/movie.mp4"]) {
+      await host.playChannel({ ...channel, url });
+    }
+    expect(fetch).not.toHaveBeenCalled();
   });
   it("never lets a playlist address reach a relay by itself", async () => {
     for (const mode of ["auto", "vercel"]) {

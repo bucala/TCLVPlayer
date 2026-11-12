@@ -1720,6 +1720,7 @@ async function playArtPlayer(channel) {
   try {
     stopVideoJs(); await ensureArtPlayer();
     if (type === 'hls') await ensureHls();
+    if (type === 'ts' || type === 'flv') await ensureMpegts();
     dom.video.pause(); dom.video.removeAttribute('src'); dom.video.load();
     dom.video.style.display = 'none'; dom.artPlayerHost.style.display = 'block';
     var customType = (type === 'hls' && window.Hls?.isSupported()) ? {
@@ -1740,9 +1741,22 @@ async function playArtPlayer(channel) {
         };
         startArtHls(false);
       }
+    } : (type === 'ts' || type === 'flv') && window.mpegts?.isSupported() ? {
+      // Browsers cannot play MPEG-TS or FLV natively; ArtPlayer needs MSE here.
+      mpegts: function(videoEl, url) {
+        destroyHls();
+        var player = window.mpegts.createPlayer({ type: type === 'flv' ? 'flv' : 'mpegts', isLive: true, url: url });
+        state.mpegtsPlayer = player;
+        player.on(window.mpegts.Events.ERROR, function() {
+          if (state.mpegtsPlayer === player && state.selectedChannelId === channel.id) setStreamStatus(channel.id, 'error');
+        });
+        player.attachMediaElement(videoEl);
+        player.load();
+      }
     } : undefined;
+    var artType = type === 'hls' ? 'm3u8' : customType?.mpegts ? 'mpegts' : '';
     if (state.artPlayer) { try { state.artPlayer.destroy(); } catch {} state.artPlayer = null; }
-    state.artPlayer = new window.Artplayer({ container: dom.artPlayerHost, url: streamUrl(channel.url), type: type === 'hls' ? 'm3u8' : '', customType: customType, autoplay: true, isLive: true, muted: false, volume: 1, setting: true, fullscreen: true, fullscreenWeb: true });
+    state.artPlayer = new window.Artplayer({ container: dom.artPlayerHost, url: streamUrl(channel.url), type: artType, customType: customType, autoplay: true, isLive: true, muted: false, volume: 1, setting: true, fullscreen: true, fullscreenWeb: true });
     if (state.artPlayer?.on) {
       ['ready', 'play', 'playing', 'video:playing', 'video:loadeddata', 'video:canplay'].forEach(function(eventName) {
         state.artPlayer.on(eventName, function() {

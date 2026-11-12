@@ -252,6 +252,9 @@ describe("opt-in Vercel video relay", () => {
       [Buffer.from("WEBVTT\n\n00:00.000 --> 00:01.000\nHi"), "text/plain", 200, "text/vtt"],
       [Buffer.from("0123456789abcdef"), "text/html", 200, "application/octet-stream"],
       [Buffer.from("opaque encrypted segment bytes"), "application/octet-stream", 200, "application/octet-stream"],
+      // Live Xtream channels are often labelled generically; the player needs the container.
+      [packets, "application/octet-stream", 200, "video/mp2t"],
+      [Buffer.from("464c5601050000000900000000", "hex"), "binary/octet-stream", 200, "video/x-flv"],
     ];
     for (const [body, type, status, served] of cases) {
       const { get } = await relay({ request: async () => new Response(body, { headers: { "content-type": type } }) });

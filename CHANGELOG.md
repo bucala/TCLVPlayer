@@ -11,6 +11,8 @@ Všetky významné zmeny v projekte sú dokumentované v tomto súbore.
 ### Opravené
 
 - Vercel funkcie `/api/stream` a `/api/proxy` sú `.mjs` ES moduly. Vercel ich predtým zostavil ako CommonJS a pri štarte padali na `ERR_REQUIRE_ESM`, takže prehrávanie cez Vercel aj serverové sťahovanie zdrojov hlásili nedostupnosť.
+- Kanály bez prípony v URL (napr. Xtream `…/user/pass/1234`) sa cez Vercel prehrávali ako HLS. Živý MPEG-TS sa potom ~20 s sťahoval ako nekonečný playlist a skončil chybou. Webový prehrávač si formát raz overí z hlavičiek relay a relay pri generickom `application/octet-stream` rozpozná kontajner z prvých bajtov.
+- ArtPlayer prehráva MPEG-TS a FLV cez mpegts.js; predtým ich odovzdal prehliadaču, ktorý ich nevie prehrať.
 
 ## [1.4.0] — 2026-11-11
 

@@ -333,8 +333,28 @@ window.TCLVWebPlayer = function(host) {
     renderStatus();
   }
 
-  async function preload(channel, slot) {
-    const type = original.getStreamType(channel.url);
+  // Provider paths without a file extension (Xtream live channels) default to
+  // HLS. A live MPEG-TS body would then be read as a never-ending playlist, so
+  // ask the relay, which labels manifests and sniffed media, for the format.
+  function knownExtension(url) {
+    try { return /\.(?:m3u8|ts|flv|mp4|mpv|webm)$/i.test(new URL(url).pathname); } catch { return false; }
+  }
+  async function probeRelay(url) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 15000);
+    try {
+      const response = await fetch(url, { cache: "no-store", signal: controller.signal });
+      const type = response.ok ? response.headers.get("content-type") || "" : "";
+      return /mpegurl/i.test(type) ? "hls" : /mp2t/i.test(type) ? "ts" : /x-flv/i.test(type) ? "flv" :
+        /^video\/mp4/i.test(type) ? "mp4" : /^video\/webm/i.test(type) ? "webm" : "";
+    } catch { return ""; } finally {
+      clearTimeout(timer);
+      // Only the headers are needed; stop the body so it does not use transfer.
+      controller.abort();
+    }
+  }
+
+  async function preload(type, slot) {
     if (slot.index === 0 && host.state.player === "videojs") await host.ensureVideoJs();
     if (slot.index === 0 && host.state.player === "artplayer") await host.ensureArtPlayer();
     if (slot.index === 0 && host.state.player === "jplayer" && !["hls", "ts", "flv"].includes(type)) await host.ensureJPlayer();
@@ -375,12 +395,17 @@ window.TCLVWebPlayer = function(host) {
         url = await client.openStream(channel.url);
         if (!current(slot, run)) return;
       } else if (relayed) url = location.origin + RELAY_PATH + "?url=" + encodeURIComponent(channel.url);
+      let type = original.getStreamType(channel.url);
+      if (route === "vercel" && !knownExtension(channel.url)) {
+        type = await probeRelay(url) || type;
+        if (!current(slot, run)) return;
+      }
       if (relayed) {
         // Relay addresses carry no file extension to detect the format from.
-        mediaTypes.set(url, original.getStreamType(channel.url));
+        mediaTypes.set(url, type);
         if (mediaTypes.size > 100) mediaTypes.delete(mediaTypes.keys().next().value);
       }
-      await preload(channel, slot);
+      await preload(type, slot);
       if (!current(slot, run)) return;
       if (relayed && slot.index === 0 && window.Hls?.isSupported?.() && !host.dom.video._tclvBridgeHls) {
         // Native browser HLS cannot reliably consume rewritten relay manifests.

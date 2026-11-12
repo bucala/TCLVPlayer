@@ -320,7 +320,9 @@ export function createRelay({
       }
 
       // A 16-byte body is an AES-128 segment key, whatever the provider calls it.
-      const media = knownMedia ? type || "application/octet-stream" :
+      // Generic labels say nothing about the container; the player needs it.
+      const generic = !type || /^(?:application|binary)\/octet-stream\b/i.test(type);
+      const media = knownMedia ? (generic && sniffMedia(head)) || type || "application/octet-stream" :
         sniffMedia(head) || (whole && sniffed === 16 ? "application/octet-stream" : "");
       if (!media) throw relayError(415, "Only video and audio streams can be relayed", "not-media");
 

@@ -95,6 +95,7 @@ export default [
       globals: {
         fetch: "readonly",
         Response: "readonly",
+        Headers: "readonly",
         ReadableStream: "readonly",
         URL: "readonly",
         Blob: "readonly",
