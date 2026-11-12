@@ -239,6 +239,38 @@ window.TCLVWebPlayer = function(host) {
     trace("environment", { browser: agent, mse: window.MediaSource ? "yes" : "no", h264: support('video/mp4; codecs="avc1.64001f"'),
       hevc: support('video/mp4; codecs="hvc1.1.6.L93.B0"'), aac: support('audio/mp4; codecs="mp4a.40.2"'), mode, player: host.state.player });
   }
+  // Stream types declared in the MPEG-TS program table, read from bytes the
+  // player already loaded. This is what the provider sent, not what hls.js guessed.
+  const STREAM_TYPES = { 0x01: "MPEG-1", 0x02: "MPEG-2", 0x03: "MP3", 0x04: "MP3", 0x06: "private", 0x0f: "AAC", 0x11: "AAC-LATM",
+    0x15: "ID3", 0x1b: "H.264", 0x24: "H.265", 0x81: "AC-3", 0x87: "E-AC-3" };
+  function tsStreams(buffer) {
+    try {
+      const bytes = new Uint8Array(buffer);
+      let start = bytes.indexOf(0x47);
+      if (start < 0 || start > 188) return "";
+      let pmtPid = -1;
+      for (let at = start; at + 188 <= bytes.length && at < start + 188 * 400; at += 188) {
+        if (bytes[at] !== 0x47) return "";
+        const pid = ((bytes[at + 1] & 0x1f) << 8) | bytes[at + 2];
+        if (!(bytes[at + 1] & 0x40) || (pid !== 0 && pid !== pmtPid)) continue;
+        let p = at + 4 + ((bytes[at + 3] & 0x20) ? 1 + bytes[at + 4] : 0);
+        p += 1 + bytes[p];
+        const end = Math.min(at + 188, p + 3 + (((bytes[p + 1] & 0x0f) << 8) | bytes[p + 2]) - 4);
+        if (pid === 0) {
+          for (let q = p + 8; q + 4 <= end; q += 4) {
+            if ((bytes[q] << 8 | bytes[q + 1]) !== 0) { pmtPid = ((bytes[q + 2] & 0x1f) << 8) | bytes[q + 3]; break; }
+          }
+          continue;
+        }
+        const found = [];
+        for (let q = p + 12 + (((bytes[p + 10] & 0x0f) << 8) | bytes[p + 11]); q + 5 <= end; q += 5 + (((bytes[q + 3] & 0x0f) << 8) | bytes[q + 4])) {
+          found.push("0x" + bytes[q].toString(16).padStart(2, "0") + ":" + (STREAM_TYPES[bytes[q]] || "?"));
+        }
+        return found.join(",");
+      }
+    } catch { /* A diagnostic must never disturb playback. */ }
+    return "";
+  }
   function mediaError(video) {
     return video?.error ? { code: video.error.code, message: video.error.message } : {};
   }
@@ -563,6 +595,15 @@ window.TCLVWebPlayer = function(host) {
           const level = data?.levels?.[0];
           trace("hls manifest", { levels: data?.levels?.length, codecs: level?.codecs || [level?.videoCodec, level?.audioCodec].filter(Boolean).join(","),
             size: level?.width ? level.width + "x" + level.height : "" });
+        });
+        let inspected = 0;
+        if (Hls.Events.FRAG_LOADED) this.on(Hls.Events.FRAG_LOADED, (_event, data) => {
+          if (!diag.on || inspected >= 2 || !data?.payload) return;
+          inspected++;
+          trace("segment", { kB: Math.round(data.payload.byteLength / 1000), ts: tsStreams(data.payload) || "not MPEG-TS" });
+        });
+        if (Hls.Events.BUFFER_CODECS) this.on(Hls.Events.BUFFER_CODECS, (_event, data) => {
+          trace("hls codecs", { video: data?.video?.codec, audio: data?.audio?.codec || data?.audiovideo?.codec });
         });
         this.on(Hls.Events.ERROR, (_event, data) => {
           trace("hls error", { type: data?.type, details: data?.details, fatal: data?.fatal, code: data?.response?.code,

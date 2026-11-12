@@ -62,7 +62,7 @@ function player({ configuredProxy = '/api/proxy?url=', saved = {}, extend = () =
     }
   }
   class Hls {
-    static Events = { ERROR: "error" };
+    static Events = { ERROR: "error", FRAG_LOADED: "hlsFragLoaded" };
     static isSupported() { return true; }
     constructor() { this.handlers = new Map(); }
     on(event, handler) { this.handlers.set(event, handler); }
@@ -483,6 +483,17 @@ describe("opt-in playback through Vercel", () => {
     expect(record).toContain("hls error type=networkError details=fragLoadError fatal=true reason=failed [url]");
     expect(record).not.toMatch(/provider\.example|user\/pass|1234/);
     expect(ui.querySelector("#diagLog").textContent).toBe(record);
+
+    // A segment whose program table declares H.264 video and AAC audio.
+    const segment = new Uint8Array(188 * 2).fill(0xff);
+    segment.set([0x47, 0x40, 0x00, 0x10, 0x00, 0x00, 0xb0, 0x0d, 0x00, 0x01, 0xc1, 0x00, 0x00, 0x00, 0x01, 0xf0, 0x00, 0, 0, 0, 0], 0);
+    segment.set([0x47, 0x50, 0x00, 0x10, 0x00, 0x02, 0xb0, 0x17, 0x00, 0x01, 0xc1, 0x00, 0x00, 0xe1, 0x00, 0xf0, 0x00,
+      0x1b, 0xe1, 0x00, 0xf0, 0x00, 0x0f, 0xe1, 0x01, 0xf0, 0x00, 0, 0, 0, 0], 188);
+    const hls = new window.Hls();
+    hls.handlers.get("hlsFragLoaded")("hlsFragLoaded", { payload: segment.buffer });
+    hls.handlers.get("hlsFragLoaded")("hlsFragLoaded", { payload: new Uint8Array([1, 2, 3]).buffer });
+    const segments = window.TCLVWebBridge.diagnostics.filter(line => line.includes(" segment "));
+    expect(segments).toEqual([expect.stringContaining("segment kB=0 ts=0x1b:H.264,0x0f:AAC"), expect.stringContaining("segment kB=0 ts=not MPEG-TS")]);
 
     const off = player();
     await off.host.playChannel(channel);
