@@ -5,10 +5,10 @@
   "outputDirectory": "dist/vercel",
   "regions": ["fra1"],
   "functions": {
-    "api/proxy.js": {
+    "api/proxy.mjs": {
       "maxDuration": 20
     },
-    "api/stream.js": {
+    "api/stream.mjs": {
       "maxDuration": 300,
       "supportsCancellation": true
     }

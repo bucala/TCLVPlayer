@@ -6,6 +6,12 @@ Všetky významné zmeny v projekte sú dokumentované v tomto súbore.
 >
 > Projekt používa [sémantické verziovanie](https://semver.org/).
 
+## [Unreleased]
+
+### Opravené
+
+- Vercel funkcie `/api/stream` a `/api/proxy` sú `.mjs` ES moduly. Vercel ich predtým zostavil ako CommonJS a pri štarte padali na `ERR_REQUIRE_ESM`, takže prehrávanie cez Vercel aj serverové sťahovanie zdrojov hlásili nedostupnosť.
+
 ## [1.4.0] — 2026-11-11
 
 ### Audit, výkon a voliteľný Vercel relay — 2026-11-11

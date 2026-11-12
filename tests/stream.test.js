@@ -1,8 +1,8 @@
 import http from "node:http";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { Buffer } from "node:buffer";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createRelay } from "../api/stream.js";
+import { createRelay } from "../api/stream.mjs";
 
 const servers = [];
 const publicDns = async () => [{ address: "93.184.216.34", family: 4 }];
@@ -360,11 +360,20 @@ describe("opt-in Vercel video relay", () => {
 
   it("is deployed with a time limit above its own stream cap and with cancellation", async () => {
     const config = JSON.parse(readFileSync(new URL("../vercel.json", import.meta.url), "utf8"));
-    const deployed = config.functions["api/stream.js"];
+    const deployed = config.functions["api/stream.mjs"];
     const { get } = await relay({ request: vi.fn() });
     expect(deployed.supportsCancellation).toBe(true);
     expect(deployed.maxDuration).toBeGreaterThan((await get("/api/stream?status")).json().maxStreamSeconds);
-    expect(config.functions["api/proxy.js"].maxDuration).toBe(20);
+    expect(config.functions["api/proxy.mjs"].maxDuration).toBe(20);
+  });
+
+  it("keeps hosting functions as ES modules the CommonJS package default cannot break", () => {
+    // Without "type": "module", Vercel bundles api/*.js as CommonJS and the
+    // bridge/*.mjs imports then fail at cold start with ERR_REQUIRE_ESM.
+    const packageType = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")).type;
+    const functions = readdirSync(new URL("../api/", import.meta.url));
+    if (packageType !== "module") expect(functions.filter(name => name.endsWith(".js"))).toEqual([]);
+    expect(functions).toEqual(expect.arrayContaining(["proxy.mjs", "stream.mjs"]));
   });
 
   it("stops reading from the provider when the viewer stops reading", async () => {

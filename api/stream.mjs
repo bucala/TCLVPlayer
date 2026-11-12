@@ -2,7 +2,7 @@ import { Agent, fetch as providerFetch } from "undici";
 import { parseTarget, resolveTarget } from "../bridge/security.mjs";
 import { rewriteManifest } from "../bridge/server.mjs";
 
-// Opt-in video relay for the web player. Unlike api/proxy.js it streams media,
+// Opt-in video relay for the web player. Unlike api/proxy.mjs it streams media,
 // so every relayed byte counts against the deployment's Vercel transfer quota.
 // Set TCLV_VIDEO_RELAY=off in the Vercel project to switch it off.
 const RELAY_SERVICE = "tclv-video-relay";

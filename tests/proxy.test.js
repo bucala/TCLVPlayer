@@ -2,7 +2,7 @@ import { EventEmitter } from "node:events";
 import { gzipSync } from "node:zlib";
 import { lookup } from "node:dns/promises";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import handler from "../api/proxy.js";
+import handler from "../api/proxy.mjs";
 
 vi.mock("node:dns/promises", () => ({ lookup: vi.fn() }));
 

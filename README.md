@@ -192,7 +192,7 @@ Lokálne pripravený Windows portable EXE hlavnej aplikácie je nepodpísaný te
 - `native/android/`: Media3 service, Capacitor plugin a Activity;
 - `native/electron/`: Windows shell a overené IPC;
 - `bridge/`, `web/`: spárovaný lokálny bridge a browser integrácia;
-- `api/proxy.js`: obmedzené serverové sťahovanie textových zdrojov;
+- `api/proxy.mjs`: obmedzené serverové sťahovanie textových zdrojov;
 - `scripts/`: zostavenie, generovanie a aktualizácie;
 - `tests/`: jednotkové a integračné kontroly so syntetickými dátami.
 

@@ -1,5 +1,5 @@
 /* global URL, process, document, window, localStorage, Buffer, fetch, console, __dirname, performance */
-// End-to-end checks of opt-in playback through the hosting relay (api/stream.js).
+// End-to-end checks of opt-in playback through the hosting relay (api/stream.mjs).
 // By default they use a synthetic local provider. To watch a real stream play,
 // set RELAY_LIVE_URL to an HLS address and BROWSER_CHANNEL to a browser with
 // H.264 support (for example msedge or chrome).
@@ -37,7 +37,7 @@ async function close(server) {
   const builtPlayer = await fs.readFile(path.join(directory, 'bridge-player.js'), 'utf8');
   assert.ok(builtPlayer.includes('id="vercelToggle"'), 'Generate the current Vercel build before running relay browser tests');
   await fs.mkdir(screenshots, { recursive: true });
-  const { createRelay } = await import('../api/stream.js');
+  const { createRelay } = await import('../api/stream.mjs');
 
   const providerRequests = [];
   let releaseSegments;
