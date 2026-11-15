@@ -57,13 +57,13 @@
     "@hevcjs/hlsjs-plugin": "0.1.13",
     "artplayer": "^5.2.5",
     "flv.js": "^1.6.2",
-    "hls.js": "^1.5.20",
+    "hls.js": "^1.7.4",
     "jplayer": "^2.9.2",
     "jquery": "^3.7.1",
     "mpegts.js": "^1.8.0",
     "sax": "^1.6.1",
     "undici": "^8.12.2",
-    "video.js": "^8.23.9"
+    "video.js": "^10.3.0"
   },
   "devDependencies": {
     "@capacitor/cli": "^8.5.3",
