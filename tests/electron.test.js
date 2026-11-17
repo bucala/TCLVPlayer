@@ -9,7 +9,7 @@ const source = readFileSync(new URL('../native/electron/main.js', import.meta.ur
 function desktop() {
   const handlers = new Map();
   const web = Object.assign(new EventEmitter(), { id: 1, mainFrame: { url: '' }, setWindowOpenHandler: vi.fn() });
-  const window = { webContents: web, loadFile: vi.fn(file => { web.mainFrame.url = pathToFileURL(file).href; }), isDestroyed: () => false };
+  const window = Object.assign(new EventEmitter(), { webContents: web, loadFile: vi.fn(file => { web.mainFrame.url = pathToFileURL(file).href; }), isDestroyed: () => false });
   const child = new EventEmitter(); child.kill = vi.fn();
   const spawn = vi.fn().mockImplementation(() => child);
   const session = { setPermissionRequestHandler: vi.fn(), setPermissionCheckHandler: vi.fn(), webRequest: { onBeforeSendHeaders: vi.fn(), onHeadersReceived: vi.fn() } };
@@ -17,7 +17,7 @@ function desktop() {
     BrowserWindow: function() { return window; }, session: { defaultSession: session }, Menu: { setApplicationMenu: vi.fn() }, ipcMain: { handle: (name, handler) => handlers.set(name, handler) }, dialog: {} };
   vm.runInNewContext(source, { __dirname: fileURLToPath(new URL('../native/electron/', import.meta.url)), process: { platform: 'win32', env: { TCLV_VLC_PATH: 'C:/Players/vlc.exe' } }, URL, require: name => name === 'electron' ? electron : name === 'node:child_process' ? { spawn } : require(name) });
   const event = { sender: web, senderFrame: web.mainFrame };
-  return { handlers, event, web, child, spawn, session };
+  return { handlers, event, web, window, child, spawn, session };
 }
 describe('desktop boundary and external playback', () => {
   it('rejects external process requests from a subframe or another renderer', async () => {
@@ -45,5 +45,13 @@ describe('desktop boundary and external playback', () => {
     const { web } = desktop();
     expect(web.setWindowOpenHandler.mock.calls[0][0]()).toEqual({ action: 'deny' });
     const event = { preventDefault: vi.fn() }; web.emit('will-navigate', event, 'https://other.example'); expect(event.preventDefault).toHaveBeenCalled();
+  });
+  it('does not throw "Object has been destroyed" when a network request arrives after the window closes', () => {
+    const { window, session } = desktop();
+    window.emit('closed');
+    const onBeforeSendHeaders = session.webRequest.onBeforeSendHeaders.mock.calls[0][1];
+    const onHeadersReceived = session.webRequest.onHeadersReceived.mock.calls[0][1];
+    expect(() => onBeforeSendHeaders({ webContentsId: 1, requestHeaders: {} }, vi.fn())).not.toThrow();
+    expect(() => onHeadersReceived({ webContentsId: 1, responseHeaders: {}, resourceType: 'xhr' }, vi.fn())).not.toThrow();
   });
 });
