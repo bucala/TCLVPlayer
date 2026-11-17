@@ -10,18 +10,23 @@ const browserAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.
 app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
 if (!app.requestSingleInstanceLock()) app.quit();
 let mainWindow;
-function trusted(event) { return event.sender === mainWindow?.webContents && event.senderFrame === mainWindow.webContents.mainFrame && event.senderFrame.url === APP_URL; }
+function isWindowLive() { return !!mainWindow && !mainWindow.isDestroyed(); }
+function mainWebContentsId() { return isWindowLive() ? mainWindow.webContents.id : null; }
+function trusted(event) {
+  if (!isWindowLive()) return false;
+  return event.sender === mainWindow.webContents && event.senderFrame === mainWindow.webContents.mainFrame && event.senderFrame.url === APP_URL;
+}
 function configureSession() {
   session.defaultSession.setPermissionRequestHandler((_wc, permission, callback) => callback(permission === 'fullscreen'));
   session.defaultSession.setPermissionCheckHandler((_wc, permission) => permission === 'fullscreen');
   session.defaultSession.webRequest.onBeforeSendHeaders({ urls: ['http://*/*', 'https://*/*'] }, (details, callback) => {
-    if (details.webContentsId !== mainWindow?.webContents.id) return callback({ requestHeaders: details.requestHeaders });
+    if (details.webContentsId !== mainWebContentsId()) return callback({ requestHeaders: details.requestHeaders });
     details.requestHeaders['User-Agent'] = browserAgent;
     callback({ requestHeaders: details.requestHeaders });
   });
   session.defaultSession.webRequest.onHeadersReceived({ urls: ['http://*/*', 'https://*/*'] }, (details, callback) => {
     const headers = details.responseHeaders || {};
-    if (details.webContentsId === mainWindow?.webContents.id && ['xhr', 'media'].includes(details.resourceType)) {
+    if (details.webContentsId === mainWebContentsId() && ['xhr', 'media'].includes(details.resourceType)) {
       for (const key of Object.keys(headers)) if (key.toLowerCase() === 'access-control-allow-origin') delete headers[key];
       headers['Access-Control-Allow-Origin'] = ['*'];
     }
@@ -34,6 +39,7 @@ function createWindow() {
     backgroundColor: '#000000', title: 'TCLVPlayer', icon: path.resolve(__dirname, '../../assets/icon.png'),
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false,
       sandbox: true, backgroundThrottling: false, webSecurity: true, navigateOnDragDrop: false } });
+  mainWindow.on('closed', () => { mainWindow = null; });
   mainWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   mainWindow.webContents.on('will-navigate', (event, url) => { if (url !== APP_URL) event.preventDefault(); });
   mainWindow.webContents.on('will-attach-webview', event => event.preventDefault());
@@ -58,7 +64,7 @@ ipcMain.handle('open-external-player', async (event, data) => {
     child.once('exit', () => { if (players.get(data.player) === child) players.delete(data.player); });
   });
 });
-app.on('second-instance', () => { if (mainWindow) { if (mainWindow.isMinimized()) mainWindow.restore(); mainWindow.focus(); } });
+app.on('second-instance', () => { if (isWindowLive()) { if (mainWindow.isMinimized()) mainWindow.restore(); mainWindow.focus(); } });
 app.whenReady().then(() => { configureSession(); createWindow(); app.on('activate', () => { if (!BrowserWindow.getAllWindows().length) createWindow(); }); });
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
 app.on('before-quit', () => { for (const child of players.values()) child.kill(); });
